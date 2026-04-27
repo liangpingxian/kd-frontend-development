@@ -1,0 +1,4 @@
+interface:
+  display_name: "KWC Project Scaffold"
+  short_description: "Guide KWC project setup, deploy, and debug flows"
+  default_prompt: "Help me initialize or extend a KWC project, including creating components, page metadata, environment setup, deployment, and debugging."

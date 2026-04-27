@@ -1,0 +1,51 @@
+/**
+ * KWC LWC 组件样式示例
+ * 必须使用 Shoelace Design Token，禁止硬编码色值和 px 数值
+ */
+
+.container {
+  /* 使用间距 Token */
+  padding: var(--sl-spacing-medium);
+  
+  /* 使用颜色 Token */
+  background-color: var(--sl-color-neutral-50);
+  border: 1px solid var(--sl-color-neutral-300);
+  
+  /* 使用圆角 Token */
+  border-radius: var(--sl-border-radius-medium);
+}
+
+.btn-primary {
+  /* 品牌色 */
+  background-color: var(--sl-color-primary-600);
+  color: var(--sl-color-neutral-0);
+  
+  /* 内边距 */
+  padding: var(--sl-spacing-small) var(--sl-spacing-medium);
+  
+  /* 字号 */
+  font-size: var(--sl-font-size-small);
+  
+  /* 圆角 */
+  border-radius: var(--sl-border-radius-medium);
+}
+
+.btn-default {
+  background-color: var(--sl-color-neutral-0);
+  color: var(--sl-color-neutral-700);
+  border: 1px solid var(--sl-color-neutral-300);
+  padding: var(--sl-spacing-small) var(--sl-spacing-medium);
+  font-size: var(--sl-font-size-small);
+  border-radius: var(--sl-border-radius-medium);
+}
+
+/* 允许硬编码的例外情况：
+   - 布局固定尺寸：width、height、max-width、min-height
+   - 行高：line-height
+   - 边框宽度：border: 1px solid ...
+*/
+.input-wrapper {
+  width: 100%;  /* 允许 */
+  max-width: 300px;  /* 允许 */
+  line-height: 1.5;  /* 允许 */
+}

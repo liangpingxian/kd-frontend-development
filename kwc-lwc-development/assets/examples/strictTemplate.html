@@ -1,0 +1,61 @@
+<template>
+  <div class={containerClass}>
+    <!-- ✅ 正确：简单属性绑定 -->
+    <h1>{title}</h1>
+    <p>Count: {count}</p>
+    
+    <!-- ❌ 错误示范（严禁）：
+    <p>{count + 1}</p>
+    <div class={isActive ? 'active' : 'inactive'}>
+    <span>{label.toUpperCase()}</span>
+    -->
+    
+    <!-- ✅ 正确：LWC 事件绑定（无 sl- 前缀，使用原生事件名） -->
+    <sl-input 
+      kwc:external 
+      class="inputEl" 
+      value={inputValue} 
+      placeholder="输入内容" 
+    ></sl-input>
+    
+    <!-- ✅ 正确：标准事件 -->
+    <sl-button 
+      kwc:external 
+      variant={variant} 
+      class="btnEl" 
+      onclick={handleClick} 
+    >
+      点击
+    </sl-button>
+    
+    <sl-select 
+      kwc:external 
+      class="selectEl" 
+      value={selectedValue} 
+    >
+      <sl-option kwc:external value="a">选项A</sl-option>
+    </sl-select>
+
+    <!-- 
+      ✅ 正确：属性名全小写且使用 kebab-case（Web Components 标准）
+      ❌ 错误：pageSize={pagination.pageSize}、currentPage={pagination.currentPage}
+    -->
+    <sl-table
+      kwc:external
+      page-size={pagination.pageSize}
+      current-page={pagination.currentPage}
+    ></sl-table>
+    
+    <!-- 
+      ✅ 正确：显式闭合标签（严禁自闭合） 
+      ❌ 错误：<sl-input ... />、<br/>、<img/> 
+    --> 
+    <sl-icon kwc:external name="star"></sl-icon>
+
+    <!-- 
+      ✅ 正确：内部组件（禁止添加 kwc:external） 
+    -->
+    <kwc-field-group label="基本信息"></kwc-field-group>
+    
+  </div>
+</template>
