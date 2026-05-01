@@ -2,23 +2,24 @@
 
 /**
  * KWC 环境一键配置脚本
- * 自动完成环境创建 + OpenAPI 认证，避免多步交互
+ * 使用 kd env 原生参数完成环境创建 + OpenAPI 认证，跨平台（macOS / Linux / Windows）
+ * 多数据中心时自动打印候选并以退出码 2 终止，提示通过 --datacenter <accountId> 指定后重跑
  * 零外部依赖，仅使用 Node.js 内置模块
  * 公共基础设施函数来自 ./_shared.mjs
  */
 
 import { spawn, execSync } from 'node:child_process'
-import { writeFileSync, unlinkSync, readFileSync } from 'node:fs'
-import { tmpdir, homedir } from 'node:os'
+import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { createFatal, parseArgs } from './_shared.mjs'
+import { createFatal, parseArgs, fetchDatacenters, loadEnvConfig } from './_shared.mjs'
 
 const fatal = createFatal('setup-env')
 
 // ─── 常量 ───────────────────────────────────────────────
 
-const AUTH_TIMEOUT_MS = 60_000
 const ALWAYS_REQUIRED = ['envName', 'clientId', 'clientSecret', 'username']
+const EXIT_NEED_DATACENTER = 2  // 多数据中心且未指定 --datacenter 时的专用退出码
 
 // ─── 工具函数 ───────────────────────────────────────────
 
@@ -52,16 +53,24 @@ function createEnv(envName, envUrl) {
   }
 }
 
-// ─── expect 执行器 ──────────────────────────────────────
+// ─── 认证执行器 ─────────────────────────────────────────
 
-/** 生成 expect 脚本写入临时文件并执行，返回 Promise */
-function runExpect(expectScript, timeoutMs = AUTH_TIMEOUT_MS) {
+/**
+ * 调用 kd env auth openapi 原生参数完成 OpenAPI 认证（无需 TTY/expect）
+ * 使用 spawn + 参数数组，避免 shell 注入与特殊字符转义问题
+ */
+function runAuth(envName, datacenterId, clientId, clientSecret, username) {
   return new Promise((resolve, reject) => {
-    const tmpFile = join(tmpdir(), `kd-expect-${Date.now()}.exp`)
-    writeFileSync(tmpFile, expectScript, 'utf-8')
-
-    const proc = spawn('expect', [tmpFile], {
+    const proc = spawn('kd', [
+      'env', 'auth', 'openapi',
+      '-e', envName,
+      '--datacenter', String(datacenterId),
+      '--client-id', clientId,
+      '--client-secret', clientSecret,
+      '--username', username,
+    ], {
       stdio: ['ignore', 'pipe', 'pipe'],
+      shell: process.platform === 'win32',
     })
 
     let stdout = ''
@@ -69,71 +78,12 @@ function runExpect(expectScript, timeoutMs = AUTH_TIMEOUT_MS) {
     proc.stdout.on('data', d => { stdout += d })
     proc.stderr.on('data', d => { stderr += d })
 
-    const timer = setTimeout(() => {
-      proc.kill()
-      try { unlinkSync(tmpFile) } catch {}
-      reject(new Error('expect 执行超时'))
-    }, timeoutMs)
-
+    proc.on('error', err => reject(new Error(`启动 kd env auth openapi 失败: ${err.message}`)))
     proc.on('close', code => {
-      clearTimeout(timer)
-      try { unlinkSync(tmpFile) } catch {}
       if (code === 0) resolve({ stdout, stderr })
-      else reject(new Error(`expect exit ${code}: ${stderr || stdout}`))
-    })
-
-    proc.on('error', err => {
-      clearTimeout(timer)
-      try { unlinkSync(tmpFile) } catch {}
-      reject(new Error(`无法启动 expect: ${err.message}`))
+      else reject(new Error(`kd env auth openapi 退出码 ${code}: ${stderr || stdout}`))
     })
   })
-}
-
-// ─── 交互自动化 ─────────────────────────────────────────
-
-/** 使用 expect 驱动 kd env auth openapi 的交互式认证流程 */
-function runAuth(envName, clientId, clientSecret, username) {
-  // 转义 Tcl 特殊字符
-  const esc = s => s.replace(/[\\";\[\]\${}]/g, '\\$&')
-
-  const script = `#!/usr/bin/expect -f
-set timeout ${Math.floor(AUTH_TIMEOUT_MS / 1000)}
-
-spawn kd env auth openapi -e ${esc(envName)}
-
-# 1. 数据中心选择 - 回车选默认
-expect {
-  -re "data center|datacenter|数据中心" { send "\r" }
-  timeout { puts stderr "timeout waiting for datacenter prompt"; exit 1 }
-}
-
-# 2. clientId
-expect {
-  -re "client.?id|Client.?ID|client_id" { send "${esc(clientId)}\r" }
-  timeout { puts stderr "timeout waiting for clientId prompt"; exit 1 }
-}
-
-# 3. clientSecret
-expect {
-  -re "client.?secret|Client.?Secret|client_secret" { send "${esc(clientSecret)}\r" }
-  timeout { puts stderr "timeout waiting for clientSecret prompt"; exit 1 }
-}
-
-# 4. username
-expect {
-  -re "username|用户名|user.?name" { send "${esc(username)}\r" }
-  timeout { puts stderr "timeout waiting for username prompt"; exit 1 }
-}
-
-expect eof
-
-# 检查退出码
-foreach {pid spawnid os_error_flag value} [wait] break
-exit $value
-`
-
-  return runExpect(script)
 }
 
 /** 验证认证状态（直接读取 ~/.kd/config.json 验证关键字段） */
@@ -175,33 +125,83 @@ async function main() {
   // 1. 校验始终必填的参数
   for (const key of ALWAYS_REQUIRED) {
     if (!opts[key] || opts[key] === true) {
-      fatal(`缺少必填参数 --${key}\n用法: node setup-env.mjs --envName <name> [--envUrl <url>] --clientId <id> --clientSecret <secret> --username <user>\n说明: --envUrl 在环境不存在时必填，环境已存在时可省略`)
+      fatal(`缺少必填参数 --${key}\n用法: node setup-env.mjs --envName <name> [--envUrl <url>] --clientId <id> --clientSecret <secret> --username <user> [--datacenter <accountId>]\n说明: --envUrl 在环境不存在时必填；--datacenter 仅在多数据中心时必填`)
     }
   }
 
   const { envName, envUrl, clientId, clientSecret, username } = opts
-  let created = false
+  const userDatacenter = (opts.datacenter && opts.datacenter !== true) ? opts.datacenter : null
 
-  // 2. 检查环境是否已存在
-  if (envExists(envName)) {
-    console.error(`[setup-env] 环境 "${envName}" 已存在，跳过创建步骤`)
-  } else {
-    // 3. 环境不存在时 envUrl 为必填
-    if (!envUrl || envUrl === true) {
+  // 2. 确定 envUrl（不管环境是否存在，要做数据中心探测都需要）
+  const existing = envExists(envName)
+  let effectiveEnvUrl = (envUrl && envUrl !== true) ? envUrl : null
+  if (!effectiveEnvUrl) {
+    if (existing) {
+      try {
+        effectiveEnvUrl = loadEnvConfig(envName).url
+      } catch (e) {
+        fatal(`无法从配置文件读取环境 "${envName}" 的 url: ${e.message}`)
+      }
+    } else {
       fatal(`环境 "${envName}" 不存在，需要创建新环境，但缺少必填参数 --envUrl\n用法: node setup-env.mjs --envName <name> --envUrl <url> --clientId <id> --clientSecret <secret> --username <user>`)
     }
-    createEnv(envName, envUrl)
-    created = true
   }
 
-  // 4. 自动完成认证
+  // 3. 先拉取数据中心列表（无副作用探测，失败不会污染本地 ~/.kd/config.json）
+  let datacenters
   try {
-    await runAuth(envName, clientId, clientSecret, username)
+    datacenters = await fetchDatacenters(effectiveEnvUrl, clientId)
+  } catch (err) {
+    fatal(`数据中心获取失败: ${err.message}`)
+  }
+
+  // 4. 决定使用哪个 accountId（多个且未指定时直接 exit 2，不走后续副作用）
+  let datacenterId
+  if (datacenters.length === 1) {
+    datacenterId = datacenters[0].id
+    console.error(`[setup-env] 检测到唯一数据中心: ${datacenters[0].name} (accountId=${datacenterId})，自动选用`)
+  } else if (userDatacenter) {
+    const matched = datacenters.find(d => String(d.id) === String(userDatacenter))
+    if (!matched) {
+      console.error(`[setup-env] --datacenter "${userDatacenter}" 不在可用列表中，可用候选：\n`)
+      for (const d of datacenters) {
+        console.error(`  ${d.name}\t(accountId=${d.id})`)
+      }
+      process.exit(EXIT_NEED_DATACENTER)
+    }
+    datacenterId = matched.id
+    console.error(`[setup-env] 使用指定数据中心: ${matched.name} (accountId=${datacenterId})`)
+  } else {
+    // 多个且未指定→ 打印候选 + 退出码 2（此时本地还没 createEnv，不会产生孤儿环境）
+    console.error('[setup-env] 该环境有多个可用数据中心，请通过 --datacenter <accountId> 指定后重跑：\n')
+    for (const d of datacenters) {
+      console.error(`  ${d.name}\t(accountId=${d.id})`)
+    }
+    console.error('\n示例:')
+    console.error(
+      `  node scripts/setup-env.mjs --envName ${envName}${envUrl && envUrl !== true ? ` --envUrl ${envUrl}` : ''} ` +
+      `--clientId ${clientId} --clientSecret <secret> --username ${username} --datacenter ${datacenters[0].id}`
+    )
+    process.exit(EXIT_NEED_DATACENTER)
+  }
+
+  // 5. 数据中心确认可用后，再创建本地 env（如果还不存在）
+  let created = false
+  if (!existing) {
+    createEnv(envName, effectiveEnvUrl)
+    created = true
+  } else {
+    console.error(`[setup-env] 环境 "${envName}" 已存在，跳过创建步骤`)
+  }
+
+  // 6. 调用 kd env auth openapi 完成认证
+  try {
+    await runAuth(envName, datacenterId, clientId, clientSecret, username)
   } catch (err) {
     fatal(err.message)
   }
 
-  // 5. 验证认证状态（从配置文件验证，而非仅检查环境列表）
+  // 6. 验证认证状态（从配置文件验证，而非仅检查环境列表）
   const authResult = verifyAuth(envName)
   if (!authResult.success) {
     fatal(`认证未落库: ${authResult.reason}\n请手动执行 kd env auth openapi -e ${envName} 进行认证`)
@@ -213,7 +213,8 @@ async function main() {
   const result = {
     success: true,
     envName,
-    ...(envUrl ? { envUrl } : {}),
+    ...(envUrl && envUrl !== true ? { envUrl } : {}),
+    datacenter: datacenterId,
     authenticated: true,
     message: created
       ? `环境 ${envName} 创建并认证成功`

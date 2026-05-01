@@ -114,11 +114,6 @@ async function main() {
   const env = loadEnvConfig(opts.env)
   const token = await resolveToken(env)
 
-  // getEntityFields 需要 isv
-  if (command === 'getEntityFields' && !env.isv) {
-    fatal('当前环境未配置 isv（开发商标识），请检查环境配置')
-  }
-
   // 执行命令并输出结果
   const result = await cmd.run(opts, env, token)
   console.log(JSON.stringify(result, null, 2))

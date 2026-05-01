@@ -2,14 +2,14 @@
 
 /**
  * KWC 工程初始化脚本
- * 将 kd project init 的交互式流程封装为一键参数化调用
+ * 使用 kd project init 原生参数一键创建工程，跨平台（macOS / Linux / Windows）
  * 零外部依赖，仅使用 Node.js 内置模块
  * 公共基础设施函数来自 ./_shared.mjs
  */
 
 import { parseArgs, createFatal } from './_shared.mjs'
 import { spawn, execSync } from 'node:child_process'
-import { writeFileSync, unlinkSync, existsSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 
@@ -19,9 +19,8 @@ const fatal = createFatal('project-init')
 
 const VALID_FRAMEWORKS = ['react', 'vue', 'lwc']
 const VALID_LANGUAGES = ['ts', 'js']
-const INTERACT_TIMEOUT_MS = 120_000
 
-const USAGE = `用法: node project-init.mjs --name <name> --framework <react|vue|lwc> --language <ts|js> --app <appCode> [--cwd <path>]
+const USAGE = `用法: node project-init.mjs --name <name> --framework <react|vue|lwc> --language <ts|js> --app <appCode> [--cwd <path>] [--registry <url>] [--skipInstall]
 
 必填参数:
   --name        项目名称
@@ -31,48 +30,13 @@ const USAGE = `用法: node project-init.mjs --name <name> --framework <react|vu
 
 可选参数:
   --cwd <path>       工程创建的目标目录（可选，默认当前目录）
+  --registry <url>   npm 镜像地址（可选，默认读环境变量 KWC_NPM_REGISTRY；常用: https://registry.npmmirror.com）
+  --skipInstall      跳过 npm install（可选，适合 CI / AI agent 超时场景，由调用方后续自行安装）
 
 示例:
-  node project-init.mjs --name my-project --framework react --language ts --app kdec_contract --cwd /workspace`
-
-// ─── expect 执行器 ──────────────────────────────────────
-
-/** 生成 expect 脚本写入临时文件并执行，返回 Promise */
-function runExpect(expectScript, { timeoutMs = INTERACT_TIMEOUT_MS, cwd } = {}) {
-  return new Promise((resolve, reject) => {
-    const tmpFile = path.join(os.tmpdir(), `kd-expect-${Date.now()}.exp`)
-    writeFileSync(tmpFile, expectScript, 'utf-8')
-
-    const spawnOpts = { stdio: ['ignore', 'pipe', 'pipe'] }
-    if (cwd) spawnOpts.cwd = cwd
-
-    const proc = spawn('expect', [tmpFile], spawnOpts)
-
-    let stdout = ''
-    let stderr = ''
-    proc.stdout.on('data', d => { stdout += d })
-    proc.stderr.on('data', d => { stderr += d })
-
-    const timer = setTimeout(() => {
-      proc.kill()
-      try { unlinkSync(tmpFile) } catch {}
-      reject(new Error('expect 执行超时'))
-    }, timeoutMs)
-
-    proc.on('close', code => {
-      clearTimeout(timer)
-      try { unlinkSync(tmpFile) } catch {}
-      if (code === 0) resolve({ stdout, stderr })
-      else reject(new Error(`expect exit ${code}: ${stderr || stdout}`))
-    })
-
-    proc.on('error', err => {
-      clearTimeout(timer)
-      try { unlinkSync(tmpFile) } catch {}
-      reject(new Error(`无法启动 expect: ${err.message}`))
-    })
-  })
-}
+  node project-init.mjs --name my-project --framework react --language ts --app kdec_contract --cwd /workspace
+  node project-init.mjs --name my-project --framework react --language ts --app kdec_contract --registry https://registry.npmmirror.com
+  node project-init.mjs --name my-project --framework react --language ts --app kdec_contract --skipInstall`
 
 // ─── 工具函数 ────────────────────────────────────────────
 
@@ -92,85 +56,64 @@ function ensureKdCli() {
 }
 
 /**
- * 使用 expect 驱动 kd project init 并自动完成交互
+ * 调用 kd project init 原生参数完成工程初始化（无需交互）
  * @returns {Promise<void>}
  */
 function runKdProjectInit(name, framework, language, app, cwdPath) {
-  // 转义 Tcl 特殊字符
-  const esc = s => s.replace(/[\\";\[\]\${}]/g, '\\$&')
-
-  // 框架和语言的序号映射（基于 kd CLI 选项顺序）
-  // react=第1项, vue=第2项, lwc=第3项
-  const frameworkIndex = { react: 0, vue: 1, lwc: 2 }
-  // ts=第1项, js=第2项
-  const languageIndex = { ts: 0, js: 1 }
-
-  // 生成方向键序列：从第一项开始，发送下键移动到目标位置
-  const arrowDown = '\\033[B'
-  const frameworkArrows = arrowDown.repeat(frameworkIndex[framework] || 0)
-  const languageArrows = arrowDown.repeat(languageIndex[language] || 0)
-
-  const script = `#!/usr/bin/expect -f
-set timeout ${Math.floor(INTERACT_TIMEOUT_MS / 1000)}
-
-spawn kd project init ${esc(name)}
-
-# 1. 框架选择
-expect {
-  -re "framework|框架|React|Vue|LWC" {
-    ${frameworkArrows ? `send "${frameworkArrows}";
-    sleep 0.2;
-    ` : ''}send "\r"
-  }
-  timeout { puts stderr "timeout waiting for framework prompt"; exit 1 }
-}
-
-# 2. 语言选择
-expect {
-  -re "language|语言|TypeScript|JavaScript" {
-    ${languageArrows ? `send "${languageArrows}";
-    sleep 0.2;
-    ` : ''}send "\r"
-  }
-  timeout { puts stderr "timeout waiting for language prompt"; exit 1 }
-}
-
-# 3. 应用编码输入
-expect {
-  -re "app|应用|appCode|bizApp" { send "${esc(app)}\r" }
-  timeout { puts stderr "timeout waiting for app prompt"; exit 1 }
-}
-
-expect eof
-
-# 检查退出码
-foreach {pid spawnid os_error_flag value} [wait] break
-exit $value
-`
-
-  return runExpect(script, { cwd: cwdPath })
+  return new Promise((resolve, reject) => {
+    const proc = spawn(
+      'kd',
+      ['project', 'init', name,
+        '--framework', framework,
+        '--language', language,
+        '--app', app],
+      {
+        cwd: cwdPath,
+        stdio: 'inherit',
+        shell: process.platform === 'win32',
+      }
+    )
+    proc.on('error', err => reject(new Error(`启动 kd project init 失败: ${err.message}`)))
+    proc.on('close', code => {
+      if (code === 0) resolve()
+      else reject(new Error(`kd project init 退出码 ${code}`))
+    })
+  })
 }
 
 /**
  * 在项目目录中执行 npm install
+ * @param {string} projectDir 项目目录
+ * @param {string|null} registry 可选 npm 镜像地址，传入后将附加 --registry 参数
  * @returns {Promise<void>}
  */
-function runNpmInstall(projectDir) {
+function runNpmInstall(projectDir, registry) {
   if (!existsSync(projectDir)) {
     return Promise.reject(new Error(`项目目录不存在: ${projectDir}，请确认 kd project init 是否成功创建了工程`))
   }
+  const args = ['install']
+  if (registry) args.push('--registry', registry)
+
   return new Promise((resolve, reject) => {
-    const proc = spawn('npm', ['install'], {
+    const proc = spawn('npm', args, {
       cwd: projectDir,
       stdio: 'inherit',
       shell: true,
     })
 
+    // 每 30s 打一次心跳，避免外部调用方（CI/AI agent）在 npm 下载期间误判为卡死
+    const heartbeat = setInterval(() => {
+      console.error(`[project-init] 依赖安装中...（如被外部超时打断，可下次用 --skipInstall 跳过，再在长驻终端里手动 npm install）`)
+    }, 30_000)
+    heartbeat.unref?.()
+
     proc.on('error', (err) => {
+      clearInterval(heartbeat)
       reject(new Error(`启动 npm install 失败: ${err.message}`))
     })
 
     proc.on('close', (code) => {
+      clearInterval(heartbeat)
       if (code !== 0) {
         reject(new Error(`npm install 退出码 ${code}`))
       } else {
@@ -196,6 +139,11 @@ async function main() {
   if (args.cwd && !existsSync(cwdPath)) {
     fatal(`--cwd 目录不存在: ${cwdPath}`)
   }
+
+  const skipInstall = args.skipInstall === true || args.skipInstall === 'true'
+  const registry = (args.registry && args.registry !== true)
+    ? args.registry
+    : (process.env.KWC_NPM_REGISTRY || null)
 
   // 校验必填参数
   const { name, framework, language, app } = args
@@ -223,13 +171,19 @@ async function main() {
     fatal(`kd project init 失败: ${err.message}`)
   }
 
-  // 执行 npm install
+  // 执行 npm install（可跳过）
   const projectDir = path.resolve(cwdPath, name)
-  console.error('[project-init] 正在安装依赖...')
-  try {
-    await runNpmInstall(projectDir)
-  } catch (err) {
-    fatal(`npm install 失败: ${err.message}`)
+  let installed = false
+  if (skipInstall) {
+    console.error('[project-init] 已通过 --skipInstall 跳过依赖安装')
+  } else {
+    console.error(`[project-init] 正在安装依赖...${registry ? ` (registry=${registry})` : ''}`)
+    try {
+      await runNpmInstall(projectDir, registry)
+      installed = true
+    } catch (err) {
+      fatal(`npm install 失败: ${err.message}`)
+    }
   }
 
   // 输出结果摘要
@@ -240,6 +194,13 @@ async function main() {
     language,
     app,
     path: projectDir,
+    installed,
+    ...(skipInstall ? {
+      nextSteps: [
+        `cd ${projectDir}`,
+        registry ? `npm install --registry ${registry}` : 'npm install',
+      ],
+    } : {}),
   }
   console.log(JSON.stringify(result, null, 2))
 }

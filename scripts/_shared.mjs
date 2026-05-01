@@ -122,6 +122,44 @@ export function toInt(value, paramName) {
   return n
 }
 
+// ─── 数据中心（认证前，不需要鉴权） ──────────────────────
+
+/**
+ * 拉取环境可用的数据中心列表（用于 kd env auth openapi 的 --datacenter 入参）
+ * 接口: POST <envUrl>/auth/getAllDatacenters.do
+ * 返回形态统一为 [{ id: accountId, name: accountName }]
+ * @param {string} envUrl
+ * @param {string} clientId
+ * @returns {Promise<Array<{id: string, name: string}>>}
+ */
+export async function fetchDatacenters(envUrl, clientId) {
+  const url = `${normalizeUrl(envUrl)}/auth/getAllDatacenters.do`
+  let resp
+  try {
+    resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: clientId }),
+    })
+  } catch (e) {
+    throw new Error(`请求数据中心接口失败: ${e.message} (url=${url})`)
+  }
+
+  const data = await safeJson(resp)
+  // 兼容几种常见返回壳: { data: [...] } / { datacenters: [...] } / [...]
+  const list = Array.isArray(data) ? data : (data.data || data.datacenters || [])
+  if (!Array.isArray(list) || list.length === 0) {
+    throw new Error(`数据中心列表为空或结构异常: ${JSON.stringify(data).slice(0, 300)}`)
+  }
+
+  return list
+    .map(d => ({
+      id: d.accountId,
+      name: d.accountName,
+    }))
+    .filter(d => d.id)
+}
+
 // ─── 鉴权 ───────────────────────────────────────────────
 
 /** POST getToken 接口获取新 access_token */

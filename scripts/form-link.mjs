@@ -31,7 +31,7 @@ function extractTag(content, tagName) {
 function generate(opts) {
   // 校验必填参数
   if (!opts.pageMeta) {
-    fatal('缺少必填参数 --pageMeta\n用法: node form-link.mjs generate --pageMeta <path> [--formNumber <entity-formNumber>] [--env <envName>]')
+    fatal('缺少必填参数 --pageMeta\n用法: node form-link.mjs generate --pageMeta <path> [--env <envName>]')
   }
 
   // 读取页面元数据文件
@@ -56,21 +56,11 @@ function generate(opts) {
   // 加载环境配置
   const env = loadEnvConfig(opts.env)
 
-  // formNumber 需要 isv
-  const formNumber = opts.formNumber
-  if (formNumber && !env.isv) {
-    fatal('当前环境未配置 isv（开发商标识），请检查环境配置')
-  }
-
   // 构建输出
   const baseUrl = normalizeUrl(env.url)
   const url = `${baseUrl}/?formId=${pageName}`
 
   const result = { title, url }
-
-  if (formNumber) {
-    result.metadata = `${baseUrl}/kapi/v2/${env.isv}/mdl/meta-query/getEntityFields?formNumber=${formNumber}`
-  }
 
   console.log(`:::render:kdform ${JSON.stringify(result)}:::`)
 }
@@ -81,7 +71,7 @@ function main() {
   const [command, ...rest] = process.argv.slice(2)
 
   if (command !== 'generate') {
-    console.error('用法: node form-link.mjs generate --pageMeta <path> [--formNumber <entity-formNumber>] [--env <envName>]')
+    console.error('用法: node form-link.mjs generate --pageMeta <path> [--env <envName>]')
     process.exit(1)
   }
 
