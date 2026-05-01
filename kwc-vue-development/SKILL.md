@@ -70,6 +70,32 @@
 
 ## 4. 关键约束摘要
 
+### ⚠️ KWC 组件入参规范（高频踩坑）
+
+KWC 运行时**直接将 KwcConfig 的字段作为 props 传入组件**，不会用 `{ config }` 包裹。
+
+✅ 正确写法：
+```vue
+<script setup lang="ts">
+// KwcConfig 的字段直接作为 props
+const props = defineProps<{ pageId: string; componentId: string; isvId: string; moduleId: string }>();
+const { pageId, isvId } = toRefs(props);
+</script>
+```
+
+❌ 错误写法（会导致 `Cannot read properties of undefined`）：
+```vue
+<script setup lang="ts">
+// ❌ config 是 undefined，运行时崩溃
+const props = defineProps<{ config: KwcConfig }>();
+const pageId = props.config.pageId;
+</script>
+```
+
+**原因**：KWC 框架在渲染组件时，是 `<MyComponent v-bind="kwcConfig" />`，而不是 `<MyComponent :config="kwcConfig" />`。
+
+---
+
 完整约束详见**本 Skill 目录下的** `rule.md`，以下仅列最核心要点：
 - **导入**：`import '@kdcloudjs/shoelace/dist/components/[component]/[component].js';`，业务组件从 `shoelace-biz` 导入
 - **事件**：使用 `@sl-change` 绑定

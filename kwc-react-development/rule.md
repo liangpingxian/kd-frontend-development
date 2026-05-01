@@ -23,6 +23,34 @@
 - 页面布局**必须参考** `references/page-design-guide.md` 中的模板和组件组合模式
 - 样式**必须使用** Design Token（CSS 变量），禁止硬编码颜色、字号、间距、圆角等数值
 
+## P0：KWC 组件入参规范（⚠️ 高频踩坑）
+
+KWC 运行时**直接将 KwcConfig 的字段作为 props 传入组件**，不会用 `{ config }` 包裹。
+
+✅ 正确写法：
+```tsx
+// 方式 1：直接从 props 取值
+function MyComponent(props: KwcConfig) {
+  const { pageId, componentId, isvId, moduleId } = props;
+}
+
+// 方式 2：解构
+function MyComponent({ pageId, componentId, isvId, moduleId, ...rest }: KwcConfig) {
+  // 直接使用 pageId、isvId 等
+}
+```
+
+❌ 错误写法（会导致 `Cannot read properties of undefined`）：
+```tsx
+function MyComponent(props: { config: KwcConfig }) {
+  const { pageId } = props.config; // ❌ props.config 是 undefined，运行时崩溃
+}
+```
+
+**原因**：KWC 框架在渲染组件时，是 `<MyComponent {...kwcConfig} />`，而不是 `<MyComponent config={kwcConfig} />`。
+
+> 注意：本文档其他章节中提及的 `config.isvId`、`config.moduleId` 等，均指组件直接接收的 props（或解构后的变量），**不是** `props.config`。
+
 ## 1. 导入规范 (Imports)
 - **基础组件源**: 从 `@kdcloudjs/shoelace` 导入：`@kdcloudjs/shoelace/dist/react/[component]/index.js`。
 - **业务组件源**: 从 `@kdcloudjs/shoelace-biz` 导入：`@kdcloudjs/shoelace-biz/dist/react/[component]/index.js`。

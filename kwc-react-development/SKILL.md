@@ -52,6 +52,34 @@
 
 ## 3. 关键约束摘要
 
+### ⚠️ KWC 组件入参规范（高频踩坑）
+
+KWC 运行时**直接将 KwcConfig 的字段作为 props 传入组件**，不会用 `{ config }` 包裹。
+
+✅ 正确写法：
+```tsx
+// 方式 1：直接从 props 取值
+function MyComponent(props: KwcConfig) {
+  const { pageId, componentId } = props;
+}
+
+// 方式 2：解构
+function MyComponent({ pageId, componentId, ...rest }: KwcConfig) {
+  // 直接使用 pageId
+}
+```
+
+❌ 错误写法（会导致 `Cannot read properties of undefined`）：
+```tsx
+function MyComponent(props: { config: KwcConfig }) {
+  const { pageId } = props.config; // ❌ props.config 是 undefined
+}
+```
+
+**原因**：KWC 框架在渲染组件时，是 `<MyComponent {...kwcConfig} />`，而不是 `<MyComponent config={kwcConfig} />`。
+
+---
+
 完整约束详见**本 Skill 目录下的** `rule.md`，以下仅列最核心要点：
 - **导入**：组件从 `@kdcloudjs/shoelace/dist/react/*/index.js` 导入，业务组件从 `@kdcloudjs/shoelace-biz/dist/react/*/index.js` 导入
 - **事件**：必须映射为 `onSl*`，且使用 `CustomEvent` 类型断言

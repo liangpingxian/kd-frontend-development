@@ -65,6 +65,33 @@
 
 ## 4. 关键约束摘要
 
+### ⚠️ KWC 组件入参规范（高频踩坑）
+
+KWC 运行时通过 `@api config` 将配置对象传入组件，组件通过 `this.config` 直接访问。
+
+✅ 正确写法：
+```js
+import { KingdeeElement, api } from '@kdcloudjs/kwc';
+
+export default class MyComponent extends KingdeeElement {
+  @api config; // KWC 框架直接传入 config 对象
+
+  get pageId() {
+    return this.config?.pageId; // ✅ 直接从 this.config 取值
+  }
+}
+```
+
+❌ 错误写法（不要双层嵌套）：
+```js
+// ❌ this.config.config 是 undefined
+get pageId() {
+  return this.config.config.pageId;
+}
+```
+
+---
+
 完整约束详见**本 Skill 目录下的** `rule.md`，以下仅列最核心要点：
 - **模板**：禁止 JS 表达式、禁止自闭合标签、禁止 ID 选择器
 - **事件**：HTML 仅绑定原生事件，Shoelace 事件必须在 JS `renderedCallback` 中绑定

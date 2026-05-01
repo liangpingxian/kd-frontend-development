@@ -25,6 +25,32 @@
 - 页面布局**必须参考** `references/page-design-guide.md` 中的模板和组件组合模式
 - 样式**必须使用** Design Token（CSS 变量），禁止硬编码颜色、字号、间距、圆角等数值
 
+## P0：KWC 组件入参规范（⚠️ 高频踩坑）
+
+KWC 运行时**直接将 KwcConfig 的字段作为 props 传入组件**，不会用 `{ config }` 包裹。
+
+✅ 正确写法：
+```vue
+<script setup lang="ts">
+// KwcConfig 的字段直接作为 props
+const props = defineProps<{ pageId: string; componentId: string; isvId: string; moduleId: string }>();
+const { pageId, isvId, moduleId } = toRefs(props);
+</script>
+```
+
+❌ 错误写法（会导致 `Cannot read properties of undefined`）：
+```vue
+<script setup lang="ts">
+// ❌ config 是 undefined，运行时崩溃
+const props = defineProps<{ config: KwcConfig }>();
+const pageId = props.config.pageId;
+</script>
+```
+
+**原因**：KWC 框架在渲染组件时，是 `<MyComponent v-bind="kwcConfig" />`，而不是 `<MyComponent :config="kwcConfig" />`。
+
+> 注意：本文档其他章节中提及的 `config.isvId`、`config.moduleId` 等，均指 `defineProps` 接收的 props 对象（命名为 `config` 的变量），**不是** `props.config`。
+
 ## 1. Vue 3 基础规范
 - **Composition API**：
   - 统一使用 `<script setup>` 或 `<script setup lang="ts">` 语法。

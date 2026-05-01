@@ -23,6 +23,37 @@
 - 页面布局**必须参考** `references/page-design-guide.md` 中的模板和组件组合模式
 - 样式**必须使用** Design Token（CSS 变量），禁止硬编码颜色、字号、间距、圆角等数值
 
+## P0：KWC 组件入参规范（⚠️ 高频踩坑）
+
+KWC 运行时通过 `@api config` 将配置对象直接传入组件，组件通过 `this.config` 访问。**禁止双层嵌套**。
+
+✅ 正确写法：
+```js
+import { KingdeeElement, api } from '@kdcloudjs/kwc';
+
+export default class MyComponent extends KingdeeElement {
+  @api config; // KWC 框架直接传入 config 对象
+
+  get pageId() {
+    return this.config?.pageId; // ✅ 直接从 this.config 取值
+  }
+
+  get isvId() {
+    return this.config?.isvId; // ✅
+  }
+}
+```
+
+❌ 错误写法：
+```js
+// ❌ this.config.config 是 undefined，会导致 Cannot read properties of undefined
+get pageId() {
+  return this.config.config.pageId;
+}
+```
+
+> 注意：本文档其他章节中提及的 `this.config.isvId`、`this.config.moduleId` 均为正确用法，即直接从 `this.config` 取值。
+
 ## 1. 核心框架与继承
 - **必须使用 KingdeeElement**：所有组件必须继承 `KingdeeElement`。
   - ❌ 禁止：`import { LightningElement } from 'lwc';`
