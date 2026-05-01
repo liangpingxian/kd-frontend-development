@@ -19,6 +19,12 @@
 
 > **框架版本**：本项目基于 **Vue 3**，统一使用 Composition API + `<script setup>` 语法。**绝对禁止**使用 Vue 2 的 Options API 或 Vue 2 特有语法。
 
+## P0：组件使用强制约束
+
+- 实现 UI **必须优先使用** @kdcloudjs/shoelace 扩展组件，禁止用原生 HTML 元素替代已有组件功能（如用 `<div>` 模拟 `<sl-card>`、用 `<table>` 替代 `<sl-table>`）
+- 页面布局**必须参考** `references/page-design-guide.md` 中的模板和组件组合模式
+- 样式**必须使用** Design Token（CSS 变量），禁止硬编码颜色、字号、间距、圆角等数值
+
 ## 1. Vue 3 基础规范
 - **Composition API**：
   - 统一使用 `<script setup>` 或 `<script setup lang="ts">` 语法。

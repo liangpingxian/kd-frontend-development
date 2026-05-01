@@ -56,21 +56,24 @@
      ```
    - 组件命名遵循 `PascalCase`。
 
-2. **代码实现与修改**：
+2. **页面设计**：
+   - 确定页面类型 → 阅读 `references/page-design-guide.md` 选择合适的页面模板和组件组合
+
+3. **代码实现与修改**：
    - **学习**：优先参考 `app/kwc/exampleComponent`。
    - **严格合规**：代码必须符合**本 Skill 目录下的** `rule.md` 中的所有约束（导入规范、事件绑定等）。
    - **Shoelace 集成**：涉及 Shoelace 组件时，确保从 correct path 导入。
 
-3. **验证与交付**：
+4. **验证与交付**：
    - 按项目入口更新 `app/kwc/main*` 引用。
    - 运行 `npm run dev` 进行验证。
 
-## 4. 关键约束摘要 (详细请见本 Skill 目录下的 rule.md)
-- **导入**：`import '@kdcloudjs/shoelace/dist/components/input/input.js';`
-- **业务组件导入**：`import '@kdcloudjs/shoelace-biz/dist/components/lookup/lookup.js';`（注意包名为 `shoelace-biz`）
-- **模板**：使用 `<sl-input>` (kebab-case)。
-- **事件**：使用 `@sl-change` 绑定。
-- **CSS**：样式必须使用 Shoelace Design Token（`var(--sl-color-*)`、`var(--sl-spacing-*)`、`var(--sl-font-size-*)`、`var(--sl-border-radius-*)`），禁止硬编码 hex 色值和 px 数值。详见 `./reference/css-design-tokens.md`。
+## 4. 关键约束摘要
+
+完整约束详见**本 Skill 目录下的** `rule.md`，以下仅列最核心要点：
+- **导入**：`import '@kdcloudjs/shoelace/dist/components/[component]/[component].js';`，业务组件从 `shoelace-biz` 导入
+- **事件**：使用 `@sl-change` 绑定
+- 其他约束（模板规范、.prop 修饰符、CSS Design Token、API 响应校验等）请查阅 `rule.md` 对应章节
 
 ## 5. 图表组件
 
@@ -127,11 +130,5 @@
 - **标准组件文档**：[https://shoelace.style/](https://shoelace.style/)
 
 ## 7. 输出检查清单
-提交代码前，请自查：
-- [ ] 使用 Vue 3 Composition API (`<script setup>`)，未使用 Options API
-- [ ] 新建组件使用了 `kd project create [组件名] --type kwc`
-- [ ] 已阅读并遵守**本 Skill 目录下的** `rule.md` 中的所有约束
-- [ ] 导入了所有使用的 Web Components
-- [ ] 模板标签为 kebab-case
-- [ ] 事件使用 `@sl-*`
-- [ ] **未运行**任何 ESLint/Prettier 修复命令，并**忽略**了所有 ESLint 格式报错
+
+提交代码前，请按 `rule.md` 中的「强制自检清单」逐项自查。

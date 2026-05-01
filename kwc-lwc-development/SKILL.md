@@ -50,23 +50,26 @@
      ```
    - 组件命名遵循 `camelCase`。
 
-2. **代码实现与修改**：
+2. **页面设计**：
+   - 确定页面类型 → 阅读 `references/page-design-guide.md` 选择合适的页面模板和组件组合
+
+3. **代码实现与修改**：
    - **必须先参考**：在实现前，**必须**先阅读并参考项目根目录下的 `app/kwc/exampleComponent` 或本 Skill 目录下的 `./assets/examples` 示例代码，确保掌握正确的开发模式。
    - **严格合规**：代码必须符合**本 Skill 目录下的** `rule.md` 中的所有约束（html无表达式、无自闭合、正确的事件绑定等）。
    - **Shoelace 集成**：涉及 Shoelace 组件时，确保导入路径正确且添加了 `kwc:external`。
 
-3. **验证与交付**：
+4. **验证与交付**：
    - 按项目入口更新 `app/kwc/main*` 引用。
    - 运行 `npm run dev` 进行验证。
    - 检查代码是否符合所有硬性约束。
 
-## 4. 关键约束摘要 (详细请见本 Skill 目录下的 rule.md)
-以下仅列出最关键的几点，完整规则请查阅**本 Skill 目录下的** `rule.md`：
-- **模板**：禁止 JS 表达式 (`{a+b}`)，禁止自闭合 (`<tag />`)，禁止 ID 选择器。
-- **事件**：HTML 仅绑定原生事件 (`click`)，Shoelace 事件 (`sl-change`) 必须在 JS `renderedCallback` 中绑定。
-- **Shoelace**：`sl-*` 标签必须加 `kwc:external`，属性全小写。
-- **JS**：继承 `KingdeeElement`，DOM 查询用 `.class`。
-- **CSS**：样式必须使用 Shoelace Design Token（`var(--sl-color-*)`、`var(--sl-spacing-*)`、`var(--sl-font-size-*)`、`var(--sl-border-radius-*)`），禁止硬编码 hex 色值和 px 数值。详见 `./reference/css-design-tokens.md`。
+## 4. 关键约束摘要
+
+完整约束详见**本 Skill 目录下的** `rule.md`，以下仅列最核心要点：
+- **模板**：禁止 JS 表达式、禁止自闭合标签、禁止 ID 选择器
+- **事件**：HTML 仅绑定原生事件，Shoelace 事件必须在 JS `renderedCallback` 中绑定
+- **Shoelace**：`sl-*` 标签必须加 `kwc:external`
+- 其他约束（CSS Design Token、API 响应校验、Controller 调用规范等）请查阅 `rule.md` 对应章节
 
 ## 5. 图表组件
 
@@ -126,11 +129,5 @@
   - **使用前必须阅读相应文档**。
 
 ## 7. 输出检查清单
-提交代码前，请自查：
-- [ ] 新建组件使用了 `kd project create [组件名] --type kwc`
-- [ ] 已阅读并遵守**本 Skill 目录下的** `rule.md` 中的所有约束
-- [ ] HTML 无 JS 表达式、无自闭合标签、无 ID
-- [ ] `sl-*` 标签包含 `kwc:external`
-- [ ] Shoelace自定义事件在 JS 中绑定，HTML 仅绑定原生事件
-- [ ] CSS 样式使用 Design Token，无硬编码色值/间距/字号/圆角
-- [ ] **未运行**任何 ESLint/Prettier 修复命令，并**忽略**了所有 ESLint 格式报错
+
+提交代码前，请按 `rule.md` 中的「强制自检清单」逐项自查。

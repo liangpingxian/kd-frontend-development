@@ -1,9 +1,9 @@
-> **⚠️ 本文档仅供了解 CLI 命令结构，实际执行时必须使用自动化脚本：**
+> **本文档提供 CLI 命令参考，实际执行时：**
 > - 工程初始化 → `node scripts/project-init.mjs`
 > - 环境配置 → `node scripts/setup-env.mjs`  
-> - 批量创建组件/页面/Controller → `node scripts/batch-create.mjs`
+> - 创建组件/页面/Controller → `kd project create`
 > 
-> **禁止直接在终端执行本文档中的 CLI 命令。**
+> **禁止直接在终端执行本文档中的初始化和环境配置类 CLI 命令（应使用对应脚本）。组件/页面/Controller 创建可直接使用 `kd project create` 命令。**
 
 ---
 

@@ -17,6 +17,12 @@
 >
 > `sl-table` · `sl-datepicker` · `sl-timepicker` · `sl-daterange-picker` · `sl-pagination` · `sl-nav` · `sl-dialog`(扩展) · `sl-x-markdown` · `sl-think` · `sl-thought-chain` · `sl-sender` · `sl-upload` · `sl-tree-select` · `sl-cascader` · `sl-float-button` · `sl-steps` · `sl-grid` · `sl-notification` · `sl-radio-group`(扩展) · `sl-space` · `sl-segmented` · `sl-transfer` · `sl-popconfirm` · `sl-bubble` · `sl-image` · `sl-lookup`(业务组件, shoelace-biz)
 
+## P0：组件使用强制约束
+
+- 实现 UI **必须优先使用** @kdcloudjs/shoelace 扩展组件，禁止用原生 HTML 元素替代已有组件功能（如用 `<div>` 模拟 `<sl-card>`、用 `<table>` 替代 `<sl-table>`）
+- 页面布局**必须参考** `references/page-design-guide.md` 中的模板和组件组合模式
+- 样式**必须使用** Design Token（CSS 变量），禁止硬编码颜色、字号、间距、圆角等数值
+
 ## 1. 核心框架与继承
 - **必须使用 KingdeeElement**：所有组件必须继承 `KingdeeElement`。
   - ❌ 禁止：`import { LightningElement } from 'lwc';`

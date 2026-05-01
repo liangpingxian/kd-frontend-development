@@ -8,7 +8,7 @@ version: 1.0.0
 
 ## 自动化脚本使用说明
 
-本技能提供三个自动化脚本用于替代 CLI 交互操作。脚本位于**本 SKILL.md 同级的 `scripts/` 目录**下。
+本技能提供两个自动化脚本用于替代 CLI 交互操作。脚本位于**本 SKILL.md 同级的 `scripts/` 目录**下。
 
 ### 定位脚本路径
 
@@ -31,12 +31,29 @@ SKILL_DIR=$(dirname "$(find ~/.kcode ~/.qoder ~/.cursor ~/.config -path '*/kd-fr
 |------|------|----------|
 | project-init.mjs | 工程初始化 | `node $SKILL_DIR/project-init.mjs --name <项目名> --framework react --language ts --app <应用编码> --cwd <目标目录>` |
 | setup-env.mjs | 环境配置与认证 | `node $SKILL_DIR/setup-env.mjs --envName <名称> [--envUrl <URL>] --clientId <ID> --clientSecret <Secret> --username <用户名>` |
-| batch-create.mjs | 批量创建 | `node $SKILL_DIR/batch-create.mjs --components A,B --pages x,y --controllers Z` |
 
 > **⚠️ 必须先定位脚本路径再执行，禁止因找不到脚本就改用 CLI 命令。**
 
+### 创建组件/页面/Controller
+
+使用原生 `kd project create` 命令（在用户项目目录中执行）：
+
+```bash
+kd project create <ComponentName> --type kwc          # 创建组件
+kd project create <PageName> --type page               # 创建页面
+kd project create <ControllerName> --type controller   # 创建 Controller
+kd project create <ControllerName> --type controller -e dev  # 创建 Controller 并指定拉取 SDK 的目标环境
+```
+
 将本技能包作为 KWC 工程脚手架工作的入口。
 优先把用户需求归入以下几类：初始化项目、创建组件、创建 Controller、创建页面元数据、配置环境、部署、查看环境效果、调试。
+
+## 组件与页面的关系约束
+
+- 页面内组件只能从上到下垂直排列，不支持自由布局
+- 一般情况下，1 个需求 = 1 个组件 + 1 个页面（页面仅包含这 1 个组件）
+- 所有复杂布局（栅格、卡片、多区域等）在组件内部实现，不要拆成多个组件
+- 禁止将一个页面的不同区域（如统计卡片区、图表区、列表区）拆分为独立组件
 
 ## 正确认知交付对象
 
@@ -94,9 +111,9 @@ Controller 也遵循"元数据 + 代码"的二元模型：
 面对“帮我开发一个 KWC 页面/功能”的请求时，先把需求翻译成下面几项：
 
 1. 是否需要新建工程，还是在已有工程里继续开发
-2. 需要几个组件，各自承担什么职责
+2. 是否需要组件（通常 1 个需求 = 1 个组件），组件承担什么职责
 3. 组件是否需要后端数据支持？若需要，规划对应的 KS Controller 和 API 方法
-4. 需要几个页面元数据文件，页面里如何组合这些组件
+4. 需要几个页面元数据文件（通常 1 个页面包含 1 个组件）
 5. 最终要部署到哪个环境
 
 只有把这几项补齐，脚手架命令才有明确目标。
@@ -124,6 +141,7 @@ Controller 也遵循"元数据 + 代码"的二元模型：
 |----------|------------|--------|
 | 工程初始化 | scaffold | .kd/config.json |
 | 创建组件目录 | scaffold | app/kwc/Component/ |
+| **页面设计（🔴 必读）** | **scaffold + [page-design-guide](./references/page-design-guide.md)**（每个新需求必须先读，禁止跳过） | **页面模板选型、组件组合方案**——禁止直接复用已有组件布局替代阅读设计指南 |
 | **编写组件代码** | **[react](./kwc-react-development/SKILL.md)/[vue](./kwc-vue-development/SKILL.md)/[lwc-development](./kwc-lwc-development/SKILL.md)** | ***.tsx / *.vue / *.js** |
 | 补全组件元数据 | scaffold | *.js-meta.kwc |
 | 创建页面元数据 | scaffold | *.page-meta.kwp |
@@ -136,17 +154,17 @@ Controller 也遵循"元数据 + 代码"的二元模型：
 #### 切换时机
 
 - 当任务仍处于需求拆分、脚手架命令、元数据、环境、`deploy`、`open`、`debug` 阶段时，继续由脚手架工作流主导
-- 当 batch-create.mjs 脚本创建完成后需写代码 → **必须阅读对应框架子技能的 SKILL.md 并遵循其规范，禁止直接编写**
+- 当 `kd project create` 创建完成后需写代码 → **必须阅读对应框架子技能的 SKILL.md 并遵循其规范，禁止直接编写**
 - 当代码写完需补元数据或部署 → 回到脚手架工作流
 - 当 Controller 目录已创建且需要编写脚本代码 → **必须阅读 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 并遵循其规范，禁止直接编写**
 - 当 Controller 脚本代码写完需构建或部署 → 回到脚手架工作流
 
 #### 异常流程保护
 
-当自动化脚本失败（如 `batch-create.mjs` 报错）而改用手动方式创建文件/目录时，代码编写阶段的子技能规范遵循规则**同样适用**。手动创建目录结构不等于可以手动编写业务代码。
+当 `kd project create` 命令失败而改用手动方式创建文件/目录时，代码编写阶段的子技能规范遵循规则**同样适用**。手动创建目录结构不等于可以手动编写业务代码。
 
 - 只要进入 `.ts` / `.tsx` / `.vue` / `.js` 文件的编写，无论前置步骤是否通过 CLI 完成，都**必须先阅读对应框架子技能的 SKILL.md 并遵循其规范**
-- 典型场景：`batch-create.mjs` 脚本失败 → 手动创建 `app/kwc/MyComponent/` 目录和 `.js-meta.kwc` → 到这里仍是脚手架职责 → 开始写 `MyComponent.tsx` 时 → **必须阅读对应框架子技能的 SKILL.md**
+- 典型场景：`kd project create` 失败 → 手动创建 `app/kwc/MyComponent/` 目录和 `.js-meta.kwc` → 到这里仍是脚手架职责 → 开始写 `MyComponent.tsx` 时 → **必须阅读对应框架子技能的 SKILL.md**
 - Controller 同理：手动创建 `app/ks/controller/` 目录和 `.kws` → scaffold 职责 → 开始写 `.ts` 脚本 → **必须阅读 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md)**
 
 #### 框架子技能激活检查清单
@@ -226,7 +244,7 @@ Controller 也遵循"元数据 + 代码"的二元模型：
 
 这些内容应由 Skill 基于用户需求主动完成，不要把它们再推回给用户逐项设计：
 
-- 将业务需求拆成组件列表
+- 将业务需求映射为组件（通常 1 个需求 = 1 个组件，所有复杂布局在组件内部完成）
 - 为组件生成稳定的 `PascalCase` 名称
 - 为页面和实例生成符合规范的小写标识
 - 判断组件是否需要保留 `.js-meta.kwc`，还是应删除以避免被当成可部署组件
@@ -267,7 +285,7 @@ Controller 也遵循"元数据 + 代码"的二元模型：
 
 如果需要字段规则、类型和示例，读取：
 
-- `references/component-metadata.md`
+- `references/component-metadata.md`（**🔴 必读 — 首次接触工程**：第一次为该项目写组件元数据时必读一次；后续可复用已建立的认知）
 
 ## 从需求生成页面元数据
 
@@ -295,14 +313,14 @@ Controller 也遵循"元数据 + 代码"的二元模型：
 
 如果需要字段规则、校验约束和示例，读取：
 
-- `references/page-metadata.md`
+- `references/page-metadata.md`（**🔴 必读 — 首次接触工程**：第一次为该项目写页面元数据时必读一次；后续可复用已建立的认知）
 
 ## 先判断当前所处阶段
 
 按这个顺序判断并推进：
 
 1. 若当前目录下不存在 `.kd`，先视为“尚未初始化 KWC 工程”。
-2. 若用户要新建页面或组件，优先使用 batch-create.mjs 脚本，不要手工拼目录结构。
+2. 若用户要新建页面或组件，使用 `kd project create` 命令创建，不要手工拼目录结构。
 3. 若用户要部署或调试，先检查环境是否已配置（可通过 `kd env list` 查看）。
 4. 若用户开始编写具体前端实现代码，先判断当前工程 framework，再阅读对应框架子技能的 SKILL.md 并遵循其规范，不要把脚手架工作流当成组件编码规范。
 
@@ -332,6 +350,11 @@ Controller 也遵循"元数据 + 代码"的二元模型：
 node $SKILL_DIR/project-init.mjs --name <项目名> --framework react --language ts --app <应用编码> --cwd <目标父目录绝对路径>
 ```
 
+> **注意**：脚本默认不执行 `npm install`。初始化完成后，提示用户在终端中手动执行：
+> ```bash
+> cd <项目目录> && npm install
+> ```
+
 **必填参数：**
 - `--name` / `--framework` / `--language` / `--app`
 
@@ -340,42 +363,31 @@ node $SKILL_DIR/project-init.mjs --name <项目名> --framework react --language
 - 在多 workspace / 脚本被外部调度的场景下，`process.cwd()` 可能不是用户期望的父目录，导致工程生成位置跑偏（例如建到 workspace 同级目录）
 - 应始终显式传入用户希望的**目标父目录绝对路径**
 
-**可选参数（应对 npm 超时 / 网络加速）：**
-- `--skipInstall`：跳过 `npm install`，脚本立即返回。**适用于 CI / AI agent 120s 超时限制场景**；返回 JSON 中 `installed: false` + `nextSteps: ["cd <path>", "npm install"]`，由调用方在长驻终端中自行执行
+**可选参数（网络加速）：**
 - `--registry <url>`：指定 npm 镜像地址，国内网络推荐 `https://registry.npmmirror.com`
 - 环境变量 `KWC_NPM_REGISTRY`：未显式传 `--registry` 时，脚本读取此环境变量作为默认值
 
 **脚本行为：**
 - 自动检测并安装 kd CLI（无需手动安装）
 - 以 `kd project init <name> --framework <fw> --language <lang> --app <app>` 原生参数无交互完成工程初始化（跨平台，macOS / Linux / Windows 通用）
-- 执行 `npm install`（除非 `--skipInstall`），每 30s 打一次心跳输出，避免外部调用方误判卡死
+- 脚本默认不执行 `npm install`，初始化完成后提示用户手动执行 `cd <项目目录> && npm install`
 - 若用户明确指定了其他框架（Vue/LWC），将 `--framework` 和 `--language` 参数替换为对应值即可
 
 **返回 JSON 关键字段：**
 - `success` / `project` / `framework` / `language` / `app` / `path` / `installed`
-- `--skipInstall` 时额外含 `nextSteps`，AI 应把其中的命令在长驻终端里顺序执行
+- 始终包含 `nextSteps` 字段，AI 应提示用户在终端中手动执行其中的命令（`cd <项目目录> && npm install`）
 
 ## 创建组件
 
-> **⚠️ 必须通过脚本执行，禁止直接在终端运行任何 kd CLI 交互式命令。**
-
-在已有项目中新增组件时：
-
-### 必须使用批量创建脚本
-
-**必须使用 `batch-create.mjs` 脚本完成组件创建，禁止直接执行 CLI 交互式命令。**
-
-当需要创建一个或多个组件时，使用 `batch-create.mjs` 一次性完成：
-
-> 脚本位于本技能安装目录的 `scripts/` 子目录下，不在用户项目目录中。请先确定本 SKILL.md 文件的绝对路径，然后执行：
+在已有项目中新增组件时，使用 `kd project create` 命令：
 
 ```bash
-node $SKILL_DIR/batch-create.mjs --components ComponentA,ComponentB,ComponentC [--env dev]
+kd project create <ComponentName> --type kwc
 ```
 
-- 支持同时传入 `--components`、`--pages`、`--controllers` 参数，一次性批量创建所有工程结构
-- 组件名使用 `PascalCase`，多个组件用英文逗号分隔
-- `--env` 可选，指定 Controller 拉取 SDK 的目标环境
+- 组件名使用 `PascalCase`
+- 若需创建多个组件，逐个执行创建命令
+- 牢记「组件与页面的关系约束」：通常 1 个需求只需要 1 个组件，所有复杂布局在组件内部完成
 
 ### 创建后处理（无论使用哪种方式）
 
@@ -392,25 +404,16 @@ node $SKILL_DIR/batch-create.mjs --components ComponentA,ComponentB,ComponentC [
 
 ## 创建 Controller
 
-> **⚠️ 必须通过脚本执行，禁止直接在终端运行任何 kd CLI 交互式命令。**
-
-在已有项目中新增 KingScript 脚本控制器时：
-
-### 必须使用批量创建脚本
-
-**必须使用 `batch-create.mjs` 脚本完成 Controller 创建，禁止直接执行 CLI 交互式命令。**
-
-当需要创建一个或多个 Controller 时，使用 `batch-create.mjs` 一次性完成：
-
-> 脚本位于本技能安装目录的 `scripts/` 子目录下，不在用户项目目录中。请先确定本 SKILL.md 文件的绝对路径，然后执行：
+在已有项目中新增 KingScript 脚本控制器时，使用 `kd project create` 命令：
 
 ```bash
-node $SKILL_DIR/batch-create.mjs --controllers ControllerA,ControllerB [--env dev]
+kd project create <ControllerName> --type controller
+kd project create <ControllerName> --type controller -e dev  # 指定拉取 SDK 的目标环境
 ```
 
-- Controller 名使用 `PascalCase`，建议以 `Controller` 后缀结尾，多个用英文逗号分隔
-- `--env` 可选，指定拉取 SDK 的目标环境
-- 支持同时传入 `--components`、`--pages`、`--controllers` 参数，一次性批量创建所有工程结构
+- Controller 名使用 `PascalCase`，建议以 `Controller` 后缀结尾
+- 若需创建多个 Controller，逐个执行创建命令
+- `--env` / `-e` 可选，指定拉取 SDK 的目标环境
 
 ### 创建后处理（无论使用哪种方式）
 
@@ -427,14 +430,10 @@ node $SKILL_DIR/batch-create.mjs --controllers ControllerA,ControllerB [--env de
 页面元数据是最终交付链路的核心。
 环境在部署后会根据 `page-meta.kwp` 的 `<controls>` 来渲染页面包含的组件，因此这里不是可选步骤，而是页面交付的主入口。
 
-在需要新增页面时：
-
-**必须使用批量创建脚本**：使用 `batch-create.mjs` 批量创建（可同时创建组件、页面、Controller）：
-
-> 脚本位于本技能安装目录的 `scripts/` 子目录下，不在用户项目目录中。请先确定本 SKILL.md 文件的绝对路径，然后执行：
+在需要新增页面时，使用 `kd project create` 命令：
 
 ```bash
-node $SKILL_DIR/batch-create.mjs --pages page1,page2 [--components ComponentA --controllers ControllerB --env dev]
+kd project create <page_name> --type page
 ```
 
 不要忽略以下约束：
@@ -448,576 +447,39 @@ node $SKILL_DIR/batch-create.mjs --pages page1,page2 [--components ComponentA --
 
 补充：新生成的 `page-meta.kwp` 默认只包含注释掉的 `<control>` 模板，Skill 必须根据需求主动补全 `<controls>`。
 
-## 脚手架命令的推荐编排
+### 工程流程编排
 
-### 需求前后端评估
+> **条件触发**：需求含后端数据交互 / 含 Controller / 含实体识别 / 前后端联合开发时**必读**。
+> 阅读 `references/workflow-orchestration.md` 获取完整编排流程（包含需求前后端评估、实体识别与澄清、前后端统一编排、仅前端编排、仅后端编排）。
 
-面对完整业务需求时，按以下优先级判断是否需要 Controller：
+### 页面设计与 UI 布局
 
-**强信号（命中任意一条即直接判定需要 Controller，无需询问用户）：**
-- 需求涉及列表/表格数据展示（如"XX列表"、"XX查询"、"XX监控"）
-- 需求涉及筛选/搜索/过滤条件
-- 需求涉及图表/报表/统计/仪表盘
-- 需求涉及数据的增删改操作（保存、提交、审核、删除等）
-- 需求涉及详情查看/编辑
-- 需求涉及业务实体名称（如物料、仓库、订单、客户、库存等）
+> **🔴 必读 — 每个新需求**：只要产出新页面/新组件就**必须先读**，用于选模板、定布局。**禁止跳过直接复用已有组件的布局**。
+> 阅读 [`references/page-design-guide.md`](./references/page-design-guide.md) 获取页面设计与 UI 布局指南（工作台/图表/个性化/表单/列表/向导模板）。
+>
+> ⚠️ **禁止以"工程中已有类似组件可参考"为由跳过阅读 page-design-guide.md。**
+> 不同类型的页面（工作台/图表/向导/列表/表单）有不同的最佳模板，必须先选型再实现。
 
-**弱信号（需要停下来向用户提问确认，提供"需要 Controller"和"纯前端即可"两个选项）：**
-- 需求仅描述了 UI 样式或布局，未提及数据来源
-- 需求可能通过本地 mock 数据或配置项完成
+### 环境配置与部署
 
-**排除信号（不需要 Controller）：**
-- 页面仅展示静态内容、说明文档或本地计算结果
-- 纯展示型组件（如欢迎页、关于页）
+> **条件触发**：新建环境 / 首次部署 / 菜单发布 / 部署失败排查时**必读**。
+> 阅读 `references/deployment-guide.md` 获取完整流程（包含环境存在性检查、新建环境流程、多数据中心处理、构建与部署决策树、页面访问链接生成规则、应用菜单管理）。
 
-默认倾向：当需求描述中出现任何业务数据相关的词汇时，优先判定需要 Controller，而非额外向用户提问确认。
+### 元数据查询与故障排查
 
-### 实体识别与澄清
+> **故障时触发**：元数据上传失败 / CLI 报错 / 需查询环境元数据时**必读**。
+> 阅读 `references/metadata-operations.md`（包含元数据查询工作流、参考资料与快速导航、故障排查速查表、CLI 手动降级方案）。
 
-判定需要 Controller 后，必须进一步识别需求涉及哪些业务实体，用于后续 `meta-query-api.mjs` 查询真实字段：
+### 参考文档触发标准
 
-1. **从需求中提取实体关键词**：分析用户需求描述，提取所有可能的业务实体名称（如"物料"、"仓库"、"库存"、"订单"等）
-2. **确认表单编码来源**：表单/实体编码**禁止猜测**，只能通过以下两种方式获取：
-   - **用户直接提供**：用户在需求中明确给出了表单编码（如 `bd_material`、`im_inventory`）
-   - **通过查询确认**：使用 `queryFormsByApp` 搜索表单，从返回结果中确认真实编码
-3. **向用户澄清实体**：若用户未提供表单编码，且实体名称可能存在歧义（如"库存"可能对应库存台账、库存余额、安全库存等不同表单），必须停下来向用户提问确认：
-   - 向用户提问："您提到的'库存'对应的是哪个业务表单？"，并将可能的候选表单作为选项供用户选择
-   - 若实体名称无歧义且用户也不确定编码，可先用 `queryFormsByApp` 按关键词搜索，将结果作为选项列表让用户选择
-4. **确认后再查询字段**：只有在明确了表单编码后，才执行 `getEntityFields` 查询字段结构
-
-### 前后端统一编排
-
-当需求同时涉及前端组件和后端 Controller 时，按以下流程执行（元数据先于代码）：
-
-1. 若无工程，执行 project-init.mjs 脚本初始化（参数见「初始化工程」章节）
-2. 创建工程结构（本 Skill 职责）：
-   a. 使用 batch-create.mjs 脚本批量创建所有前端组件（参数见「创建组件」章节）
-   b. 使用 batch-create.mjs 脚本批量创建所有 Controller（参数见「创建 Controller」章节）
-3. **查询业务实体字段**（当 Controller 涉及实体数据操作时）：
-   - 用户提供了表单名称/编码/实体相关信息时，使用 `meta-query-api.mjs` 查询真实字段
-   - 先 `queryFormsByApp` 搜索表单，再 `getEntityFields` 获取字段结构（见「元数据查询」章节）
-   - 查询结果用于指导后续 Controller 元数据和代码编写，**禁止猜测字段名**
-4. 补全所有元数据（本 Skill 职责，元数据先行）：
-   a. 补全组件元数据 `.js-meta.kwc`
-   b. 补全 Controller 元数据 `.kws`（定义 URL、方法、权限配置）
-5. **阅读框架子技能文档并实现前端组件代码**：阅读对应框架子技能的 SKILL.md 编写组件代码（*.tsx / *.vue / *.js）
-6. **阅读 Controller 子技能文档并实现后端代码**：阅读 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 编写 Controller 脚本（*.ts）
-7. 回到脚手架工作流：创建页面元数据并补全 `<controls>`
-8. 构建前端：`npm run build:frontend`
-9. 确认或创建目标环境，完成认证
-10. 执行 `kd project deploy`
-11. 部署成功后，生成并发送页面访问链接（`:::render:kdform ...:::`）（见「页面访问链接」章节）
-
-**关键原则**：
-- 步骤 4（元数据补全）中，组件元数据 `.kwc` + Controller 元数据 `.kws` 都由本 Skill 完成
-- 步骤 5-6（代码实现）分别遵循对应子技能的规范，脚手架工作流严禁直接编写代码
-- 步骤 7 起回到脚手架工作流主导
-
-### 仅前端编排
-
-若确认不涉及后端，仅前端开发时，优先按这条顺序执行：
-
-1. 若无工程，执行 project-init.mjs 脚本初始化（参数见「初始化工程」章节）
-2. 使用 batch-create.mjs 脚本批量创建所有页面组件（参数见「创建组件」章节）
-3. **补全组件 `.js-meta.kwc`**（本 Skill 职责）
-4. **查询关联业务实体**（可选，当组件涉及表单数据绑定时）：使用 `meta-query-api.mjs` 查询关联表单的字段结构，辅助组件设计（见「元数据查询」章节）
-5. **阅读框架子技能文档并实现代码**：确认当前工程 framework，**必须**阅读对应框架子技能的 SKILL.md（[kwc-react-development](./kwc-react-development/SKILL.md) / [kwc-vue-development](./kwc-vue-development/SKILL.md) / [kwc-lwc-development](./kwc-lwc-development/SKILL.md)）并遵循其规范
-6. **框架子技能规范下实现组件代码**（*.tsx / *.vue / *.js）
-7. 代码实现完成后，回到脚手架工作流：使用 batch-create.mjs 脚本创建页面元数据（参数见「创建页面元数据」章节）
-8. 补全页面 `app/pages/<page-name>.page-meta.kwp`
-9. 构建前端：`npm run build:frontend`
-10. **自动部署**：先执行 `kd env list` 检查已有环境。若有已认证环境，直接执行 `kd project deploy -e <环境名>`（无需询问用户）；若无环境，先收集环境信息并配置，再部署。详见「部署决策（默认自动部署）」章节
-11. 当次任务所有部署完成后，生成并发送页面访问链接（`:::render:kdform ...:::`）（见「页面访问链接」章节，**不可跳过**）
-12. 仅当用户明确要求查看效果时执行 `kd open`，明确要求本地联调时执行 `kd debug`（须后台模式）
-
-**关键原则**：
-- 步骤 3（元数据补全）必须由脚手架工作流完成
-- 步骤 5-6（代码实现）**必须**遵循框架子技能规范，脚手架工作流严禁直接编写代码
-- 步骤 7 起（页面创建及后续）回到脚手架工作流主导
-
-如果是修改已有页面：
-
-1. 先识别是改组件实现、改组件元数据、改页面元数据，还是三者都改
-2. **若涉及组件代码修改**：必须阅读对应框架子技能的 SKILL.md 并遵循其规范，禁止脚手架工作流直接修改代码
-3. **自动部署**：先执行 `kd env list` 检查已有环境，若有已认证环境直接 `kd project deploy` 部署变更（无需询问用户）；仅当用户明确表示不需要部署时才跳过
-
-### 仅后端 Controller 编排
-
-若确认仅涉及后端，不需要新增前端组件时：
-
-1. 若无工程，执行 project-init.mjs 脚本初始化（参数见「初始化工程」章节）
-2. 使用 batch-create.mjs 脚本批量创建所有 Controller（参数见「创建 Controller」章节）
-3. **查询业务实体字段**（当 Controller 涉及实体数据操作时）：使用 `meta-query-api.mjs` 先搜索表单再获取字段结构（见「元数据查询」章节），**禁止猜测字段名**
-4. **补全 Controller 元数据 `.kws`**（本 Skill 职责）
-5. **阅读 Controller 子技能文档并实现代码**：**必须**阅读 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 并遵循其规范
-6. **Controller 子技能规范下编写脚本代码**（*.ts）
-7. 代码实现完成后，回到脚手架工作流：先执行 `kd env list` 检查已有环境，若有已认证环境直接执行 `kd project deploy` 部署到目标环境（无需询问用户，Controller 无需预先 build）；若无环境，先收集环境信息并配置，再部署
-8. 当次任务所有部署完成后，生成并发送页面访问链接（`:::render:kdform ...:::`）（见「页面访问链接」章节，**不可跳过**）
-
-## 配置环境
-
-在部署前先完成环境配置。
-
-### 环境存在性检查
-
-当用户提供了具体的环境名称或别名（如 `dev`、`sit`、`uat` 等）时，应先执行环境存在性检查：
-
-1. 运行 `kd env list` 查看当前已配置的环境列表
-2. 若目标环境已存在于列表中：
-   - 不需要再让用户提供 URL、Client ID/Secret 等环境信息
-   - 直接使用该环境进行后续操作（如 deploy、debug）
-   - 若该环境不是当前默认环境，可通过 `kd env set target-env <name>` 切换
-   - 使用 `kd env list` 确认环境认证状态
-3. 只有当环境不存在时，才进入完整的环境创建和认证流程
-
-### 新建环境流程
-
-> **⚠️ 必须通过脚本执行，禁止直接在终端运行任何 kd CLI 交互式命令。**
-
-当环境不存在时，按以下流程执行：
-
-#### 必须使用自动化脚本
-
-**必须使用 `setup-env.mjs` 脚本完成环境配置，禁止直接执行 CLI 交互式命令。**
-
-使用 `setup-env.mjs` 一键完成环境创建和认证。脚本会自动检测环境是否已存在，根据情况决定是否需要创建环境。
-
-AI **必须**先向用户收集以下认证信息，用户未提供时应**停下来询问**：
-
-**始终必填：**
-- 环境名（envName）
-- Client ID（clientId）
-- Client Secret（clientSecret）
-- 用户名（username）
-
-**条件必填：**
-- 环境 URL（envUrl）：环境不存在时必填，环境已存在时可省略
-
-> 若环境已存在（如通过 `kd env create` 创建过），只需提供认证参数（clientId、clientSecret、username），脚本会自动跳过环境创建直接认证。
-
-收集完毕后执行：
-
-> 脚本位于本技能安装目录的 `scripts/` 子目录下，不在用户项目目录中。请先确定本 SKILL.md 文件的绝对路径，然后执行：
-
-```bash
-# 环境不存在时（需要创建）：
-node $SKILL_DIR/setup-env.mjs --envName <环境名> --envUrl <URL> --clientId <ID> --clientSecret <Secret> --username <用户名>
-
-# 环境已存在时（仅认证，脚本会从 ~/.kd/config.json 读取 url）：
-node $SKILL_DIR/setup-env.mjs --envName <环境名> --clientId <ID> --clientSecret <Secret> --username <用户名>
-
-# 多数据中心时（第一次调用会退出码 2 并打印候选列表，按提示补 --datacenter 重跑）：
-node $SKILL_DIR/setup-env.mjs --envName <环境名> --envUrl <URL> --clientId <ID> --clientSecret <Secret> --username <用户名> --datacenter <accountId>
-```
-
-**脚本执行流程（零交互，跨平台）：**
-1. 参数校验
-2. 确定 `envUrl`（优先 `--envUrl`，环境已存在时可从 `~/.kd/config.json` 读取）
-3. 先无副作用地调用 `<envUrl>/auth/getAllDatacenters.do` 探测数据中心列表（失败不会污染本地配置）
-4. 根据数据中心数量决定：
-   - **1 个** → 自动选用，继续
-   - **多个 + 传了 `--datacenter`** → 校验 `accountId` 存在则使用
-   - **多个 + 未传 `--datacenter`** → 打印候选列表 + **退出码 2**，要求调用方补 `--datacenter <accountId>` 重跑（此时本地还没 createEnv，不会残留孤儿环境）
-5. 数据中心确认后才 createEnv（若不存在）
-6. 以 `kd env auth openapi -e <env> --datacenter <id> --client-id <cid> --client-secret <secret> --username <user>` 原生参数完成认证
-7. 从 `~/.kd/config.json` 验证 `client_id / access_token / username` 确已落库
-
-**退出码约定：**
-- `0`：成功
-- `1`：参数错误 / 认证失败 / 其他错误
-- `2`：多数据中心且未指定 `--datacenter`，stderr 含候选列表，格式为 `accountName<TAB>(accountId=xxx)`
-
-**AI 处理策略：**
-调用脚本遇到退出码 `2` 时，从 stderr 提取候选列表并以选项方式呈现给用户（展示字段用 `accountName`），用户选定后以 `--datacenter <accountId>` 重跑脚本。
-
-### 需要收集环境信息的情况
-
-如果目标环境不存在，或环境存在但尚未完成认证，先停下来收集这些字段：
-
-**始终必填：**
-- 环境别名
-- Client ID
-- Client Secret
-- Username
-
-**环境不存在时额外必填：**
-- 环境 URL
-
-其中 `data center` 不属于预先手填字段，而属于"读取后选择"的字段：
-
-- 先有环境 URL
-- setup-env.mjs 在认证前会调用 `<envUrl>/auth/getAllDatacenters.do` 读取可用数据中心列表
-- **单个数据中心**：脚本自动选用（accountId），无需用户介入
-- **多个数据中心**：脚本以**退出码 2** 终止并打印候选列表（`accountName <TAB> accountId=...`），AI 应将候选列表作为选项让用户选择（展示字段用 `accountName`，入参字段用 `accountId`），选定后以 `--datacenter <accountId>` 重跑脚本
-
-收集规则：
-
-- 环境别名、环境 URL、Client ID、Client Secret、Username 这些值必须由用户手工提供
-- `data center` 不要让用户自由输入，应让脚手架读取候选项后再选择
-- 不要使用历史环境中的凭据去猜测新环境
-- 不要因为存在 `dev`、`sit`、`base` 等别名，就自动推断这次要绑定哪个环境
-
-交互方式规则：
-
-- 不要假设当前一定支持弹窗或表单式输入
-- 在当前常规模式下，先让用户回填手工字段；数据中心由 setup-env.mjs 处理（单个自动选；多个走退出码 2 再由 AI 承接交互）
-- 若运行环境明确支持结构化选择工具，可以在脚本返回退出码 2 后把候选列表以选项形式展示给用户
-- 即便如此，Client Secret 这类自由文本仍应让用户手填
-
-推荐向用户索要环境信息的格式（环境不存在时）：
-
-```text
-请补充以下环境信息：
-1. env name:
-2. env url:（环境已存在时可不填）
-3. client id:
-4. client secret:
-5. username:
-
-说明：
-- 若环境已存在，只需填写 1、3、4、5，脚本会自动跳过创建直接认证
-- data center 不需要先手填，后续会由脚手架读取候选项供选择
-```
-
-补充：环境配置保存在 `~/.kd` 而非项目目录；创建后必须用 `kd env list` 复核是否持久化成功；环境认证在 URL 不可达时会直接失败。
-
-## 部署与调试
-
-### 构建命令
-
-开发阶段只需要构建前端，Controller 由 deploy 直接处理：
-
-| 场景 | 构建命令 | 说明 |
-|------|---------|------|
-| 改了前端代码（.tsx/.vue/.js） | `npm run build:frontend` | 构建前端静态资源，输出到 dist/kwc/ |
-| 改了 Controller 代码（.ts）或 .kws | 不需要 build | 开发阶段 deploy 直接处理 Controller |
-| 仅改元数据文件（.kwc/.kwp/.kws） | 不需要 build | 元数据由 deploy 直接上传 |
-
-补充用法：
-- `npm run build:frontend -- MyComponent`：构建指定前端组件
-- `npm run build:controller`：仅用于生产环境构建 Controller 产物，开发阶段不需要
-- `npm run build`：全量构建（前端 + Controller），仅用于生产环境
-
-### 部署决策（默认自动部署）
-
-创建/修改组件、页面或 Controller 后，**必须自动执行部署**，按以下流程操作：
-
-#### 步骤 1：检查已有环境
-
-```bash
-kd env list
-```
-
-- 如果输出中有**任何环境**（不为空） → 进入步骤 2
-- 如果输出为空（无任何环境） → 进入步骤 3
-
-#### 步骤 2：直接部署（最常见场景）
-
-从 `kd env list` 输出中选择已认证的环境，直接执行部署：
-
-```bash
-kd project deploy -e <环境名>
-```
-
-或者如果已配置默认环境（`kd env info` 有输出），直接：
-
-```bash
-kd project deploy
-```
-
-**禁止在已有环境的情况下向用户询问环境信息，直接部署即可。**
-
-#### 步骤 3：无环境时收集信息
-
-仅当 `kd env list` 输出为空时，才向用户收集环境信息并通过 setup-env.mjs 创建环境，然后再部署。
-
-#### 总结
-
-| 场景 | 动作 |
-|------|------|
-| 有已认证环境 | **直接 `kd project deploy`，不问用户** |
-| 有环境但未认证 | 收集认证参数（clientId/clientSecret/username），认证后部署 |
-| 无任何环境 | 收集完整环境信息，创建+认证后部署 |
-| 用户明确说不要部署 | 跳过部署 |
-
-#### 部署内容决策树
-
-```
-改了什么？
-├── 只改前端代码（.tsx/.vue/.js/.html/.scss）
-│   ├── 用户明确要求仅本地调试 → npm run build:frontend → kd debug（不需要 deploy）
-│   └── 默认 → npm run build:frontend → kd project deploy
-├── 只改 Controller 代码（.ts）或 .kws 元数据
-│   → .kws version + 1 → 直接 kd project deploy（不需要 build）
-├── 前端 + Controller 都改了
-│   → 递增相关 version → npm run build:frontend → kd project deploy
-├── 只改元数据（.js-meta.kwc / .page-meta.kwp）
-│   → version + 1 → 直接 kd project deploy（不需要 build）
-└── 新建组件/页面/Controller
-    → version = 1 → 若有前端代码则 npm run build:frontend → kd project deploy
-```
-
-### 常用命令
-
-1. `kd project deploy`：一次性部署整个项目的所有元数据（.js-meta.kwc + .page-meta.kwp + .kws）和前端静态文件到默认环境；开发阶段 Controller 由 deploy 直接处理，无需预先 build
-2. `kd project deploy -d app/kwc/MyComponent -e sit`：仅部署指定组件到 `sit`
-3. `kd project deploy -d app/pages/my_page -e sit`：仅部署指定页面元数据到 `sit`
-4. `kd project deploy -d app/ks/controller/MyController -e sit`：仅部署指定 Controller 到 `sit`
-5. `kd open -e dev -f kdtest_demo_page`：部署后直接打开环境上的表单查看效果（无 DNS 代理）。`-f` 的值必须取自 `.page-meta.kwp` 中的 `<name>` 字段值（已含 ISV 前缀），不是文件名
-6. `kd debug`：进入本地调试，通过 DNS 代理连接环境（**必须使用 `is_background: true` 运行**，仅当用户明确要求调试时使用）。`-f` 的值同样取自 `.page-meta.kwp` 中的 `<name>` 字段值
-
-## 页面访问链接
-
-部署成功后，生成页面访问链接供用户点击查看效果。这是部署流程的最后一个执行步骤，**不是任务总结**。
-
-### 发送时机
-
-- **部署即发送**：每完成一段可预览的工作（该段涉及的所有 deploy 均已成功），立即发送页面访问链接
-- **同一段工作内不重复**：如果一段工作涉及多次 deploy（如先部署组件、再部署页面、再部署 Controller），应在该段全部部署完成后发送一次
-- 适用于任何 deploy 形式：整体部署（`kd project deploy`）、指定路径部署（`-d app/kwc/...`、`-d app/pages/...`、`-d app/ks/controller/...`）
-
-### 页面访问链接
-
-部署成功后，生成页面访问链接供用户点击查看效果。此输出是一个独立的链接卡片，与任务总结无关。
-
-**链接卡片格式（固定，不再区分是否关联业务实体）：**
-```
-:::render:kdform {"title":"<masterLabel值>","url":"<环境URL>/?formId=<页面name>"}:::
-```
-
-| 字段 | 必须 | 来源 |
-|------|------|------|
-| `title` | ✅ 必须 | `.page-meta.kwp` 中的 `<masterLabel>` |
-| `url` | ✅ 必须 | `{环境URL}/?formId={页面name}`，页面 name 取自 `.page-meta.kwp` 的 `<name>` 字段，已包含 ISV 前缀 |
-
-**URL 拼接规则：**
-- 环境 URL：从 `kd env info` 或 `~/.kd/config.json` 中读取当前环境的 url
-- formId：直接使用 `.page-meta.kwp` 中的 `<name>` 值（已包含 ISV 前缀），如 `kdtest_inv_dashboard`
-
-> ⚠️ 这是一个**链接卡片**，不是总结。JSON 仅包含上述两个字段（`title`、`url`），禁止额外拼接其他字段（包括旧版的 `metadata` 字段已废弃）。
-
-> 💡 也可通过 `form-link.mjs` 脚本自动生成链接卡片（见 scripts 目录），但不强制要求使用脚本。
-
-### 执行顺序
-
-```
-当段工作所有 deploy 完成 → 发送页面访问链接（:::render:kdform ...:::） → 向用户提问是否需要菜单发布（可选）
-```
-
-### 强制约束
-
-- 每段工作的部署完成后**必须**发送页面访问链接，不可省略或跳过
-- 多轮对话中每段完成的工作都应发送，不要只在最终结束时才发送
-- 同一段工作内不重复发送（多条 deploy 命令属于同一段工作时，等全部完成后发送一次）
-- 链接卡片 JSON 仅含 `title`、`url` 两个字段
-- 所有值从实际文件和环境中读取，禁止猜测
-- 任务总结（如有）应作为**独立文本**写在链接卡片之后
-
-## 查看环境效果（kd open）
-
-> 注意：部署后默认仅发送页面访问链接（见「页面访问链接」章节），不自动执行 kd open。仅当用户明确要求查看环境效果时才使用本命令。
-
-部署后使用 `kd open` 查看环境上的表单效果：
-
-- `kd open -e <env> -f <page_name>`：直接在浏览器中打开对应环境上已部署的表单页面
-- `-e` 指定目标环境（必填），`-f` 传入页面元数据 `<name>` 值（必填），**必须读取 `.page-meta.kwp` 文件中的 `<name>` 字段值，不是文件名**（文件名和元数据 name 可能不同，元数据 name 已包含 ISV 前缀，如 `kdtest_inv_dashboard`）
-- 不需要本地 dev server 运行，不走 DNS 代理
-- 使用前提：已通过 `kd project deploy` 将元数据和静态文件部署到目标环境
-
-适用场景：用户说"看看效果"、"打开页面"、"查看环境上的表单"、"看看部署结果"等。
-
-### 本地调试（kd debug）
-
-仅当用户明确说"调试"、"本地调试"、"联调"、"实时预览代码修改"时才使用 `kd debug`：
-
-- 运行 `kd debug` 时**必须使用后台模式**（`is_background: true`），因为这是一个持续运行的开发服务器，不会自动结束
-- 若使用前台模式运行 `kd debug`，命令会在 90 秒后因超时被强制终止，导致本地服务被 kill
-- `kd debug` 启动后会先打开浏览器访问对应地址，但此时本地开发服务可能尚未完全启动，页面可能暂时无法访问。应等待服务启动完成后再刷新浏览器
-- 可以通过 `get_terminal_output` 查看 `kd debug` 的运行状态和输出
-- 若目标环境不是当前默认环境，先执行 `kd env set target-env <env-name>`
-- 不要手工拼调试 URL，由 AI 自行结合任务和页面元数据判断预览目标
-- 浏览器自动打开后继续定位目标页面
-
-### 触发决策
-
-前置条件（必须在触发 open/debug 前完成）：
-- 已完成代码编写
-- 已执行必要的 build 命令（若修改了代码）
-- 已执行 kd project deploy（若需要部署）
-- 已发送页面访问链接（见「页面访问链接」章节，部署后必须先发送链接再执行 open/debug）
-- 环境已认证
-
-```
-用户意图判断：
-├── "看效果/打开页面/查看部署结果/看看环境上的表单" → kd open
-├── "调试/联调/本地调试/实时预览修改" → kd debug
-└── 未明确表达 → 默认发送页面访问链接即结束，不自动执行 kd open 或 kd debug
-```
-
-补充：环境未认证时 `kd project deploy` 会直接阻止部署。
-
-## 应用菜单管理
-
-> 菜单管理将部署后的页面注册到应用导航菜单，使页面在苍穹环境中可被用户导航访问。
-> 所有菜单操作通过 `scripts/menu-api.mjs` 脚本完成，详细命令参考见 [references/app-menu.md](references/app-menu.md)。
-
-### 触发条件
-
-- `kd project deploy` 成功后，引导用户是否将页面发布到应用菜单
-- 用户直接说"发布菜单"、"添加菜单"、"菜单管理"、"查看菜单"、"修改菜单"、"删除菜单"、"移动菜单"
-
-### 前置条件
-
-- 环境已认证（通过 setup-env.mjs 或手动认证完成）
-- bizAppNumber 已知（来自 `.kd/config.json` 的 `app` 字段，或用户明确提供）
-
-### 接口依赖关系（强制约束）
-
-**所有菜单操作必须遵循「先查后改」原则，禁止跳过查询直接执行写操作。**
-
-```
-queryTree（必须）→ 获得 menuId / 菜单结构 → 执行写操作 → getMenu 或 queryTree 验证结果
-```
-
-| 约束 | 说明 |
-|------|------|
-| **menuId 只能从接口获取** | `menuId` 只能来自 `queryTree` 返回的菜单树、`addMenu` 返回的新建菜单、或 `getMenu` 返回的详情。禁止凭记忆或猜测构造 menuId |
-| **修改/删除/移动前必须先查询** | 执行 `updateMenu`、`deleteMenu`、`moveMenu` 前，必须先执行 `queryTree` 获取当前菜单树，从返回结果中确认目标 menuId 存在且状态正确 |
-| **新增后必须捕获 menuId** | `addMenu` 成功后，必须从响应中提取新菜单的 `menuId` 并记录，供后续修改/移动使用 |
-| **写操作后必须验证** | 任何写操作（add/update/delete/move）完成后，必须执行 `getMenu` 或 `queryTree` 验证实际状态，不能仅凭返回的 success 判断 |
-| **parentMenuId 必须来自查询** | 新增子菜单时，`parentMenuId` 必须从 `queryTree` 的返回结果中获取已有菜单的 menuId，禁止猜测 |
-
-### Step 1: 上下文准备
-
-- 读取 `.kd/config.json` 的 `app` 字段作为 bizAppNumber
-- 若从部署流程进入：formNumber = deploy 后 `.page-meta.kwp` 中 `<name>` 标签的实际值（已含 ISV 前缀）
-- 若用户直接触发菜单管理：仅已知 bizAppNumber，进入 Step 2 查询菜单树
-
-> ⚠ formNumber 必须从 deploy 后的 `.page-meta.kwp` 文件中读取 `<name>` 标签的实际值，不要自行拼接 ISV 前缀。
-
-### Step 2: 查询并展示菜单树（任何操作的前置步骤）
-
-**无论用户要求什么菜单操作，都必须先执行此步骤获取当前菜单状态。**
-
-```bash
-node "{menu_api}" queryTree --bizAppNumber {bizAppNumber}
-```
-
-- 按层级缩进展示，用图标区分类型（📁 分组 / 📄 页面 / 🔗 链接），展示规范见 [references/app-menu.md](references/app-menu.md)
-- **记录所有菜单的 menuId**，后续操作必须使用这里获取到的 menuId
-- 展示后根据来源引导下一步：
-  - **部署后进入** → 根据表单名称和现有菜单结构，推荐菜单放置位置（分析语义关联，推荐同类分组；菜单树为空则推荐创建一级菜单）。推荐前须检查目标位置层级深度（不超过 3 级）
-  - **用户直接触发** → 展示菜单树后等待用户指示操作
-
-### Step 3: 执行菜单操作
-
-根据用户意图执行对应操作（所有 menuId 必须来自 Step 2 的查询结果）：
-
-| 操作 | 命令 | 执行前检查 |
-|------|------|------------|
-| 新增 | `addMenu --bizAppNumber {app} --name {name} --formNumber {form} [--parentMenuId {pid}] [--seq {n}]` | 确认菜单名称和位置；检查层级不超 3 级；parentMenuId 必须来自 queryTree 结果；**批量新增同级菜单时必须传递从小开始的递增 --seq 值（如 1、2、3），禁止使用大数值，范围 1–32767** |
-| 修改 | `updateMenu --bizAppNumber {app} --menuId {id} [--name ...] [--visible ...] [--seq {n}]` | menuId 必须来自 queryTree 结果；修改 visible 为 0 时警告级联隐藏；修改 parentMenuId 时检查循环引用和层级 |
-| 删除 | `deleteMenu --bizAppNumber {app} --menuId {id}` | menuId 必须来自 queryTree 结果；检查 HPCE 保护；警告级联删除子菜单；需停下来向用户二次确认（提供"确认删除"/"取消"两个选项） |
-| 移动 | `moveMenu --bizAppNumber {app} --menuId {id} --direction {up/down}` | menuId 必须来自 queryTree 结果；展示当前排序位置；若报错「序号一致」，先用 updateMenu --seq 修改相邻菜单序号再重试 |
-
-> 每次操作前均需将配置方案展示给用户，并停下来向用户提问获得确认后再执行。
-
-### Step 4: 验证并展示结果
-
-- 任何写操作完成后**必须**验证实际结果：
-  - **删除操作**：优先用 `getMenu` 确认目标菜单返回 `MENU_NOT_FOUND`（菜单树可能存在短暂缓存延迟）
-  - **其他写操作**：执行 `getMenu`（单个菜单）或 `queryTree`（全局）验证
-- addMenu 成功后，从响应中提取并记录新菜单的 menuId
-- 展示完成信息，并提供后续操作选项：
-  1. 修改此菜单
-  2. 移动菜单位置
-  3. 删除此菜单
-  4. 继续添加其他菜单
-  5. 查看完整菜单树
-  6. 完成
-
-### 与部署流程的集成
-
-`kd project deploy` 成功后：
-
-1. **先发送页面访问链接**：生成并发送 `:::render:kdform ...:::`（见「页面访问链接」章节）
-2. **再引导菜单发布**：向用户提问是否需要将页面发布到应用菜单（提供“发布到菜单”/“跳过”两个选项）
-
-> 通过弹窗提问："部署成功，是否需要将页面发布到应用菜单？"，选项为"发布到菜单"和"跳过"。
-
-若用户同意 → 自动进入 Step 1（bizAppNumber 和 formNumber 均已可从当前上下文获取）。
-
-### 约束速查
-
-| 约束 | 何时提醒 |
-|------|----------|
-| 菜单最多 3 级 | 新增或移动菜单时检查 |
-| HPCE 菜单不可删除 | 删除前检查 menuId 是否以 HPCE 结尾 |
-| 级联隐藏 | 修改 visible 从 1→0 时警告 |
-| 级联删除 | 删除有子菜单的菜单时警告 |
-| formNumber 取实际值 | 新增页面菜单时 |
-
-## 元数据查询
-
-> 元数据查询用于在已认证环境中搜索表单和获取实体字段结构，为 KS 脚本编写、页面开发等提供上下文信息。
-> 所有查询操作通过 `scripts/meta-query-api.mjs` 脚本完成，详细命令参考见 [references/meta-query.md](references/meta-query.md)。
-
-### 触发条件
-
-- 用户提到表单名称（如"销售订单"）但未提供 formNumber
-- 需要查询某个表单的字段结构
-- KS Controller 开发前需了解目标表单的实体字段
-- 页面开发时需了解关联表单的数据模型
-
-### 前置条件
-
-- 环境已认证（通过 setup-env.mjs 或手动认证完成）
-- appNumber 已知（来自 `.kd/config.json` 的 `app` 字段，或用户明确提供）
-
-### 工作流
-
-#### Step 1: 搜索表单
-
-优先使用 `queryFormsByApp` 在当前应用范围内搜索：
-
-```bash
-node "{meta_query_api}" queryFormsByApp --appNumber {appNumber} --keyword {keyword}
-```
-
-- `appNumber` 从 `.kd/config.json` 的 `app` 字段获取
-- `keyword` 为用户提到的表单名称关键词（可选，不传则列出应用下所有表单）
-
-#### Step 2: 确认目标表单
-
-根据返回结果数量处理：
-
-| 场景 | 处理方式 |
-|------|----------|
-| 返回单条 | 直接确认为目标表单，提取 `formNumber` |
-| 返回多条 | 列表展示候选项（序号 / 表单名称 / 表单编码 / 模型类型 / 所属应用），并停下来向用户提问，将候选项作为选项让用户选择 |
-| 返回空 | 提示未找到，建议尝试换关键词重试 |
-
-#### Step 3: 获取实体字段（按需）
-
-确认目标表单后，根据需要获取字段结构：
-
-```bash
-node "{meta_query_api}" getEntityFields --formNumber {formNumber}
-```
-
-返回结果按单头和单据体分组展示字段的 key、类型、是否必录等信息。
-
-#### 灵活使用
-
-- 用户也可以只执行 Step 1-2（仅查询表单列表），不必每次都查字段
-- 若用户已知 formNumber，可直接执行 Step 3 获取字段结构
-- 查询结果可用于 KS 脚本编写、页面开发、或单纯了解表单结构
-
-### 与其他流程的集成
-
-- **KS Controller 开发**：开发前先查询目标表单字段结构，了解单头/单据体/子分录的字段 key 和类型
-- **页面开发**：查询关联表单了解数据模型，辅助组件设计
-- **独立使用**：用户只想了解某个表单结构时，可独立调用
+| 文件 | 触发级别 | 硬判定标准 |
+|------|---------|------------|
+| [`references/page-design-guide.md`](./references/page-design-guide.md) | **🔴 必读** — 每个新需求 | 只要产出新页面/新组件就必须先读，用于选模板、定布局。**禁止跳过直接复用已有组件的布局** |
+| [`references/component-metadata.md`](./references/component-metadata.md) | **🔴 必读** — 首次接触工程 | 第一次为该项目写组件元数据时必读一次；后续可复用已建立的认知 |
+| [`references/page-metadata.md`](./references/page-metadata.md) | **🔴 必读** — 首次接触工程 | 第一次为该项目写页面元数据时必读一次；后续可复用已建立的认知 |
+| [`references/workflow-orchestration.md`](./references/workflow-orchestration.md) | 条件触发 | 需求含后端数据交互 / 含 Controller / 含实体识别 / 前后端联合开发时必读 |
+| [`references/deployment-guide.md`](./references/deployment-guide.md) | 条件触发 | 新建环境 / 首次部署 / 菜单发布 / 部署失败排查时必读 |
+| [`references/metadata-operations.md`](./references/metadata-operations.md) | 故障时触发 | 元数据上传失败 / CLI 报错 / 需查询环境元数据时必读 |
 
 ## 端到端执行原则
 
@@ -1028,14 +490,17 @@ node "{meta_query_api}" getEntityFields --formNumber {formNumber}
 3. 评估需求是否涉及后端数据交互，若是则规划 Controller
 4. 拆分组件并创建组件工程；若需要 Controller，一并创建 Controller 工程
 5. 补全所有元数据：组件元数据 `.js-meta.kwc`、Controller 元数据 `.kws`（若有）
-6. 实现前端组件代码（阅读对应框架子技能的 SKILL.md 并遵循其规范）
-7. 若有 Controller，实现 Controller 脚本代码（阅读 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 并遵循其规范）
-8. 创建并补全页面元数据
-9. 若有 Controller，执行 `npm run build:controller`
-10. **自动部署**：先执行 `kd env list` 检查已有环境。若有已认证环境，直接执行 `kd project deploy -e <环境名>`（无需询问用户）；若无环境，先收集环境信息并配置，再部署。详见「部署决策（默认自动部署）」章节
-11. 部署成功后，生成并发送页面访问链接（`:::render:kdform ...:::`）（见「页面访问链接」章节）
-12. 仅当用户明确要求查看效果时执行 `kd open`
-13. 仅当用户明确要求本地联调时，执行 `kd debug`
+6. **页面设计（🔴 必读，禁止跳过）**：**必须**阅读 [`references/page-design-guide.md`](./references/page-design-guide.md)，确定页面模板和组件布局方案
+   > ⚠️ **禁止以"工程中已有类似组件可参考"为由跳过阅读 page-design-guide.md。**
+   > 不同类型的页面（工作台/图表/向导/列表/表单）有不同的最佳模板，必须先选型再实现。
+7. 实现前端组件代码（阅读对应框架子技能的 SKILL.md 并遵循其规范）
+8. 若有 Controller，实现 Controller 脚本代码（阅读 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 并遵循其规范）
+9. 创建并补全页面元数据
+10. 若有 Controller，执行 `npm run build:controller`
+11. **自动部署**：先执行 `kd env list` 检查已有环境。若有已认证环境，直接执行 `kd project deploy -e <环境名>`（无需询问用户）；若无环境，先收集环境信息并配置，再部署。详见「部署决策（默认自动部署）」章节
+12. **【立即】部署成功后，生成并发送页面访问链接**（`:::render:kdform {"title":"...","url":"..."}:::`）——这是部署流程的完成标志，不可跳过或延迟。**JSON 只允许 `title` 和 `url` 两个字段，`url` 必须是完整的 HTTP/HTTPS URL（含环境域名 + formId 参数）**，详见「页面访问链接」章节
+13. [可选] 若用户明确要求"打开页面"或"查看效果"，执行 `kd open`
+14. [可选] 若用户明确要求本地联调，执行 `kd debug`
 
 不要只完成其中的"创建组件"或"本地跑起来"，除非用户明确只要某个局部步骤。
 
@@ -1052,56 +517,6 @@ node "{meta_query_api}" getEntityFields --formNumber {formNumber}
 - 部署默认执行，是否用户明确要求跳过部署
 - 若需要部署，是否因为元数据变更而必须递增 `version`
 - 部署成功后是否已发送页面访问链接（`:::render:kdform ...:::`，见「页面访问链接」章节）
-
-## 故障排查速查表
-
-> 以下命令仅用于故障诊断，不可用于正常工作流。
-
-| 症状 | 可能原因 | 解决方案 |
-|------|----------|----------|
-| `kd project deploy` 提示未认证 | 环境未执行 auth | `kd env auth openapi` |
-| 页面元数据上传失败 | version 未递增 | 递增 version 后重试 |
-| 页面显示空白 | control.type 与组件 name 不匹配 | 检查大小写完全一致 |
-| 组件属性不生效 | 属性未在 .js-meta.kwc 声明 | 添加 `<property>` 定义 |
-| name 校验失败 | 格式不符 | 字母开头，仅小写+数字+下划线，≤30字符 |
-| isv 不一致 | 页面与环境开发商不匹配 | deploy 会自动替换，无需手填 |
-| 在非 KWC 工程目录执行命令 | 缺少 .kd 目录 | 先执行 `kd project init` |
-| 创建了页面但组件不显示 | 未把组件写入 `<controls>` | 编辑 page-meta.kwp 添加 control |
-| `kd debug` 提示端口占用 | 3333 端口被占用 | 关闭占用进程或重启终端 |
-| `kd debug` 启动后无法找到目标表单 / 进入了错误的表单 | 未使用 `-f` 参数指定页面元数据 name，或传入了文件名而非元数据 name 值 | 使用 `kd debug -f <page_name>`，其中 `<page_name>` 为**当前本地 `.page-meta.kwp` 文件中 `<name>` 节点的实际值**。注意：deploy 后脚手架会自动更新本地文件中的 name（拼接 isv 前缀），因此应使用 deploy 后的完整名称，如 `kdtest_demo_page` |
-| `kd open` 打开页面后显示空白 | 未部署或静态文件未上传 | 先执行 `kd project deploy` 确保元数据和静态文件已上传 |
-| `kd open` 提示表单不存在 | `-f` 参数值不正确 | 传入页面元数据 `<name>` 节点的实际值（deploy 后的完整名称） |
-
-### 表单名称与 ISV 前缀说明
-
-- **创建阶段**：`.page-meta.kwp` 中的 `<name>` 可填写业务标识，如 `demo_page`
-- **Deploy 阶段**：脚手架自动从环境拉取 isv（如 `kdtest`），拼接成 `kdtest_demo_page` 上传到远端，并**同步更新本地文件**
-- **Debug/Open 阶段**：`kd debug -f` 和 `kd open -f` 均应传入**当前本地文件中的 `<name>` 值**（即 deploy 后的完整名称）
-- 如果不确定，直接打开 `.page-meta.kwp` 查看 `<name>` 节点即可
-
-## 快速导航
-
-按常见场景快速定位参考文档：
-
-- **新工程初始化** → `cli-reference.md`（project init）+ 本文「初始化工程」章节
-- **添加组件** → `cli-reference.md`（project create）+ `component-metadata.md`
-- **创建页面** → `page-metadata.md` + 本文「创建页面元数据」章节
-- **环境配置与部署** → `env-setup.md` + `cli-reference.md`（deploy/open/debug）+ 本文「配置环境」「部署与调试」章节
-- **应用菜单管理** → `app-menu.md` + 本文「应用菜单管理」章节
-- **元数据查询** → `meta-query.md` + 本文「元数据查询」章节
-
-## 参考资料
-
-| 主题 | 参考文件 |
-|------|----------|
-| CLI 命令语法、参数、示例 | `references/cli-reference.md` |
-| 组件元数据字段与属性类型 | `references/component-metadata.md` |
-| 环境信息收集与认证流程 | `references/env-setup.md` |
-| 页面元数据字段、controls 规则、命名规范 | `references/page-metadata.md` |
-| 应用菜单管理命令与展示规范 | `references/app-menu.md` |
-| 元数据查询命令与响应格式 | `references/meta-query.md` |
-
----
 
 ## 子技能路由表
 
@@ -1121,63 +536,4 @@ node "{meta_query_api}" getEntityFields --formNumber {formNumber}
 2. **Controller 开发**：识别后端需求后引用 kwc-ks-controller-development，遇 SDK/语言问题参考 kingscript-code-generator
 3. **Kingscript 二开/插件**：直接引用 kingscript-code-generator
 
----
 
-## 附录：CLI 手动降级方案
-
-> **🚫 禁止区域 — AI 不得阅读或执行以下内容**
-> 
-> 以下 CLI 命令仅供人工故障排查参考。AI 在任何情况下都必须使用自动化脚本（project-init.mjs / setup-env.mjs / batch-create.mjs），即使脚本执行失败，也应报告错误而非降级到手动 CLI。
-
-### A. 工程初始化降级
-
-当 `project-init.mjs` 脚本执行失败时，可降级为手动流程：
-
-1. 安装 CLI。
-2. 运行 `kd project init <project-name>`。
-3. 在交互流程中按用户要求选择框架和语言；若用户未指定，默认选择 `react` + `ts`，无需询问用户。若用户明确指定了其他框架（Vue/LWC），则按用户指定的执行。
-4. 输入应用标识 `app`（规则见“需要用户提供或确认的输入”一节）。
-5. 初始化完成后进入项目目录，执行 `npm install`。
-6. 仅在需要本地辅助预览组件时，再执行 `npm run dev`。
-
-补充：`kd project init` 依赖 `git clone` 下载模板，若失败优先检查 `git`。
-
-### B. 组件创建降级
-
-当 `batch-create.mjs` 脚本执行失败时，可降级为逐个创建：
-
-1. 运行 `kd project create <ComponentName> --type kwc`。
-2. 使用 `PascalCase` 组件名。
-3. 让 CLI 生成目录和基础文件。
-4. 若用户同时要创建多个组件，逐个执行创建命令，不要手工复制推断目录结构。
-
-### C. Controller 创建降级
-
-当 `batch-create.mjs` 脚本执行失败时，可降级为逐个创建：
-
-1. 运行 `kd project create <ControllerName> --type controller`。
-2. 使用 `PascalCase` 控制器名，建议以 `Controller` 后缀结尾。
-3. 让 CLI 生成目录和基础文件。Controller 工程生成在 `app/ks/controller/<ControllerName>/` 下。
-4. 若需指定拉取 SDK 的目标环境，可使用 `-e` 选项：`kd project create <ControllerName> --type controller -e dev`。
-
-### D. 页面元数据创建降级
-
-当 `batch-create.mjs` 脚本执行失败时，可降级为逐个 CLI 创建：
-
-1. 运行 `kd project create <page-name> --type page`。
-2. 打开 `app/pages/<page-name>.page-meta.kwp`。
-3. 至少核对并填写 `name`、`masterLabel`、`app`、`version`。
-4. 在 `<controls>` 中把页面实例和组件类型关联起来。
-5. 仅当该页面元数据文件有变更并准备重新上传时，手动将 `version` 加 `1`。
-6. 将组件树、实例名和页面布局映射到 XML，而不是停留在“组件已经创建”这一步。
-
-### E. 环境配置降级
-
-当 `setup-env.mjs` 脚本执行失败时，可降级为手动流程：
-
-1. 使用 `kd env create <env-name> --url <url>` 创建环境别名。
-2. 使用 `kd env auth openapi` 走交互式认证。
-3. 若用户经常切换环境，可用 `kd env set target-env <env-name>` 设置默认环境。
-4. 必要时使用 `kd env info` 检查当前配置。
-
-优先采用 `openapi` 认证方式；`web` 模式暂不作为默认路径。
