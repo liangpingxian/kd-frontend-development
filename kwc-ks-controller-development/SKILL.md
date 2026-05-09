@@ -25,7 +25,13 @@
 3. **查询实体字段**（涉及业务实体操作时）：通过 `meta-query-api.mjs` 获取真实字段结构，**禁止猜测字段名**
 4. **编写 .kws 元数据**：基于第 2 步读取的配置拼装 URL（`/{isv}/{app}/...`），定义 HTTP 方法和权限
 5. **编写脚本代码**：开始写代码前，**必须先读取** `./reference/脚本控制器防坑指南.md`，确保不使用不存在的 API、不踩已知运行时陷阱；SDK 调用前先在索引中确认存在
-6. **交付构建**：完成后通知用户回到 scaffold 进行部署
+6. **部署上线**：完成后执行 `kd project deploy` 将 Controller 上传到环境
+
+> ⚠️ **致命坑：`kd project build --type controller` 不会上传代码！**
+>
+> `build` 只做本地编译，输出 "Success" 但服务端仍跑旧代码。**每次改完 Controller（.ts 代码或 .kws 版本号）后，必须执行 `kd project deploy` 才能让改动生效。**
+>
+> 错误表现：改了代码后调接口还是旧逻辑/旧响应/500，看起来像业务 bug 实际是没部署。
 7. **端到端自检（🔴 硬性门槛）**：部署成功后，**必须**运行 `../scripts/test-controller.mjs`（登录→Cookie→/kwc/v1）对每个要对接的方法跑至少一轮。这不属于「禁止运行部署」的约束，是只读接口调用。**自检未全部通过前，禁止进入 KWC 前端对接代码编写（adapterApi / 前端组件）**；详见主 SKILL.md 「Controller 端到端自检」节
    - **必须使用 `--assert-*` 参数验证返回数据正确性**，仅验证连通性（HTTP 200）不够。至少要：
      - `--assert-not-empty data`（确认有数据返回）

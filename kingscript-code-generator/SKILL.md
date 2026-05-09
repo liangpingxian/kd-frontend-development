@@ -1,122 +1,133 @@
-# Kingscript 专家（Qoder 适配版）
+---
+name: kingscript-code-generator
+description: "用 KingScript 做 KWC 脚本控制器后端 API 开发（REST/Web API）与数据 CRUD（DynamicObject / QueryServiceHelper / QFilter）。优先复用本仓库内的 SDK 索引、运行时约束、安全模板，不编造 API。"
+---
 
-这个入口把 Qoder 场景下最常用的检索顺序和输出约束集中到一个文件里，避免在平台侧缺少额外引导文件时走偏。
+# Kingscript 后端开发入口
 
-## 本地资源发现
+本 skill 聚焦「用 KingScript 在 KWC 脚本控制器里写后端 API + 数据 CRUD」。不覆盖表单/列表/操作/报表等老式前端耦合插件体系。
 
-这个 skill 不应该把某一台机器的路径写死。每次进入 Kingscript 任务时，先按下面顺序解析本地资源根目录：
+## 何时触发
 
-1. 优先读取 skill 同目录下的 `local-paths.json`
-2. 如果没有，再读取当前工作区的 `AGENTS.md` 或同类本地说明文件，查找用户声明的本地资源路径
-3. 如果还没有，再尝试默认目录发现
+- 写或改 KWC 脚本控制器、REST / Web API
+- 用 KingScript 做新增、修改、查询、删除数据
+- 诊断 KWC 运行时报错、审查生成代码
+- 解释 SDK 类、方法、Java 开放能力映射
 
-只有在上一步路径真实存在时，才允许继续使用；不存在就继续降级，不要直接假设目录一定在。
+## 任务路由速查
 
-### `local-paths.json` 约定
+| 用户问什么 | 先读这里 |
+|---|---|
+| KWC 控制器怎么配、怎么写、怎么部署 | `references/backend/脚本控制器开发指南.md` |
+| 起手模板 / 保守写法 | `references/backend/controller-safe-template.md` |
+| 数据 CRUD 怎么写 | `references/sdk/classes/QueryServiceHelper.md` + `QFilter.md` + `DynamicObject.md` + `BusinessDataServiceHelper.md` |
+| 金额 / BigDecimal / 大整数 ID | `references/backend/runtime-number-bridge.md` |
+| 日期字段 / QFilter 日期入参 | `references/backend/runtime-date-bridge.md` |
+| DynamicObject 读取规范 | `references/backend/runtime-dynamicobject.md` |
+| 运行时报错 / 500 空体 | `references/backend/faq-runtime-pitfalls.md` + `references/sdk/indexes/error-index.md` |
+| 不知道用哪个类 | `references/sdk/indexes/keyword-index.md` 或 `scenario-index.md` |
+| 已知类名找说明 | `references/sdk/classes/<ClassName>.md`（若无卡片则查 `indexes/module-index.md` 定位模块） |
+| 已知方法名找说明 | `references/sdk/indexes/methods-hot.md`（后端高频）|
+| 语法 / 关键字 / 命名 | `references/syntax/` |
+| Java ↔ KingScript 类型桥接 | `references/backend/runtime-number-bridge.md` + `runtime-date-bridge.md` + `runtime-dynamicobject.md` |
 
-文件位置：
+## 资料地图（叶子文件直达）
 
-- skill 安装目录下的 `local-paths.json`
+### 定制开发专题（必读）
 
-建议字段：
+- `references/backend/脚本控制器开发指南.md` — KWC 控制器完整开发指南（配置、URL、权限、请求/响应 API）
+- `references/backend/controller-safe-template.md` — 保守起手模板（含 `toJavaSafe` 递归转换）
+- `references/backend/faq-runtime-pitfalls.md` — P0 硬约束总表 + 14 条常见坑
+- `references/backend/runtime-number-bridge.md` — BigDecimal / Long / BigInt 运行时约束
+- `references/backend/runtime-date-bridge.md` — Java Date ↔ JS Date 桥接约束
+- `references/backend/runtime-dynamicobject.md` — DynamicObject 读取规范
 
-- `workspace_root`
-- `repo_root`
-- `references_root`
-- `docs_root`
-- `examples_root`
-- `sdk_root`
-- `templates_root`
-- `language_root`
-- `java_sample_jar`
-- `bos_docs_path`
+### SDK 索引（按已知信息反查）
 
-### 默认目录发现
+- `references/sdk/indexes/methods-hot.md` — 后端 CRUD 高频方法
+- `references/sdk/indexes/keyword-index.md` — 按关键字/口语反查
+- `references/sdk/indexes/scenario-index.md` — 按业务场景反查
+- `references/sdk/indexes/error-index.md` — 按报错反查
+- `references/sdk/indexes/deprecated-index.md` — 废弃/不推荐清单
+- `references/sdk/indexes/module-index.md` — 按模块反查
+- `references/sdk/indexes/microservice-index.md` — 按微服务反查
 
-只有在 `local-paths.json` 和工作区说明文件都没有提供可用路径时，才按下面顺序尝试：
+### SDK 类知识卡（CRUD 核心）
 
-1. 当前工作区下是否存在 `references/examples`、`references/sdk`、`references/templates`
-2. 当前工作区的 `kingscript-code-generator/references`
-3. 当前工作区的上级或同级目录里是否存在名为 `kingscript-code-generator` 的仓库副本
+- **数据访问**：`QueryServiceHelper` · `QFilter` · `QCP` · `BusinessDataServiceHelper` · `DBRoute`
+- **数据模型**：`DynamicObject` · `DynamicObjectCollection`
+- **元数据**：`EntityType` · `MainEntityType` · `EntryType` · `SubEntryType` · `EntityMetadataCache`
+- **基础资料元数据**：`BasedataProp` · `MulBasedataProp` · `MasterBasedataProp`
+- **弹性域元数据**：`FlexEntityType` · `FlexProp` · `FlexProperty`
+- **操作结果与校验**：`OperationResult` · `ValidateResult` · `ValidationErrorInfo` · `ErrorLevel`
+- **数值 / 日期**：`BigDecimal` · `Date`
+- **请求上下文 / 异常 / 序列化**：`RequestContext` · `KDException` · `SerializationUtils`
 
-## 解析后的固定入口
+所有类文件统一放在 `references/sdk/classes/<ClassName>.md`。
 
-- `<references_root>\docs\README.md`
-- `<references_root>\docs\custom-development\README.md`
-- `<references_root>\docs\custom-development\脚本控制器开发指南.md`
-- `<examples_root>\README.md`
-- `<examples_root>\plugins\README.md`
-- `<templates_root>\README.md`
-- `<sdk_root>\README.md`
-- `<sdk_root>\strategy.md`
-- `<sdk_root>\indexes\class-index.md`
-- `<sdk_root>\indexes\method-index.md`
-- `<sdk_root>\indexes\methods-by-name.md`
-- `<sdk_root>\indexes\scenario-index.md`
-- `<sdk_root>\indexes\keyword-index.md`
-- `<language_root>\README.md`
+### SDK 其他
 
-## 推荐检索顺序
+- `references/sdk/strategy.md` — SDK 检索策略与降级路线
+- `references/sdk/manifests/modules.json` — 21 个业务域模块统计（识别 `@constellation/*` / `@cosmic/*` 归属）
+- `references/sdk/manifests/summary.json` — SDK 整体统计
 
-1. 先解析 `references_root / docs_root / examples_root / sdk_root / templates_root / language_root`
-2. 用户提到 `KWC`、`脚本控制器`、`controller`、`REST API`、`Web API` 时，先看：`<references_root>\docs\custom-development\脚本控制器开发指南.md`
-3. 先看最接近的代码示例：`<examples_root>`
-4. 需要起手骨架时看：`<templates_root>\README.md`
-5. 涉及 SDK 语义时看：`<sdk_root>\README.md`、`<sdk_root>\indexes\`
-6. 涉及语法、关键字和命名规则时看：`<language_root>\README.md`
+### 语法 / 关键字 / 命名
 
-## 降级查找顺序
+- `references/syntax/命名规范.md`
+- `references/syntax/保留关键字.md`
+- `references/syntax/变量.md`
+- `references/syntax/方法.md`
+- `references/syntax/类.md`
+- `references/syntax/接口.md`
+- `references/syntax/条件判断.md`
+- `references/syntax/循环.md`
+- `references/syntax/异常处理.md`
+- `references/syntax/模块及引用.md`
+- `references/syntax/语法示例.md`
 
-1. 先开目标目录下的 `README.md`
-2. 再看文件名是否已能直接定位
-3. 只知道类名、方法名、事件名时，优先回到 `<sdk_root>\indexes\`
-4. 只知道场景时，优先回到 `<examples_root>\plugins\README.md` 和对应“场景拆分”目录 README
-5. 如果仍然不够，再对 `<references_root>` 做关键字检索
-6. 索引和 examples 都不够时，再降级到 `<sdk_root>\manifests\`
-7. 仍不足时，再看本地 `.d.ts`、`jar` 反编译结果或在线 Javadoc
+## 运行时硬约束（P0）
 
-## 本地检索方式
+完整规则、代码例子、症状/原因/错误写法都在 `references/backend/faq-runtime-pitfalls.md` 顶部的「P0 总表 + 自检清单」。输出代码前必须逐条核对，违反一条即视为不合格。精要回顾：
 
-1. 优先 `rg --files` 或 `rg -n`
-2. 如果 `rg` 不可用或权限异常，改用 PowerShell：
+1. 禁 `?.` / `??` / 深层解构 / 对 Java 对象链式 JS 调用
+2. 禁用 `Number()/toFixed()/Number.isFinite()` 处理 Java 数值；大整数走 `BigInt("...")`
+3. 禁把 Java Date 当 JS Date 用
+4. DynamicObject 统一 `row.get('fieldKey')`；分录字段必须带 `entryentity.` 前缀
+5. 顶层响应必须是对象（不允许返回数组）
+6. 响应内容必须是 Java 集合（`ArrayList` / `HashMap` / `HashSet`），用 `toJavaSafe` 递归转换
+7. adapterApi 必查 `config.app` / `config.isvId`
+8. 禁定义 `static` 方法与 `static` 变量
 
-```powershell
-Get-ChildItem -Path '<references_root>' -Recurse -Include *.md |
-  Select-String -Pattern 'SearchEnterEvent|EntryGridBindDataEvent|AbstractReportFormPlugin' -Encoding UTF8
-```
+## 降级检索链路
 
-3. 如果要从 `jar` 里找 Java 来源，用：
-
-```powershell
-jar tf '<java_sample_jar>' | Select-String 'SearchSample|TreeViewSample|ReportColumnMergePlugin'
-```
-
-## Qoder 下的任务路由
-
-- 用户问“这段代码怎么写”：先去 `<examples_root>`
-- 用户问“KWC controller / 脚本控制器怎么配、怎么写、怎么部署”：先去 `<references_root>\docs\custom-development\脚本控制器开发指南.md`
-- 用户问“这个类/事件是什么”：先去 `<sdk_root>\classes\` 或 `<sdk_root>\packages\`
-- 用户问“我该从哪个插件起手”：先去 `<templates_root>`
-- 用户贴错误或异常：先去 `<sdk_root>\indexes\error-index.md`
-- 仓库内资料不足且本地挂载了外部知识盘时：按 `<sdk_root>\strategy.md` 进入外部扩展层，先读 `*-description.md`，需要代码和坑点时再读 `*-example.md`
-- 如果 `local-paths.json` 中配置了 `bos_docs_path`，把它视为外部知识盘主入口；只有仓库内资料不足时才进入
+1. 用户只给了类名 → `sdk/classes/<ClassName>.md`（无卡片则按 `sdk/indexes/module-index.md` 反查模块）
+2. 只给了方法名 → `sdk/indexes/methods-hot.md`
+3. 只给了业务词 → `sdk/indexes/scenario-index.md` 或 `keyword-index.md`
+4. 只给了报错 → `sdk/indexes/error-index.md` + `backend/faq-runtime-pitfalls.md`
+5. 仍不足 → 本地 `.d.ts` 或在线 Javadoc；未命中必须明确声明假设与缺口，不得编造
 
 ## 输出规则
 
-- 先说明场景，再给代码或结论。
-- 代码前先声明关键假设。
-- 生成代码前先确认每个外部类、助手类、事件类、枚举和工具类的 import 路径。
-- 最终输出前必须自检所有非全局符号都已显式 import，不能依赖 IDE 或编辑器自动导入。
-- 如果某个符号不需要 import，必须说明它是运行时全局、当前文件局部定义，或由框架自动注入。
-- 必须指出风险点和待确认项。
-- 优先复用本 skill 里的示例和模板，不凭空发明 API。
-- 本地知识不够时，按 `indexes -> classes/packages -> manifests -> 外部知识盘(可选) -> 本地 .d.ts -> 在线 Javadoc` 降级。
-- 页面提示、通知、消息框相关方法，先回到 `IFormView` 或本地声明层确认，再决定是否可用。
-- 调用 `obj.method()` 前，必须确认 `method` 属于 `obj` 当前类型或其声明继承链，不能把别的事件参数或上下文对象的方法直接套过来。
-- 生成代码时不得把事件参数写成 `any`；如果当前版本声明只给出 `BizDataEventArgs` 或 `$.java.util.EventObject`，也要按声明原样输出。
+每次输出按下列结构：
+
+1. **场景**：一句话说清楚目标
+2. **假设**：列出当前依赖的前置条件（实体、字段、权限、运行时版本）
+3. **代码或方案**：按上面 P0 硬约束给出，所有非全局符号必须显式 import
+4. **风险**：列明未验证的点、已知的运行时坑位
+5. **待确认问题**：需要用户回答后才能收敛的信息
+
+代码硬约束：
+
+- 生成代码前必须确认每个外部类、助手类、工具类的真实 import 路径
+- 不得依赖 IDE 自动导入；不需要 import 的符号必须说明理由（全局 / 局部定义 / 框架注入）
+- 调 `obj.method()` 前必须确认 `method` 属于 `obj` 当前类型或其声明继承链
+- 不允许按「近似名字」猜方法（例：声明是 `addItemClickListeners`，就不能写 `addItemClickService`）
+- 事件参数不得写成 `any`，按声明层类型原样写
 
 ## 禁止事项
 
-- 不编造 Kingscript API、事件名或上下文对象。
-- 不默认假设 Java 开放能力一定可用。
-- 不忽略权限、组织、租户、账套和生命周期边界。
+- 不编造 Kingscript API、事件名、上下文对象结构
+- 不假设 TypeScript 声明保证运行时可用
+- 不忽略权限、租户、组织、账套、生命周期边界
+- 不定义 `static` 方法或 `static` 变量（含 `static readonly`）
+- 当用户指出生成代码有问题时，不仅修当前片段；还要判断是否应沉淀成可复用约束，并回写到 SKILL.md 或对应运行时文档，避免同类问题再次发生
