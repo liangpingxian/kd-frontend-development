@@ -148,45 +148,28 @@ node $SKILL_DIR/setup-env.mjs --envName <环境名> --envUrl <URL> --clientId <I
 
 ### 部署决策（默认自动部署）
 
-创建/修改组件、页面或 Controller 后，**必须自动执行部署**，按以下流程操作：
+创建/修改组件、页面或 Controller 后，**必须自动执行部署**：
 
-#### 步骤 1：检查已有环境
-
-```bash
-kd env list
-```
-
-- 如果输出中有**任何环境**（不为空） → 进入步骤 2
-- 如果输出为空（无任何环境） → 进入步骤 3
-
-#### 步骤 2：直接部署（最常见场景）
-
-从 `kd env list` 输出中选择已认证的环境，直接执行部署：
-
-```bash
-kd project deploy -e <环境名>
-```
-
-或者如果已配置默认环境（`kd env info` 有输出），直接：
+#### 默认流程：直接部署
 
 ```bash
 kd project deploy
 ```
 
-**禁止在已有环境的情况下向用户询问环境信息，直接部署即可。**
+CLI 会自动使用已配置的默认环境，**无需 `kd env list`、无需 `-e <环境名>`、无需询问用户**。
 
-#### 步骤 3：无环境时收集信息
+#### 异常处理：仅当部署报错提示无环境时
 
-仅当 `kd env list` 输出为空时，才向用户收集环境信息并通过 setup-env.mjs 创建环境，然后再部署。
+向用户收集环境信息并通过 setup-env.mjs 创建环境，然后再执行 `kd project deploy`。
 
 #### 总结
 
 | 场景 | 动作 |
 |------|------|
-| 有已认证环境 | **直接 `kd project deploy`，不问用户** |
-| 有环境但未认证 | 收集认证参数（clientId/clientSecret/username），认证后部署 |
-| 无任何环境 | 收集完整环境信息，创建+认证后部署 |
+| 有已配置环境（默认情况） | **直接 `kd project deploy`，不问用户、不指定 `-e`** |
+| 部署报错提示无环境 | 收集完整环境信息，创建+认证后部署 |
 | 用户明确说不要部署 | 跳过部署 |
+| 用户明确指定了环境名 | `kd project deploy -e <指定环境>` |
 
 #### 部署内容决策树
 
@@ -228,24 +211,27 @@ kd project deploy
 
 ### 页面访问链接
 
-部署成功后，生成页面访问链接供用户点击查看效果。此输出是一个独立的链接卡片，与任务总结无关。
+部署成功后，**必须使用脚本生成**页面访问链接，禁止手动拼接 JSON：
 
-**链接卡片格式（固定，不再区分是否关联业务实体）：**
-```
-:::render:kdform {"title":"<masterLabel值>","url":"<环境URL>/?formId=<页面name>"}:::
+```bash
+node $SKILL_DIR/scripts/form-link.mjs generate --pageMeta <.page-meta.kwp文件路径> [--formNumber <实体编码>] [--env <环境名>]
 ```
 
-**✅ 完整正确示例：**
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `--pageMeta` | ✅ | `.page-meta.kwp` 文件路径，脚本从中提取 `<name>` 和 `<masterLabel>` |
+| `--formNumber` | 可选 | 若页面使用了苍穹后端实体（如通过 Controller 查询业务数据），传入实体编码，会额外生成 `metadata` URL |
+| `--env` | 可选 | 不传则使用默认环境 |
+
+**输出示例（无实体）：**
 ```
 :::render:kdform {"title":"运维监控工作台","url":"https://feature.kingdee.com:1026/feature_vb/?formId=kdtest_opsmonitor"}:::
 ```
 
-**⚠️ JSON 只允许 `title` 和 `url` 两个字段，`url` 必须是完整的 HTTP/HTTPS URL（包含环境域名），不是 formId 或其他参数。**
-
-| 字段 | 必须 | 来源 | 说明 |
-|------|------|------|------|
-| `title` | ✅ 必须 | `.page-meta.kwp` 中的 `<masterLabel>` | 页面中文名称，如「运维监控工作台」 |
-| `url` | ✅ 必须 | `{环境URL}/?formId={页面name}` | **必须是完整 URL**（含协议、域名、端口、路径、formId 参数），页面 name 取自 `.page-meta.kwp` 的 `<name>` 字段（已包含 ISV 前缀） |
+**输出示例（有实体）：**
+```
+:::render:kdform {"title":"费用报销看板","url":"https://feature.kingdee.com:1026/feature_vb/?formId=kdtest_expense_dashboard","metadata":"https://feature.kingdee.com:1026/feature_vb/kapi/v2/devportal/ai-meta/getEntityFields?formNumber=kdtest_feiyongbaoxiao"}:::
+```
 
 **URL 拼接规则：**
 - 环境 URL：从 `kd env info` 或 `~/.kd/config.json` 中读取当前环境的 url（如 `https://feature.kingdee.com:1026/feature_vb`）
@@ -266,9 +252,7 @@ kd project deploy
 
 ---
 
-> ⚠️ 这是一个**链接卡片**，不是总结。JSON **仅包含 `title` 和 `url` 两个字段**，禁止额外拼接其他字段（包括旧版的 `metadata`、`formId`、`env` 等字段均已废弃）。
-
-> 💡 也可通过 `form-link.mjs` 脚本自动生成链接卡片（见 scripts 目录），但不强制要求使用脚本。
+> ❗ **必须使用 `form-link.mjs` 脚本生成 render 卡片**，禁止手动拼接 JSON。脚本会自动处理 title/url/metadata 的提取和拼接，避免格式错误。
 
 ### 执行顺序
 
@@ -278,13 +262,13 @@ kd project deploy
 
 ### 强制约束
 
-- 每段工作的部署完成后**必须立即**发送页面访问链接（render 卡片），不可省略、跳过或延迟
+- 每段工作的部署完成后**必须立即**通过 `form-link.mjs` 脚本生成并发送 render 卡片，不可省略、跳过或延迟
 - **render 卡片是部署流程的完成标志**——deploy 成功而未发送 render 卡片，视为部署流程未完成
+- **禁止手动拼接 render 卡片 JSON，必须使用 `form-link.mjs` 脚本生成**
 - **禁止将 render 卡片延迟到 `kd open` 时才生成**——render 卡片与 `kd open` 是独立的两个动作
 - 多轮对话中每段完成的工作都应发送，不要只在最终结束时才发送
 - 同一段工作内不重复发送（多条 deploy 命令属于同一段工作时，等全部完成后发送一次）
-- 链接卡片 JSON 仅含 `title`、`url` 两个字段
-- 所有值从实际文件和环境中读取，禁止猜测
+- 所有值由脚本从实际文件和环境中读取，禁止猜测
 - 任务总结（如有）应作为**独立文本**写在链接卡片之后
 
 ## 查看环境效果（kd open）

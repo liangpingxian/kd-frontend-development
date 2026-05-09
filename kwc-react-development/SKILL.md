@@ -135,3 +135,7 @@ function MyComponent(props: { config: KwcConfig }) {
 ## 6. 输出检查清单
 
 提交代码前，请按 `rule.md` 中的「强制自检清单」逐项自查。
+
+**❗ 特别检查：类型声明同步**
+- 每使用一个新的 `@kdcloudjs/shoelace` 或 `@kdcloudjs/shoelace-biz` 组件，必须在 `declarations.d.ts` 中添加对应的 `declare module '...'` 声明
+- 其他无类型定义的第三方库（如 `echarts-for-react`）同理需要声明

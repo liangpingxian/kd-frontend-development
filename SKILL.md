@@ -114,7 +114,7 @@ Controller 也遵循"元数据 + 代码"的二元模型：
 2. 是否需要组件（通常 1 个需求 = 1 个组件），组件承担什么职责
 3. 组件是否需要后端数据支持？若需要，规划对应的 KS Controller 和 API 方法
 4. 需要几个页面元数据文件（通常 1 个页面包含 1 个组件）
-5. 最终要部署到哪个环境
+5. 最终部署到哪个环境（若已有默认环境则直接使用，无需确认）
 
 只有把这几项补齐，脚手架命令才有明确目标。
 
@@ -239,6 +239,11 @@ node /path/to/kd-frontend-development/scripts/test-controller.mjs \
 node /path/to/kd-frontend-development/scripts/test-controller.mjs \
   --env vb --path /kwc/v1/kdtest/kdtest_kwc_test/demo/create \
   --method POST --body '{"title":"t1","amount":100}'
+
+# 方式 D：带数据断言（推荐）
+node /path/to/kd-frontend-development/scripts/test-controller.mjs \
+  --env vb --path /kwc/v1/kdtest/kdtest_kwc_test/expense/list \
+  --method GET --assert-not-empty data --assert-field data[0].id
 ```
 
 ### 验证通过标准
@@ -249,6 +254,11 @@ node /path/to/kd-frontend-development/scripts/test-controller.mjs \
 2. 响应为合法 JSON，`success` 不为 `false`
 3. 返回结构和字段类型与 Controller 设计一致（特别注意数组/对象字段需使用 ArrayList/HashMap，否则前端可能拿到 `{}` 而非 `[]`，见 controller rule.md 第 7.0 节）
 4. 每个要对接的方法都至少跑一轮：正常值 + 边界值 + 期望错误值（验证参数校验和 throwException 路径）
+5. **必须使用 `--assert-*` 参数验证返回数据**，仅验证连通性（HTTP 200）不够。至少要：
+   - `--assert-not-empty data`（确认有数据返回）
+   - 或 `--assert-field <关键字段>`（确认关键字段存在）
+6. 如果测试返回空数据，应检查 Controller 代码中的查询条件、参数传递是否正确
+7. 若 `--assert-not-empty` 断言失败，**不要直接判定为无数据**。按 Controller 技能中的诊断模式排查（多方式探测），区分“代码逻辑错误”和“环境确实无数据”（参考 `kwc-ks-controller-development/reference/faq.md` 「数据查询结果为空时的诊断模式」）
 
 ### 就地循环
 
@@ -278,7 +288,7 @@ node /path/to/kd-frontend-development/scripts/test-controller.mjs \
 用户未指定框架时，默认使用 React + TypeScript 开发 KWC 组件，无需询问用户。若用户明确指定了其他框架（Vue/LWC），则按用户指定的执行。
 
 **部署行为**：
-创建组件/页面后，默认执行部署到当前环境（`kd project deploy`），无需等待用户确认。仅当用户明确表示不需要部署时才跳过。若环境未配置，应提示用户先配置环境，而非跳过部署。
+创建组件/页面后，默认执行 `kd project deploy`（自动使用已配置的默认环境），无需等待用户确认、无需询问环境。仅当用户明确表示不需要部署时才跳过。若部署报错提示无环境，才提示用户配置环境。
 
 **菜单发布**：
 向用户提问："部署成功，是否需要将页面发布到应用菜单？"，提供以下选项：
@@ -292,12 +302,12 @@ node /path/to/kd-frontend-development/scripts/test-controller.mjs \
 - 项目名或现有项目路径
 - 框架和语言（用户未指定时默认使用 `react` + `ts`，无需询问）
 - 苍穹应用编码 `app`
-- 目标环境别名和 URL
-- 认证方式，以及 OpenAPI 所需的真实参数
+- 目标环境别名和 URL（**仅当项目无已配置环境时**才需要询问，若已有环境则直接使用）
+- 认证方式，以及 OpenAPI 所需的真实参数（**仅当环境未认证时**才需要）
 - 页面标识，例如 page name，以及业务页面用途
 - 哪些组件需要暴露给页面使用，哪些只是内部逻辑组件
 - 哪些参数需要做成可配置属性
-- 若用户已有环境，是否允许直接部署到该环境
+
 
 这些信息不要擅自编造，尤其是 `app`、环境 URL、认证参数和最终部署环境。
 
@@ -568,8 +578,16 @@ kd project create <page_name> --type page
 8. 若有 Controller，实现 Controller 脚本代码（阅读 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 并遵循其规范）
 9. 创建并补全页面元数据
 10. 若有 Controller，执行 `npm run build:controller`
-11. **自动部署**：先执行 `kd env list` 检查已有环境。若有已认证环境，直接执行 `kd project deploy -e <环境名>`（无需询问用户）；若无环境，先收集环境信息并配置，再部署。详见「部署决策（默认自动部署）」章节
-12. **【立即】部署成功后，生成并发送页面访问链接**（`:::render:kdform {"title":"...","url":"..."}:::`）——这是部署流程的完成标志，不可跳过或延迟。**JSON 只允许 `title` 和 `url` 两个字段，`url` 必须是完整的 HTTP/HTTPS URL（含环境域名 + formId 参数）**，详见「页面访问链接」章节
+11. **自动部署**：直接执行 `kd project deploy`（CLI 会自动使用已配置的默认环境，无需指定 `-e`、无需 `kd env list`、无需询问用户）。仅当部署报错提示无环境时，才收集环境信息并配置。详见「部署决策（默认自动部署）」章节
+12. **【立即】部署成功后，使用脚本生成并发送页面访问链接**：
+    ```bash
+    node $SKILL_DIR/scripts/form-link.mjs generate --pageMeta <页面元数据文件路径> [--formNumber <实体编码>] [--env <环境名>]
+    ```
+    - `--pageMeta`：必填，`.page-meta.kwp` 文件路径
+    - `--formNumber`：可选，若页面使用了苍穹后端实体（如通过 Controller 查询业务数据），传入实体编码以生成元数据 URL
+    - `--env`：可选，不传则使用默认环境
+    - 脚本会自动从页面元数据提取 title 和 formId，拼接环境 URL，输出 `:::render:kdform {...}:::`
+    - **这是部署流程的完成标志，不可跳过或延迟。禁止手动拼接 render 卡片 JSON，必须使用此脚本生成**
 13. [可选] 若用户明确要求"打开页面"或"查看效果"，执行 `kd open`
 14. [可选] 若用户明确要求本地联调，执行 `kd debug`
 

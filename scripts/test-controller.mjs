@@ -27,6 +27,11 @@
  *   node scripts/test-controller.mjs --env vb --path /kwc/v1/kdtest/xx/yy \
  *        --method POST --body '{"a":1}'
  *
+ *   # 方式 D：带数据断言
+ *   node scripts/test-controller.mjs --env vb \
+ *        --path /kwc/v1/kdtest/kdtest_kwc_test/expense/list \
+ *        --method GET --assert-not-empty data --assert-field data[0].id
+ *
  * 账号/密码来源（优先级从高到低）：
  *   --user --password  >  ~/.kd/config.json 的 env.<name>.login_account.{name,password}
  *
@@ -46,6 +51,11 @@
  *   --isv <isv>            URL 拼装时的 isv（覆盖 env.isv / .kd/config.json.isv）
  *   --app <app>            URL 拼装时的 app（覆盖 .kd/config.json.app）
  *   --verbose              输出请求详情
+ *   --assert-status <code>          断言 HTTP 状态码（如 --assert-status 200）
+ *   --assert-field <jsonpath>       断言字段存在且非 null/undefined（如 --assert-field data）
+ *   --assert-not-empty <jsonpath>   断言字段为非空数组或非空对象（如 --assert-not-empty data）
+ *   --assert-contains <path=value>  断言字段包含特定值（如 --assert-contains data[0].name=张三）
+ *   --assert-type <path=type>       断言字段类型（如 --assert-type data=array）
  */
 
 import { readFileSync, existsSync } from 'node:fs'
@@ -95,6 +105,119 @@ function collectRepeatedQ(argv) {
     }
   }
   return out
+}
+
+/** 收集所有重复出现的 --assert-* 参数 */
+function collectAssertArgs(argv) {
+  const assertions = []
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--assert-status' && argv[i + 1]) {
+      assertions.push({ type: 'status', value: argv[++i] })
+    } else if (argv[i] === '--assert-field' && argv[i + 1]) {
+      assertions.push({ type: 'field', path: argv[++i] })
+    } else if (argv[i] === '--assert-not-empty' && argv[i + 1]) {
+      assertions.push({ type: 'not-empty', path: argv[++i] })
+    } else if (argv[i] === '--assert-contains' && argv[i + 1]) {
+      assertions.push({ type: 'contains', expr: argv[++i] })
+    } else if (argv[i] === '--assert-type' && argv[i + 1]) {
+      assertions.push({ type: 'type', expr: argv[++i] })
+    }
+  }
+  return assertions
+}
+
+/**
+ * 解析简单 jsonpath：支持点路径 + 数组索引
+ * 例: "data", "data.rows", "data[0].name", "data.total"
+ */
+function resolveJsonPath(obj, path) {
+  const segments = path.replace(/\[(\d+)\]/g, '.$1').split('.')
+  let current = obj
+  for (const seg of segments) {
+    if (current == null) return undefined
+    current = current[seg]
+  }
+  return current
+}
+
+/** 执行所有断言，返回 { passed: boolean, results: Array } */
+function runAssertions(assertions, httpStatus, responseData) {
+  const results = []
+  for (const a of assertions) {
+    switch (a.type) {
+      case 'status': {
+        const expected = Number(a.value)
+        const pass = httpStatus === expected
+        results.push({
+          pass,
+          label: `assert-status: 期望 ${expected}`,
+          detail: pass ? `实际 ${httpStatus} ✅` : `实际 ${httpStatus} ❌`,
+        })
+        break
+      }
+      case 'field': {
+        const val = resolveJsonPath(responseData, a.path)
+        const pass = val !== undefined && val !== null
+        results.push({
+          pass,
+          label: `assert-field: ${a.path} 存在且非 null`,
+          detail: pass ? `值 = ${JSON.stringify(val)} ✅` : `实际值 = ${JSON.stringify(val)} ❌`,
+        })
+        break
+      }
+      case 'not-empty': {
+        const val = resolveJsonPath(responseData, a.path)
+        let pass = false
+        if (Array.isArray(val)) pass = val.length > 0
+        else if (val && typeof val === 'object') pass = Object.keys(val).length > 0
+        results.push({
+          pass,
+          label: `assert-not-empty: ${a.path} 为非空数组或非空对象`,
+          detail: pass
+            ? `长度/键数 = ${Array.isArray(val) ? val.length : Object.keys(val).length} ✅`
+            : `实际值 = ${JSON.stringify(val)} ❌（${val == null ? '值为 null/undefined' : Array.isArray(val) ? '空数组' : typeof val === 'object' ? '空对象' : '非数组/对象类型: ' + typeof val}）`,
+        })
+        break
+      }
+      case 'contains': {
+        const eqIdx = a.expr.indexOf('=')
+        if (eqIdx === -1) {
+          results.push({ pass: false, label: `assert-contains: ${a.expr}`, detail: '格式错误，需 path=value ❌' })
+          break
+        }
+        const cPath = a.expr.slice(0, eqIdx)
+        const expected = a.expr.slice(eqIdx + 1)
+        const val = resolveJsonPath(responseData, cPath)
+        const pass = String(val) === expected
+        results.push({
+          pass,
+          label: `assert-contains: ${cPath} = "${expected}"`,
+          detail: pass ? `匹配 ✅` : `实际值 = ${JSON.stringify(val)} ❌`,
+        })
+        break
+      }
+      case 'type': {
+        const eqIdx = a.expr.indexOf('=')
+        if (eqIdx === -1) {
+          results.push({ pass: false, label: `assert-type: ${a.expr}`, detail: '格式错误，需 path=type ❌' })
+          break
+        }
+        const tPath = a.expr.slice(0, eqIdx)
+        const expectedType = a.expr.slice(eqIdx + 1).toLowerCase()
+        const val = resolveJsonPath(responseData, tPath)
+        let actualType = Array.isArray(val) ? 'array' : typeof val
+        const pass = actualType === expectedType
+        results.push({
+          pass,
+          label: `assert-type: ${tPath} 类型为 ${expectedType}`,
+          detail: pass ? `实际类型 ${actualType} ✅` : `实际类型 ${actualType} ❌`,
+        })
+        break
+      }
+    }
+  }
+  const passed = results.every(r => r.pass)
+  return { passed, results }
 }
 
 function resolvePath(opts, env, projectCfg) {
@@ -177,6 +300,22 @@ async function main() {
   if (result.status >= 400) {
     fatal(`Controller HTTP 异常: ${result.status}`)
   }
+
+  // 4) 数据断言
+  const assertions = collectAssertArgs(argv)
+  if (assertions.length > 0) {
+    console.log(`\n[test-controller] 执行数据断言（${assertions.length} 项）...`)
+    const { passed, results: assertResults } = runAssertions(assertions, result.status, result.data)
+    for (const r of assertResults) {
+      console.log(`  ${r.pass ? '✅' : '❌'} ${r.label} → ${r.detail}`)
+    }
+    if (!passed) {
+      const failCount = assertResults.filter(r => !r.pass).length
+      fatal(`数据断言失败：${failCount}/${assertResults.length} 项未通过`)
+    }
+    console.log(`[test-controller] ✅ 全部 ${assertResults.length} 项断言通过`)
+  }
+
   console.log('[test-controller] ✅ Controller 测试通过')
 }
 

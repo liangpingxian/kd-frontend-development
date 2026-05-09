@@ -57,6 +57,15 @@ function MyComponent(props: { config: KwcConfig }) {
   - 当前业务组件：**Lookup (F7)**，后续可能新增其他业务组件。
 - **类型源**: 元素类型从对应包的组件源导入：`@kdcloudjs/shoelace(-biz)/dist/components/[component]/[component].js`。
 - **命名**: 组件使用 PascalCase (如 `SlButton`, `SlInput`, `SlLookup`)。
+- **❗ 类型声明（必须同步）**：每当导入一个新的 `@kdcloudjs/shoelace` 或 `@kdcloudjs/shoelace-biz` 组件，**必须同时**在项目的 `declarations.d.ts` 中添加对应的 `declare module` 声明。缺少声明会导致 TypeScript 编译报错。
+  ```typescript
+  // declarations.d.ts — 每用一个新组件就加一行
+  declare module '@kdcloudjs/shoelace/dist/react/button/index.js';
+  declare module '@kdcloudjs/shoelace/dist/react/icon/index.js';
+  declare module '@kdcloudjs/shoelace/dist/react/card/index.js';
+  declare module '@kdcloudjs/shoelace/dist/react/spinner/index.js';
+  // ... 每使用一个新组件就追加
+  ```
 - **示例**:
   ```javascript
   // 基础组件

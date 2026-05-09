@@ -291,4 +291,84 @@ response.throwException('用户不存在', 404, 'USER_NOT_FOUND');
 3. **启动**：执行 `kd debug`（后台模式）启动本地调试
 4. **验证**：在浏览器中访问对应页面，打开开发者工具 Network 面板确认请求/响应
 
-> 📌 本地调试的更多细节请参考脚手架工作流的脚手架说明文档。
+ 📌 本地调试的更多细节请参考脚手架工作流的脚手架说明文档。
+
+---
+
+## QueryServiceHelper.query topN 参数陷阱
+
+**问题**：`QueryServiceHelper.query(entity, fields, filters, orderBy, topN)` 的 5 参重载中，`topN=0` 会被苍穹运行时解释为 `LIMIT 0`（即不返回任何记录），而不是"不限制"。
+
+**正确用法**：
+- 查全量：使用 3 参重载 `QueryServiceHelper.query(entity, fields, filters)` — 不传 orderBy 和 topN
+- 限制条数：topN 必须 > 0（如 `topN=100`）
+- **禁止** `topN=0`
+
+**错误示例**：
+```typescript
+// ❌ topN=0 = LIMIT 0，返回空结果
+const rows = QueryServiceHelper.query('kdtest_feiyongbaoxiao', 'id,billno', '', 'createTime desc', 0);
+
+// ✅ 不限条数 — 用 3 参重载
+const rows = QueryServiceHelper.query('kdtest_feiyongbaoxiao', 'id,billno', '');
+
+// ✅ 限制 100 条
+const rows = QueryServiceHelper.query('kdtest_feiyongbaoxiao', 'id,billno', '', 'createTime desc', 100);
+```
+
+---
+
+## 数据查询结果为空时的诊断模式
+
+当 Controller 测试通过（HTTP 200）但 `--assert-not-empty data` 失败时，不能简单判定"没有数据"。应按以下流程诊断：
+
+### 诊断步骤
+
+1. **先用 meta-query-api.mjs 确认实体存在且有数据**：
+   ```bash
+   node $SKILL_DIR/scripts/meta-query-api.mjs queryFormsByApp --env vb --appNumber <app> --keyword <关键词>
+   ```
+
+2. **编写诊断方法，并行用多种方式查询同一实体**：
+   ```typescript
+   // 在 Controller 中临时加一个 diagnose 方法
+   @url('/diagnose')
+   @httpMethod('GET')
+   diagnose(): void {
+     const entity = 'your_entity_number';
+     const results: any = { entity };
+     
+     // 方式1: 3参查询（最稳妥）
+     try {
+       const rows = QueryServiceHelper.query(entity, 'id,billno', '');
+       results.m1_query3 = { count: rows.length, ok: rows.length > 0 };
+     } catch(e) { results.m1_query3 = { error: e.message }; }
+     
+     // 方式2: queryPrimaryKeys
+     try {
+       const ids = QueryServiceHelper.queryPrimaryKeys(entity, '', 10);
+       results.m2_primaryKeys = { count: ids.length, ok: ids.length > 0 };
+     } catch(e) { results.m2_primaryKeys = { error: e.message }; }
+     
+     // 方式3: queryOne
+     try {
+       const row = QueryServiceHelper.queryOne(entity, 'id,billno', '');
+       results.m3_queryOne = { hasRow: row != null, ok: row != null };
+     } catch(e) { results.m3_queryOne = { error: e.message }; }
+     
+     // 方式4: exists
+     try {
+       const ex = QueryServiceHelper.exists(entity, '');
+       results.m4_exists = { exists: ex, ok: ex };
+     } catch(e) { results.m4_exists = { error: e.message }; }
+     
+     this.response.write(JSON.stringify(results));
+   }
+   ```
+
+3. **根据诊断结果判断**：
+   - 多种方式都有数据 → 原查询代码写法有问题（如 topN=0、filter 条件错误）
+   - 所有方式都无数据 → 实体确实没有数据，需确认实体编码和环境
+   - 部分有部分无 → filter 或 orderBy 有问题
+
+4. **修复后删除 diagnose 方法**（可选保留用于后续调试）
