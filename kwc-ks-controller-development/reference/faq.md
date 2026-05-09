@@ -4,6 +4,44 @@
 
 ---
 
+## ⚠️ 改完 Controller 后接口仍返回旧数据/旧逻辑
+
+**原因**：只执行了 `kd project build --type controller`（本地编译）但没有执行 `kd project deploy`（上传到环境）。
+
+`build` 输出 "Success" 具有误导性——它只是本地编译成功，服务端代码根本没变。
+
+**解决**：
+```bash
+kd project deploy    # 会一并上传 controller + kwc + page
+```
+
+**规则**：每次修改 Controller 代码（.ts）或 .kws 元数据后，必须执行 `kd project deploy`。`build` 在开发阶段不需要单独执行。
+
+---
+
+## HTTP 500 + 空 body = 脚本装载期失败
+
+**原因**：Controller 脚本在**装载期**（import 解析 / 顶层代码执行）就报错了，根本没进入任何方法体。此时：
+- HTTP 状态码 = 500
+- 响应 body 为空（不是 JSON 错误，是完全空）
+- try/catch 和 response.throwException() 都捕获不到
+
+**常见装载期错误**：
+- import 路径错误（模块不存在）
+- 使用了运行时不支持的顶层语法
+- Date 构造方式不兼容
+- 顶层变量初始化抛异常
+
+**排查法**（二分法）：
+1. 将 Controller 方法体简化为 `this.response.write(JSON.stringify({ ok: true }))`
+2. 部署后测试 → 如果 200 → 说明是方法体内的逻辑问题
+3. 如果仍然 500 空 body → 问题在顶层/import
+4. 逐步注释掉 import 和顶层代码，每次部署测试，定位第一个导致 500 的行
+
+**重要**：遇到 500 + 空 body 时，**第一条诊断假设就是装载期失败**，不要在方法体内加 try/catch 浪费时间。
+
+---
+
 ## Q1: endpointConfig.source 字段如何填写？
 
 **问题**：前端 `adapterApi` 的 `endpointConfig.source` 应该填什么值？如何与后端 Controller URL 对应？
@@ -215,18 +253,17 @@ const userId = request.getLongPathVariable('id');       // → 12345
 
 **问题**：修改了 Controller 的 .kws 元数据或 TypeScript 代码，但调用接口仍返回旧结果。
 
-**回答**：每次修改 Controller 后，必须执行以下三个步骤：
+**回答**：每次修改 Controller 后，必须执行以下步骤：
 
 ```bash
 # 步骤 1: 递增 .kws 元数据中的 version
 #   <version>1</version>  →  <version>2</version>
 
-# 步骤 2: 重新构建
-npm run build:controller
-
-# 步骤 3: 重新部署
+# 步骤 2: 部署（会自动构建并上传）
 kd project deploy
 ```
+
+> ⚠️ `npm run build:controller` 只做本地编译，不会上传。`kd project deploy` 会一并完成构建 + 上传，开发阶段无需单独执行 build。
 
 **重要**：版本号必须递增，否则部署会失败。不支持相同版本号覆盖。
 

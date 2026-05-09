@@ -577,7 +577,7 @@ kd project create <page_name> --type page
 7. 实现前端组件代码（阅读对应框架子技能的 SKILL.md 并遵循其规范）
 8. 若有 Controller，实现 Controller 脚本代码（阅读 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 并遵循其规范）
 9. 创建并补全页面元数据
-10. 若有 Controller，执行 `npm run build:controller`
+10. 若有 Controller，执行 `npm run build:controller`（⚠️ 仅本地编译，不会上传！第 11 步的 `kd project deploy` 才会真正上传 Controller）
 11. **自动部署**：直接执行 `kd project deploy`（CLI 会自动使用已配置的默认环境，无需指定 `-e`、无需 `kd env list`、无需询问用户）。仅当部署报错提示无环境时，才收集环境信息并配置。详见「部署决策（默认自动部署）」章节
 12. **【立即】部署成功后，使用脚本生成并发送页面访问链接**：
     ```bash
