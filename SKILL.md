@@ -150,6 +150,7 @@ Controller 也遵循"元数据 + 代码"的二元模型：
 | 补全 Controller 元数据 | scaffold | *.kws（URL、方法、权限配置） |
 | 构建 Controller | scaffold | dist/controller/ |
 | **编写 Controller 脚本代码** | **[kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md)** | **.ts 脚本（业务逻辑实现）** |
+| **Controller 端到端自检（🔴 必须通过才能进入前端对接）** | **scaffold + [test-controller.mjs](./scripts/test-controller.mjs)** | 登录 → Cookie → /kwc/v1 实际调通，返回期望 JSON |
 
 #### 切换时机
 
@@ -158,6 +159,7 @@ Controller 也遵循"元数据 + 代码"的二元模型：
 - 当代码写完需补元数据或部署 → 回到脚手架工作流
 - 当 Controller 目录已创建且需要编写脚本代码 → **必须阅读 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 并遵循其规范，禁止直接编写**
 - 当 Controller 脚本代码写完需构建或部署 → 回到脚手架工作流
+- **Controller 部署成功后 → 必须运行 [test-controller.mjs](./scripts/test-controller.mjs) 进行端到端自检；所有错误解决前，禁止进入 KWC 前端对接阶段（adapterApi / 前端组件代码）**
 
 #### 异常流程保护
 
@@ -188,6 +190,75 @@ Controller 也遵循"元数据 + 代码"的二元模型：
 8. Controller 代码实现与前端框架无关，不受 framework 字段影响
 
 注意：不要同时阅读三个框架子技能的文档；只根据当前工程的 framework 引用一个。
+
+## Controller 端到端自检（🔴 硬性门槛）
+
+写完 Controller 脚本 + .kws 元数据并部署成功后，**必须**通过 [test-controller.mjs](./scripts/test-controller.mjs) 进行端到端自检，保证接口真的调得通、返回期望的 JSON。**所有报错解决之前，禁止开始编写前端对接代码（adapterApi 调用 / KWC 组件里的业务逻辑）。**
+
+### 为什么需要这步
+
+- /kapi OpenAPI 网关只支持注册在 ISV 允许列表的接口；Controller 正常暴露在 `/kwc/v1/{isv}/{app}/...`
+- `/kwc/v1` 物理上 **仅支持 session Cookie 鉴权**（access_token 无效，会返回「会话缓存丢失」或 302 跳转登录页）
+- 所以必须用「账号密码登录 → 解析租户化 Cookie → 调 /kwc/v1」的方式验证，与浏览器实际调用路径一致
+
+### 账号/密码配置
+
+在 `~/.kd/config.json` 的对应环境下补一段 `login_account`：
+
+```json
+{
+  "env": {
+    "vb": {
+      "url": "https://feature.kingdee.com:1026/feature_vb",
+      "accountId": "2453077976581943296",
+      "isv": "kdtest",
+      "login_account": { "name": "17299999999", "password": "KDadm!@#2022" }
+    }
+  }
+}
+```
+
+账号密码会用网关返回的 RSA 公钥 PKCS1v15 加密后提交 /auth/yzjlogin.do，**明文密码仅存在本地配置文件中**，不会出现在命令行历史中。也可以通过 `--user`/`--password` 临时覆盖。
+
+### 使用方式
+
+在当前 KWC 工程根目录执行：
+
+```bash
+# 方式 A：直接指定完整接口路径
+node /path/to/kd-frontend-development/scripts/test-controller.mjs \
+  --env vb \
+  --path /kwc/v1/kdtest/kdtest_kwc_test/demo/hello \
+  --method GET --query "name=World"
+
+# 方式 B：三段式（isv/app 从 .kd/config.json 自动读取）
+node /path/to/kd-frontend-development/scripts/test-controller.mjs \
+  --env vb --sub demo --endpoint hello --query "name=World"
+
+# 方式 C：POST + JSON body
+node /path/to/kd-frontend-development/scripts/test-controller.mjs \
+  --env vb --path /kwc/v1/kdtest/kdtest_kwc_test/demo/create \
+  --method POST --body '{"title":"t1","amount":100}'
+```
+
+### 验证通过标准
+
+同时满足才算通过，任何一项不满足都不得进入前端对接：
+
+1. HTTP 状态码 2xx
+2. 响应为合法 JSON，`success` 不为 `false`
+3. 返回结构和字段类型与 Controller 设计一致（特别注意数组/对象字段需使用 ArrayList/HashMap，否则前端可能拿到 `{}` 而非 `[]`，见 controller rule.md 第 7.0 节）
+4. 每个要对接的方法都至少跑一轮：正常值 + 边界值 + 期望错误值（验证参数校验和 throwException 路径）
+
+### 就地循环
+
+如果自检失败：
+
+1. 仔细读脚本给出的 HTTP 状态 / `error_desc`，或 -- verbose 重跑看细节
+2. 回到 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 修改脚本 / .kws / .kd 配置
+3. 重新构建并部署（scaffold）
+4. 再次跑 test-controller.mjs，直到全绿
+5. 才能进入 adapterApi / 前端组件代码编写
 
 ## 用户交互约定
 

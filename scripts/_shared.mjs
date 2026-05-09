@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
-import { createDecipheriv, randomBytes } from 'node:crypto'
+import { createDecipheriv, randomBytes, publicEncrypt, constants } from 'node:crypto'
 
 // ─── 常量 ───────────────────────────────────────────────
 export const KD_DIR = join(homedir(), '.kd')
@@ -234,6 +234,189 @@ export async function callApi(baseUrl, path, token, body) {
   }
 
   return data
+}
+
+// ─── KWC 内部路由 Cookie 登录（/kwc/v1 入口）────────────────
+//
+// /kwc/v1 前缀的 Controller 接口在苍穹里仅支持 session Cookie 鉴权（无法用
+// OpenAPI access_token），因此编写完 Controller 之后的「端到端自检」必须走
+// 账号密码登录 → 解析租户化 Cookie → 调 /kwc/v1 的流程。以下是对该流程的公共封装。
+
+function _formEncode(obj) {
+  return Object.entries(obj)
+    .filter(([, v]) => v != null)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&')
+}
+
+function _randomAlphanum(n) {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let s = ''
+  for (let i = 0; i < n; i++) s += chars[Math.floor(Math.random() * chars.length)]
+  return s
+}
+
+/** accessKey: 账号长度 <=16 时用账号 + 随机串补齐到 16 位；否则直接用账号（参照 login.py） */
+function _buildAccessKey(user) {
+  if (user.length > 16) return user
+  return (user + _randomAlphanum(16)).slice(0, 16)
+}
+
+/** 把 DER base64 公钥包装成 PEM（若已经是 PEM 就直接返回） */
+function _normalizePublicKey(pubKeyB64) {
+  const trimmed = String(pubKeyB64).trim()
+  if (trimmed.startsWith('-----BEGIN PUBLIC KEY-----')) return trimmed
+  const wrapped = trimmed.replace(/(.{64})/g, '$1\n')
+  return `-----BEGIN PUBLIC KEY-----\n${wrapped}\n-----END PUBLIC KEY-----`
+}
+
+/** RSA PKCS1v15 加密密码，返回 base64 */
+function _encryptPassword(password, pubKeyB64) {
+  const encrypted = publicEncrypt(
+    { key: _normalizePublicKey(pubKeyB64), padding: constants.RSA_PKCS1_PADDING },
+    Buffer.from(password, 'utf-8'),
+  )
+  return encrypted.toString('base64')
+}
+
+/** 请求 /auth/getPublicKey.do 拿 RSA 公钥 */
+async function _fetchPublicKey(baseUrl, { accessKey, accountId }) {
+  const url = `${normalizeUrl(baseUrl)}/auth/getPublicKey.do`
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
+    body: _formEncode({ accessKey, language: 'zh_CN', accountId }),
+  })
+  const text = await resp.text()
+  let data
+  try { data = JSON.parse(text) } catch {
+    throw new Error(`getPublicKey 非 JSON 响应 (HTTP ${resp.status}): ${text.slice(0, 300)}`)
+  }
+  if (!data.publicKey) throw new Error(`获取公钥失败: ${JSON.stringify(data).slice(0, 400)}`)
+  return data.publicKey
+}
+
+/**
+ * 从登录返回的 Set-Cookie 列表中筛出 KERPSESSIONID* 和 Isolator*（苍穹 Cookie 带租户后缀），
+ * 拼成可用于 /kwc/v1 请求的 Cookie 头。
+ */
+function _assembleKerpCookie(setCookies) {
+  let kerp = ''
+  let isolator = ''
+  for (const sc of setCookies) {
+    const first = String(sc).split(';')[0].trim()
+    if (first.startsWith('KERPSESSIONID') && !kerp) kerp = first
+    else if (first.startsWith('Isolator') && !isolator) isolator = first
+  }
+  if (!kerp) {
+    throw new Error(`登录响应中未找到 KERPSESSIONID* Cookie。Set-Cookie 原文:\n${setCookies.join('\n')}`)
+  }
+  return [kerp, isolator].filter(Boolean).join('; ')
+}
+
+/**
+ * 使用账号密码登录苍穹，返回可直接用于 /kwc/v1 请求的 Cookie 字符串。
+ *
+ * 优先级: opts.user/opts.password > env.login_account.{name,password}
+ * 必需的环境字段: url, accountId
+ *
+ * @param {object} env  loadEnvConfig 返回的环境配置
+ * @param {{user?: string, password?: string, accountId?: string}} [opts]
+ * @returns {Promise<string>} Cookie 头字符串，形如 "KERPSESSIONIDxxx=...; Isolatorxxx=..."
+ */
+export async function loginAndGetCookie(env, opts = {}) {
+  if (!env || !env.url) throw new Error('登录失败: 环境缺少 url 字段')
+  const accountId = opts.accountId || env.accountId
+  if (!accountId) throw new Error('登录失败: 环境缺少 accountId 字段')
+
+  const loginAccount = env.login_account || {}
+  const user = opts.user || loginAccount.name
+  const password = opts.password || loginAccount.password
+  if (!user || !password) {
+    throw new Error(
+      '登录失败: 未获取到账号/密码。请在 ~/.kd/config.json 对应环境下补充 "login_account": {"name":"xxx","password":"xxx"}，或通过 --user/--password 传入',
+    )
+  }
+
+  const baseUrl = normalizeUrl(env.url)
+  const accessKey = _buildAccessKey(user)
+  const pubKey = await _fetchPublicKey(baseUrl, { accessKey, accountId })
+  const encryptedPwd = _encryptPassword(password, pubKey)
+
+  const resp = await fetch(`${baseUrl}/auth/yzjlogin.do`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36',
+    },
+    body: _formEncode({
+      type: 'user',
+      userSourceType: 2,
+      accountId,
+      language: 'zh_CN',
+      useraccount: user,
+      password: encryptedPwd,
+      accessKey,
+      redirect: 'index.html?formId=pc_main_console',
+      isStandard: 'true',
+    }),
+  })
+
+  const setCookies = typeof resp.headers.getSetCookie === 'function'
+    ? resp.headers.getSetCookie()
+    : (resp.headers.raw ? resp.headers.raw()['set-cookie'] || [] : [])
+
+  if (!setCookies.length) {
+    const text = await resp.text().catch(() => '')
+    throw new Error(`登录响应无 Set-Cookie (HTTP ${resp.status})。可能是账号密码错误或动态密码限制。响应体片段: ${text.slice(0, 300)}`)
+  }
+  return _assembleKerpCookie(setCookies)
+}
+
+/**
+ * 携带 session Cookie 调用 /kwc/v1 下的 Controller 接口。
+ *
+ * @param {string} baseUrl  环境基础 URL（env.url）
+ * @param {string} cookie   loginAndGetCookie 的返回值
+ * @param {string} path     以 / 开头的 Controller 路径，例如 /kwc/v1/kdtest/kdtest_react/demo/hello
+ * @param {{method?: string, query?: Record<string, any>, body?: any, headers?: Record<string,string>}} [opts]
+ * @returns {Promise<{status: number, data: any, raw: string}>}
+ */
+export async function callControllerViaCookie(baseUrl, cookie, path, opts = {}) {
+  if (!path || !path.startsWith('/')) throw new Error(`Controller 路径必须以 / 开头: ${path}`)
+  const method = (opts.method || 'GET').toUpperCase()
+  const query = opts.query || {}
+  const qs = Object.entries(query)
+    .filter(([, v]) => v != null)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&')
+  const url = `${normalizeUrl(baseUrl)}${path}${qs ? '?' + qs : ''}`
+
+  const headers = {
+    Cookie: cookie,
+    Accept: 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36',
+    ...(opts.headers || {}),
+  }
+
+  const init = { method, redirect: 'manual', headers }
+  if (opts.body !== undefined && method !== 'GET' && method !== 'HEAD') {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json'
+    init.body = typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)
+  }
+
+  const resp = await fetch(url, init)
+  if (resp.status >= 300 && resp.status < 400) {
+    const loc = resp.headers.get('location') || ''
+    throw new Error(`请求被重定向到 ${loc}（Cookie 可能已失效，请重新登录）`)
+  }
+
+  const raw = await resp.text()
+  let data
+  try { data = JSON.parse(raw) } catch { data = null }
+  return { status: resp.status, data, raw }
 }
 
 /** 通用 GET API 请求封装 */

@@ -26,6 +26,7 @@
 4. **编写 .kws 元数据**：基于第 2 步读取的配置拼装 URL（`/{isv}/{app}/...`），定义 HTTP 方法和权限
 5. **编写脚本代码**：开始写代码前，**必须先读取** `./reference/脚本控制器防坑指南.md`，确保不使用不存在的 API、不踩已知运行时陷阱；SDK 调用前先在索引中确认存在
 6. **交付构建**：完成后通知用户回到 scaffold 进行部署
+7. **端到端自检（🔴 硬性门槛）**：部署成功后，**必须**运行 `../scripts/test-controller.mjs`（登录→Cookie→/kwc/v1）对每个要对接的方法跑至少一轮。这不属于「禁止运行部署」的约束，是只读接口调用。**自检未全部通过前，禁止进入 KWC 前端对接代码编写（adapterApi / 前端组件）**；详见主 SKILL.md 「Controller 端到端自检」节
 
 ## 参考资源
 
@@ -35,6 +36,7 @@
 | | Controller 集成工作流 | `./reference/controller-scaffold-workflow.md` |
 | | 常见模式和代码示例 | `./reference/controller-patterns.md` |
 | | 前端 adapterApi 调用指南 | `./reference/frontend-integration.md` |
+| | Controller 端到端自检脚本 | `../scripts/test-controller.mjs` |
 | **KingScript** | 脚本控制器开发指南 | `../kingscript-code-generator/references/docs/custom-development/脚本控制器开发指南.md` |
 | | 脚本控制器防坑指南 | `./reference/脚本控制器防坑指南.md` |
 | | 语言基础 | `../kingscript-code-generator/references/language/kingscript/README.md` |
