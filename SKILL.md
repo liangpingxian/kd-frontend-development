@@ -260,15 +260,31 @@ node /path/to/kd-frontend-development/scripts/test-controller.mjs \
 6. 如果测试返回空数据，应检查 Controller 代码中的查询条件、参数传递是否正确
 7. 若 `--assert-not-empty` 断言失败，**不要直接判定为无数据**。按 Controller 技能中的诊断模式排查（多方式探测），区分“代码逻辑错误”和“环境确实无数据”（参考 `kwc-ks-controller-development/reference/faq.md` 「数据查询结果为空时的诊断模式」）
 
-### 就地循环
+### 就地循环（最多 3 次，超限转入 Mock 模式）
 
 如果自检失败：
 
 1. 仔细读脚本给出的 HTTP 状态 / `error_desc`，或 -- verbose 重跑看细节
 2. 回到 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 修改脚本 / .kws / .kd 配置
 3. 重新构建并部署（scaffold）
-4. 再次跑 test-controller.mjs，直到全绿
-5. 才能进入 adapterApi / 前端组件代码编写
+4. 再次跑 test-controller.mjs
+5. **重试上限**：上述「修改 → 部署 → 自检」循环**最多执行 3 次**。3 次后仍失败，**禁止继续循环**，必须转入 Mock 数据模式（见下方）
+6. 自检通过后才能进入 adapterApi / 前端组件代码编写
+
+#### Mock 数据模式（自检 3 次仍失败时触发）
+
+当 `test-controller.mjs` 端到端自检经过 3 轮「修改 → 部署 → 测试」循环仍未通过时，**放弃修复 Controller，转入 Mock 数据模式**：
+
+1. **保留已部署的 Controller 代码和 .kws 元数据不再修改**（作为后续联调的基础）
+2. **前端组件改用硬编码 Mock 数据**：在组件内部定义静态假数据（结构与 Controller 期望返回一致），替代 `adapterApi` 调用
+3. **Mock 数据要求**：
+   - 数据结构必须与 Controller 设计文档中的接口契约一致（字段名、类型、嵌套层级）
+   - 至少包含 3-5 条示例数据，覆盖正常/边界/空状态
+   - 模拟 loading 和 error 两种异步状态（用 `setTimeout` 模拟网络延迟）
+4. **保留 adapterApi 调用代码（注释掉）**：在原位置保留被注释的 `adapterApi.doGet/doPost` 调用，方便后续 Controller 问题解决后取消注释即可恢复真实接口调用
+5. **向用户明确说明**：告知 Controller 自检未通过（附失败原因），当前页面使用 Mock 数据展示，待 Controller 问题解决后切换回真实接口
+
+> ⚠️ Mock 模式是**临时降级方案**，不是最终交付状态。Controller 问题仍需后续排查解决。
 
 ## 用户交互约定
 
@@ -579,7 +595,10 @@ kd project create <page_name> --type page
 9. 创建并补全页面元数据
 10. 若有 Controller，执行 `npm run build:controller`（⚠️ 仅本地编译，不会上传！第 11 步的 `kd project deploy` 才会真正上传 Controller）
 11. **自动部署**：直接执行 `kd project deploy`（CLI 会自动使用已配置的默认环境，无需指定 `-e`、无需 `kd env list`、无需询问用户）。仅当部署报错提示无环境时，才收集环境信息并配置。详见「部署决策（默认自动部署）」章节
-12. **【立即】部署成功后，使用脚本生成并发送页面访问链接**：
+12. **发送页面访问链接（render 卡片）**：**时机取决于任务是否涉及后端 Controller**，禁止在前后端未联通前提前输出：
+    - **仅前端任务**（无 Controller）：部署成功后**立即**使用脚本生成并发送 render 卡片
+    - **含后端任务**（有 Controller）：**必须等 Controller 端到端自检通过（或 3 次重试上限触发 Mock 降级），且前端 adapterApi 对接代码已完成并部署后**，才使用脚本生成并发送 render 卡片。在此之前禁止输出 render 卡片
+    - **新对话修改已有页面**：若用户在新对话中对已部署的页面进行修改，修改部署完成后**必须重新输出** render 卡片（即使该页面此前已输出过卡片），确保用户能看到最新效果
     ```bash
     node $SKILL_DIR/scripts/form-link.mjs generate --pageMeta <页面元数据文件路径> [--formNumber <实体编码>] [--env <环境名>]
     ```
@@ -587,7 +606,7 @@ kd project create <page_name> --type page
     - `--formNumber`：可选，若页面使用了苍穹后端实体（如通过 Controller 查询业务数据），传入实体编码以生成元数据 URL
     - `--env`：可选，不传则使用默认环境
     - 脚本会自动从页面元数据提取 title 和 formId，拼接环境 URL，输出 `:::render:kdform {...}:::`
-    - **这是部署流程的完成标志，不可跳过或延迟。禁止手动拼接 render 卡片 JSON，必须使用此脚本生成**
+    - **禁止手动拼接 render 卡片 JSON，必须使用此脚本生成**
 13. [可选] 若用户明确要求"打开页面"或"查看效果"，执行 `kd open`
 14. [可选] 若用户明确要求本地联调，执行 `kd debug`
 
@@ -605,7 +624,7 @@ kd project create <page_name> --type page
 - 页面元数据将如何组合组件
 - 部署默认执行，是否用户明确要求跳过部署
 - 若需要部署，是否因为元数据变更而必须递增 `version`
-- 部署成功后是否已发送页面访问链接（`:::render:kdform ...:::`，见「页面访问链接」章节）
+- 是否已满足 render 卡片发送条件并已发送（`:::render:kdform ...:::`，见「页面访问链接」章节）
 
 ## 子技能路由表
 
