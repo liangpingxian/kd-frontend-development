@@ -54,7 +54,7 @@
 4. 补全所有元数据（本 Skill 职责，元数据先行）：
    a. 补全组件元数据 `.js-meta.kwc`
    b. 补全 Controller 元数据 `.kws`（定义 URL、方法、权限配置）
-5. **阅读框架子技能文档并实现前端组件代码**：阅读对应框架子技能的 SKILL.md 编写组件代码（*.tsx / *.vue / *.js）
+5. **实现前端组件代码**：写前必读 [`kwc-frontend-contract.md`](./kwc-frontend-contract.md)（KWC 框架契约）；UI 实现细节自由发挥
 6. **阅读 Controller 子技能文档并实现后端代码**：阅读 [kwc-ks-controller-development](../kwc-ks-controller-development/SKILL.md) 编写 Controller 脚本（*.ts）
 7. 回到脚手架工作流：创建页面元数据并补全 `<controls>`
 8. 构建前端：`npm run build:frontend`
@@ -64,7 +64,7 @@
 
 **关键原则**：
 - 步骤 4（元数据补全）中，组件元数据 `.kwc` + Controller 元数据 `.kws` 都由本 Skill 完成
-- 步骤 5-6（代码实现）分别遵循对应子技能的规范，脚手架工作流严禁直接编写代码
+- 步骤 5（前端代码）严守 KWC 前端契约；步骤 6（Controller 代码）必须遵循 controller 子技能规范
 - 步骤 7 起回到脚手架工作流主导
 
 ### 仅前端编排
@@ -75,8 +75,8 @@
 2. 使用 `kd project create <ComponentName> --type kwc` 创建页面组件（通常 1 个需求只需 1 个组件，所有复杂布局在组件内部完成）
 3. **补全组件 `.js-meta.kwc`**（本 Skill 职责）
 4. **查询关联业务实体**（可选，当组件涉及表单数据绑定时）：使用 `meta-query-api.mjs` 查询关联表单的字段结构，辅助组件设计（见 `references/metadata-operations.md`「元数据查询」章节）
-5. **阅读框架子技能文档并实现代码**：确认当前工程 framework，**必须**阅读对应框架子技能的 SKILL.md（[kwc-react-development](../kwc-react-development/SKILL.md) / [kwc-vue-development](../kwc-vue-development/SKILL.md) / [kwc-lwc-development](../kwc-lwc-development/SKILL.md)）并遵循其规范
-6. **框架子技能规范下实现组件代码**（*.tsx / *.vue / *.js）
+5. **阅读 KWC 前端契约文档**：写组件代码前必读 [`kwc-frontend-contract.md`](./kwc-frontend-contract.md)（props 形状、adapterApi、config 字段等 KWC 框架特有约束）
+6. **实现组件代码**（*.tsx / *.vue / *.js）：UI 库选型、布局、CSS 等实现细节自由发挥，严守第 5 步的 KWC 契约
 7. 代码实现完成后，回到脚手架工作流：使用 `kd project create <page_name> --type page` 创建页面元数据（参数见主 SKILL.md「创建页面元数据」章节）
 8. 补全页面 `app/pages/<page-name>.page-meta.kwp`
 9. 构建前端：`npm run build:frontend`
@@ -86,13 +86,13 @@
 
 **关键原则**：
 - 步骤 3（元数据补全）必须由脚手架工作流完成
-- 步骤 5-6（代码实现）**必须**遵循框架子技能规范，脚手架工作流严禁直接编写代码
+- 步骤 5-6（代码实现）严守 [`kwc-frontend-contract.md`](./kwc-frontend-contract.md) 中的 KWC 框架契约；UI 实现自由发挥
 - 步骤 7 起（页面创建及后续）回到脚手架工作流主导
 
 如果是修改已有页面：
 
 1. 先识别是改组件实现、改组件元数据、改页面元数据，还是三者都改
-2. **若涉及组件代码修改**：必须阅读对应框架子技能的 SKILL.md 并遵循其规范，禁止脚手架工作流直接修改代码
+2. **若涉及组件代码修改**：仍须遵循 [`kwc-frontend-contract.md`](./kwc-frontend-contract.md) 中的 KWC 框架契约
 3. **自动部署**：先执行 `kd env list` 检查已有环境，若有已认证环境直接 `kd project deploy` 部署变更（无需询问用户）；仅当用户明确表示不需要部署时才跳过
 
 ### 仅后端 Controller 编排

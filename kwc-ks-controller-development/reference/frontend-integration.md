@@ -1,6 +1,6 @@
 # 前端通过 adapterApi 调用 Controller API 集成指南
 
-> **职责说明**：本指南是前端调用后端 Controller API 的**统一参考文档**，被 `kwc-react-development`、`kwc-vue-development`、`kwc-lwc-development` 三个前端技能包交叉引用。编写前端组件中的 API 调用代码前，必须阅读本文档。
+> **职责说明**：本指南是前端调用后端 Controller API 的**统一参考文档**，由主技能包 `references/kwc-frontend-contract.md` 引用。编写前端组件中的 API 调用代码前，必须阅读本文档。
 
 ## 1. adapterApi 基础用法
 

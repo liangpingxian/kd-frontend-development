@@ -1,6 +1,6 @@
 ---
 name: kd-frontend-development
-description: "【KD 全栈开发技能包】覆盖金蝶前端自定义页面开发全流程：需求分析与实体澄清、页面 UE 设计与组件选型、工程脚手架初始化（kd CLI）、React/Vue/LWC 三框架组件实现、KingScript 脚本控制器开发、@kdcloudjs/shoelace 组件库集成、元数据管理（.kwc/.kwp/.kws）、环境部署与调试。当用户需求涉及 KWC 页面开发、KWC 工程创建、KWC 组件开发、KWC 应用搭建或 KingScript Controller 开发时触发。"
+description: "【KD 全栈开发技能包】覆盖金蝶前端自定义页面开发全流程：需求分析与实体澄清、工程脚手架初始化（kd CLI）、KWC 组件与页面元数据契约、KingScript 脚本控制器开发、前后端 adapterApi 联调与端到端自检、环境部署与调试。当用户需求涉及 KWC 页面开发、KWC 工程创建、KWC 组件开发、KWC 应用搭建或 KingScript Controller 开发时触发。"
 version: 1.0.0
 ---
 
@@ -118,78 +118,41 @@ Controller 也遵循"元数据 + 代码"的二元模型：
 
 只有把这几项补齐，脚手架命令才有明确目标。
 
-## 框架开发 Skill 协作
+## 代码实现的职责分工
 
-将本技能包视为 KWC 工作流的总入口，但不要让脚手架工作流吞掉框架子技能的职责。
+本技能包是 KWC 工程的总入口。代码实现阶段按"前端 / 后端"分两条路：
 
-### 硬性约束：代码实现必须遵循框架子技能规范
+### 前端组件代码（*.tsx / *.vue / *.js）
 
-**当任务进入"实现组件代码"阶段时，必须遵循以下强制规则：**
+**Claude 自由实现**——React/Vue/LWC 怎么写、用什么 UI 库（Shoelace 也好、原生 div 也好、ECharts、自己挑）、布局如何排，全部按业务需求自行决断。
 
-1. **禁止直接编写代码**：脚手架工作流严禁直接编写、修改任何组件实现代码（*.tsx / *.vue / *.js）和 Controller 脚本代码（*.ts）
-2. **必须先阅读对应子技能文档**：前端代码阅读对应框架子技能的 SKILL.md（kwc-react/vue/lwc-development），Controller 代码阅读 `./kwc-ks-controller-development/SKILL.md`
-3. **禁止凭通用知识自行编写**：KingScript 运行时的 request/response API 与 Node.js / Java Servlet 完全不同，凭通用经验编写的代码将部署失败
-4. **多环节任务不是例外**：即使当前任务涉及工程搭建 + 元数据 + Controller + 前端组件多个环节，每进入一个代码编写阶段都必须阅读对应子技能文档并遵循其规范，不可"一口气"跳过
-5. **框架识别依据**：
-   - 新建工程：以 project-init.mjs 初始化时指定的 --framework 参数为准
-   - 已有工程：以 `.kd/config.json` 中的 `framework` 字段为准
-   - 若无法识别 framework，默认使用 `react` + `ts`；若用户明确指定了其他框架（Vue/LWC），则按用户指定的执行
+**唯一硬约束**：代码必须符合 KWC 框架契约。**编写前必读** [`references/kwc-frontend-contract.md`](./references/kwc-frontend-contract.md)（≤80 行），覆盖：
+- 组件入参形状（KwcConfig 直接展开为 props，**不要**用 `{ config }` 包裹——高频踩坑）
+- `config` 对象字段（`isvId` / `moduleId` / `pageId` / `formId` / `controlId` / `metaProps`）
+- 调用后端 Controller：必须走 adapterApi，禁止直接 `fetch`
+- `declarations.d.ts` 类型声明同步
+- `main.tsx` / `npm run dev` 仅用于本地预览，不是交付路径
+
+### 后端 Controller 脚本代码（*.ts）
+
+**禁止凭通用 Node/Java 经验自行编写**——KingScript 运行时的 request/response API 与 Node.js / Java Servlet 完全不同，且 SDK 是封闭生态。
+
+**编写前必读** [`kwc-ks-controller-development/SKILL.md`](./kwc-ks-controller-development/SKILL.md) 及其 rule.md / reference/。SDK 检索遇到不确定时查 [`kingscript-code-generator/SKILL.md`](./kingscript-code-generator/SKILL.md)。
 
 ### 协作边界表
 
-| 任务阶段 | 负责 Skill | 产出物 |
-|----------|------------|--------|
+| 任务阶段 | 负责 | 产出物 |
+|----------|------|--------|
 | 工程初始化 | scaffold | .kd/config.json |
 | 创建组件目录 | scaffold | app/kwc/Component/ |
-| **页面设计（🔴 必读）** | **scaffold + [page-design-guide](./references/page-design-guide.md)**（每个新需求必须先读，禁止跳过） | **页面模板选型、组件组合方案**——禁止直接复用已有组件布局替代阅读设计指南 |
-| **编写组件代码** | **[react](./kwc-react-development/SKILL.md)/[vue](./kwc-vue-development/SKILL.md)/[lwc-development](./kwc-lwc-development/SKILL.md)** | ***.tsx / *.vue / *.js** |
+| 编写组件代码 | Claude 自由实现 + 遵循 [kwc-frontend-contract.md](./references/kwc-frontend-contract.md) | *.tsx / *.vue / *.js |
 | 补全组件元数据 | scaffold | *.js-meta.kwc |
 | 创建页面元数据 | scaffold | *.page-meta.kwp |
 | 环境配置与部署 | scaffold | 环境渲染结果 |
 | 创建 Controller 目录 | scaffold | app/ks/controller/ControllerName/ |
-| 补全 Controller 元数据 | scaffold | *.kws（URL、方法、权限配置） |
-| 构建 Controller | scaffold | dist/controller/ |
-| **编写 Controller 脚本代码** | **[kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md)** | **.ts 脚本（业务逻辑实现）** |
-| **Controller 端到端自检（🔴 必须通过才能进入前端对接）** | **scaffold + [test-controller.mjs](./scripts/test-controller.mjs)** | 登录 → Cookie → /kwc/v1 实际调通，返回期望 JSON |
-
-#### 切换时机
-
-- 当任务仍处于需求拆分、脚手架命令、元数据、环境、`deploy`、`open`、`debug` 阶段时，继续由脚手架工作流主导
-- 当 `kd project create` 创建完成后需写代码 → **必须阅读对应框架子技能的 SKILL.md 并遵循其规范，禁止直接编写**
-- 当代码写完需补元数据或部署 → 回到脚手架工作流
-- 当 Controller 目录已创建且需要编写脚本代码 → **必须阅读 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 并遵循其规范，禁止直接编写**
-- 当 Controller 脚本代码写完需构建或部署 → 回到脚手架工作流
-- **Controller 部署成功后 → 必须运行 [test-controller.mjs](./scripts/test-controller.mjs) 进行端到端自检；所有错误解决前，禁止进入 KWC 前端对接阶段（adapterApi / 前端组件代码）**
-
-#### 异常流程保护
-
-当 `kd project create` 命令失败而改用手动方式创建文件/目录时，代码编写阶段的子技能规范遵循规则**同样适用**。手动创建目录结构不等于可以手动编写业务代码。
-
-- 只要进入 `.ts` / `.tsx` / `.vue` / `.js` 文件的编写，无论前置步骤是否通过 CLI 完成，都**必须先阅读对应框架子技能的 SKILL.md 并遵循其规范**
-- 典型场景：`kd project create` 失败 → 手动创建 `app/kwc/MyComponent/` 目录和 `.js-meta.kwc` → 到这里仍是脚手架职责 → 开始写 `MyComponent.tsx` 时 → **必须阅读对应框架子技能的 SKILL.md**
-- Controller 同理：手动创建 `app/ks/controller/` 目录和 `.kws` → scaffold 职责 → 开始写 `.ts` 脚本 → **必须阅读 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md)**
-
-#### 框架子技能激活检查清单
-
-在进入代码实现阶段前，确认以下事项：
-
-- [ ] 已识别当前工程 framework（react/vue/lwc）
-- [ ] 已阅读对应框架子技能的 SKILL.md（kwc-*-development）
-- [ ] 框架子技能的 rule.md 约束已加载并生效
-- [ ] 脚手架工作流不再直接处理任何代码文件内容
-
-#### 推荐规则
-
-1. 若是新建工程，以 project-init.mjs 初始化时指定的 --framework 参数作为后续推荐 Skill 依据
-2. 若是已有工程，以 `.kd/config.json` 中的 `framework` 作为推荐 Skill 依据
-3. 当 `framework=react` 时，**必须**阅读 [kwc-react-development](./kwc-react-development/SKILL.md) 并遵循其规范
-4. 当 `framework=vue` 时，**必须**阅读 [kwc-vue-development](./kwc-vue-development/SKILL.md) 并遵循其规范
-5. 当 `framework=lwc` 时，**必须**阅读 [kwc-lwc-development](./kwc-lwc-development/SKILL.md) 并遵循其规范
-6. 若还无法判断 framework，默认使用 `react` + `ts`；若用户明确指定了其他框架（Vue/LWC），则按用户指定的执行
-7. 当任务涉及 Controller/脚本控制器代码编写时，**必须**阅读 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 并遵循其规范
-8. Controller 代码实现与前端框架无关，不受 framework 字段影响
-
-注意：不要同时阅读三个框架子技能的文档；只根据当前工程的 framework 引用一个。
+| 补全 Controller 元数据 | scaffold | *.kws |
+| **编写 Controller 脚本代码** | **[kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md)**（必读） | .ts 脚本 |
+| **Controller 端到端自检（🔴 硬门槛）** | scaffold + [test-controller.mjs](./scripts/test-controller.mjs) | 登录 → Cookie → /kwc/v1 实际调通 |
 
 ## Controller 端到端自检（🔴 硬性门槛）
 
@@ -260,31 +223,22 @@ node /path/to/kd-frontend-development/scripts/test-controller.mjs \
 6. 如果测试返回空数据，应检查 Controller 代码中的查询条件、参数传递是否正确
 7. 若 `--assert-not-empty` 断言失败，**不要直接判定为无数据**。按 Controller 技能中的诊断模式排查（多方式探测），区分“代码逻辑错误”和“环境确实无数据”（参考 `kwc-ks-controller-development/reference/faq.md` 「数据查询结果为空时的诊断模式」）
 
-### 就地循环（最多 3 次，超限转入 Mock 模式）
+### 就地循环（最多 3 次，超限停下来交还用户）
 
 如果自检失败：
 
-1. 仔细读脚本给出的 HTTP 状态 / `error_desc`，或 -- verbose 重跑看细节
+1. 仔细读脚本给出的 HTTP 状态 / `error_desc`，或 `--verbose` 重跑看细节
 2. 回到 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 修改脚本 / .kws / .kd 配置
 3. 重新构建并部署（scaffold）
 4. 再次跑 test-controller.mjs
-5. **重试上限**：上述「修改 → 部署 → 自检」循环**最多执行 3 次**。3 次后仍失败，**禁止继续循环**，必须转入 Mock 数据模式（见下方）
-6. 自检通过后才能进入 adapterApi / 前端组件代码编写
-
-#### Mock 数据模式（自检 3 次仍失败时触发）
-
-当 `test-controller.mjs` 端到端自检经过 3 轮「修改 → 部署 → 测试」循环仍未通过时，**放弃修复 Controller，转入 Mock 数据模式**：
-
-1. **保留已部署的 Controller 代码和 .kws 元数据不再修改**（作为后续联调的基础）
-2. **前端组件改用硬编码 Mock 数据**：在组件内部定义静态假数据（结构与 Controller 期望返回一致），替代 `adapterApi` 调用
-3. **Mock 数据要求**：
-   - 数据结构必须与 Controller 设计文档中的接口契约一致（字段名、类型、嵌套层级）
-   - 至少包含 3-5 条示例数据，覆盖正常/边界/空状态
-   - 模拟 loading 和 error 两种异步状态（用 `setTimeout` 模拟网络延迟）
-4. **保留 adapterApi 调用代码（注释掉）**：在原位置保留被注释的 `adapterApi.doGet/doPost` 调用，方便后续 Controller 问题解决后取消注释即可恢复真实接口调用
-5. **向用户明确说明**：告知 Controller 自检未通过（附失败原因），当前页面使用 Mock 数据展示，待 Controller 问题解决后切换回真实接口
-
-> ⚠️ Mock 模式是**临时降级方案**，不是最终交付状态。Controller 问题仍需后续排查解决。
+5. **重试上限**：上述「修改 → 部署 → 自检」循环**最多执行 3 次**
+6. **超限处理**：3 次仍失败时，**禁止继续循环、禁止改前端写假数据掩盖问题**。必须停下来，向用户输出诊断报告：
+   - 最近一次的具体错误（HTTP 状态、`error_desc`、响应体）
+   - 已尝试过的修改思路与各自结果
+   - 当前推测的可能原因（环境、字段、权限、SDK 限制等）
+   - 建议用户介入的下一步（例如：确认环境是否有数据、确认实体字段、提供权限信息等）
+   把判断与决策交还用户，不要让 AI 自行降级"交付质量"
+7. 自检通过后才能进入 adapterApi / 前端组件代码编写
 
 ## 用户交互约定
 
@@ -419,7 +373,7 @@ node /path/to/kd-frontend-development/scripts/test-controller.mjs \
 1. 若当前目录下不存在 `.kd`，先视为“尚未初始化 KWC 工程”。
 2. 若用户要新建页面或组件，使用 `kd project create` 命令创建，不要手工拼目录结构。
 3. 若用户要部署或调试，先检查环境是否已配置（可通过 `kd env list` 查看）。
-4. 若用户开始编写具体前端实现代码，先判断当前工程 framework，再阅读对应框架子技能的 SKILL.md 并遵循其规范，不要把脚手架工作流当成组件编码规范。
+4. 若用户开始编写具体前端实现代码，**写前必读** [`references/kwc-frontend-contract.md`](./references/kwc-frontend-contract.md) 确保符合 KWC 框架契约；UI 实现细节自由发挥。
 
 ## 执行前置检查
 
@@ -489,7 +443,7 @@ kd project create <ComponentName> --type kwc
 ### 创建后处理（无论使用哪种方式）
 
 1. **立刻检查生成出来的 `.js-meta.kwc`，补齐可部署所需字段和属性定义**（这是本 Skill 的职责）。
-2. **组件代码实现**：确认 `.js-meta.kwc` 补齐后，必须停止脚手架工作流的代码编写，阅读对应的框架子技能文档（[kwc-react-development](./kwc-react-development/SKILL.md) / [kwc-vue-development](./kwc-vue-development/SKILL.md) / [kwc-lwc-development](./kwc-lwc-development/SKILL.md)）并遵循其规范来编写组件实现代码。
+2. **组件代码实现**：确认 `.js-meta.kwc` 补齐后，**写组件代码前必读** [`references/kwc-frontend-contract.md`](./references/kwc-frontend-contract.md)（KWC 框架契约：props 形状、adapterApi、config 字段等）。UI 库选型、布局、CSS 等实现细节自由发挥。
 
 若用户只提供了页面结构想法，没有组件名，先根据语义生成稳定、可复用的组件名，再创建。
 若用户给的是完整业务诉求，而不是组件清单，先主动拆分组件职责，再批量创建。
@@ -497,7 +451,6 @@ kd project create <ComponentName> --type kwc
 补充：
 - 组件生成在 `app/kwc/<ComponentName>/` 下
 - 脚手架生成的 `.js-meta.kwc` 只是模板，需按上述规则补齐
-- **严禁在脚手架工作流中直接修改组件代码文件（*.tsx / *.vue / *.js），代码实现必须遵循框架子技能规范**
 
 ## 创建 Controller
 
@@ -549,14 +502,6 @@ kd project create <page_name> --type page
 > **条件触发**：需求含后端数据交互 / 含 Controller / 含实体识别 / 前后端联合开发时**必读**。
 > 阅读 `references/workflow-orchestration.md` 获取完整编排流程（包含需求前后端评估、实体识别与澄清、前后端统一编排、仅前端编排、仅后端编排）。
 
-### 页面设计与 UI 布局
-
-> **🔴 必读 — 每个新需求**：只要产出新页面/新组件就**必须先读**，用于选模板、定布局。**禁止跳过直接复用已有组件的布局**。
-> 阅读 [`references/page-design-guide.md`](./references/page-design-guide.md) 获取页面设计与 UI 布局指南（工作台/图表/个性化/表单/列表/向导模板）。
->
-> ⚠️ **禁止以"工程中已有类似组件可参考"为由跳过阅读 page-design-guide.md。**
-> 不同类型的页面（工作台/图表/向导/列表/表单）有不同的最佳模板，必须先选型再实现。
-
 ### 环境配置与部署
 
 > **条件触发**：新建环境 / 首次部署 / 菜单发布 / 部署失败排查时**必读**。
@@ -571,7 +516,7 @@ kd project create <page_name> --type page
 
 | 文件 | 触发级别 | 硬判定标准 |
 |------|---------|------------|
-| [`references/page-design-guide.md`](./references/page-design-guide.md) | **🔴 必读** — 每个新需求 | 只要产出新页面/新组件就必须先读，用于选模板、定布局。**禁止跳过直接复用已有组件的布局** |
+| [`references/kwc-frontend-contract.md`](./references/kwc-frontend-contract.md) | **🔴 必读** — 写前端组件代码前 | 编写 *.tsx / *.vue / *.js 前必读一次，覆盖 KWC 框架特有契约（props 形状、adapterApi、config 字段等） |
 | [`references/component-metadata.md`](./references/component-metadata.md) | **🔴 必读** — 首次接触工程 | 第一次为该项目写组件元数据时必读一次；后续可复用已建立的认知 |
 | [`references/page-metadata.md`](./references/page-metadata.md) | **🔴 必读** — 首次接触工程 | 第一次为该项目写页面元数据时必读一次；后续可复用已建立的认知 |
 | [`references/workflow-orchestration.md`](./references/workflow-orchestration.md) | 条件触发 | 需求含后端数据交互 / 含 Controller / 含实体识别 / 前后端联合开发时必读 |
@@ -587,17 +532,14 @@ kd project create <page_name> --type page
 3. 评估需求是否涉及后端数据交互，若是则规划 Controller
 4. 拆分组件并创建组件工程；若需要 Controller，一并创建 Controller 工程
 5. 补全所有元数据：组件元数据 `.js-meta.kwc`、Controller 元数据 `.kws`（若有）
-6. **页面设计（🔴 必读，禁止跳过）**：**必须**阅读 [`references/page-design-guide.md`](./references/page-design-guide.md)，确定页面模板和组件布局方案
-   > ⚠️ **禁止以"工程中已有类似组件可参考"为由跳过阅读 page-design-guide.md。**
-   > 不同类型的页面（工作台/图表/向导/列表/表单）有不同的最佳模板，必须先选型再实现。
-7. 实现前端组件代码（阅读对应框架子技能的 SKILL.md 并遵循其规范）
-8. 若有 Controller，实现 Controller 脚本代码（阅读 [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) 并遵循其规范）
-9. 创建并补全页面元数据
-10. 若有 Controller，执行 `npm run build:controller`（⚠️ 仅本地编译，不会上传！第 11 步的 `kd project deploy` 才会真正上传 Controller）
-11. **自动部署**：直接执行 `kd project deploy`（CLI 会自动使用已配置的默认环境，无需指定 `-e`、无需 `kd env list`、无需询问用户）。仅当部署报错提示无环境时，才收集环境信息并配置。详见「部署决策（默认自动部署）」章节
-12. **发送页面访问链接（render 卡片）**：**时机取决于任务是否涉及后端 Controller**，禁止在前后端未联通前提前输出：
+6. 实现前端组件代码（**写前必读** [`references/kwc-frontend-contract.md`](./references/kwc-frontend-contract.md)；UI 库、布局自由发挥）
+7. 若有 Controller，实现 Controller 脚本代码（**写前必读** [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md)）
+8. 创建并补全页面元数据
+9. 若有 Controller，执行 `npm run build:controller`（⚠️ 仅本地编译，不会上传！第 10 步的 `kd project deploy` 才会真正上传 Controller）
+10. **自动部署**：直接执行 `kd project deploy`（CLI 会自动使用已配置的默认环境，无需指定 `-e`、无需 `kd env list`、无需询问用户）。仅当部署报错提示无环境时，才收集环境信息并配置。详见「部署决策（默认自动部署）」章节
+11. **发送页面访问链接（render 卡片）**：**时机取决于任务是否涉及后端 Controller**，禁止在前后端未联通前提前输出：
     - **仅前端任务**（无 Controller）：部署成功后**立即**使用脚本生成并发送 render 卡片
-    - **含后端任务**（有 Controller）：**必须等 Controller 端到端自检通过（或 3 次重试上限触发 Mock 降级），且前端 adapterApi 对接代码已完成并部署后**，才使用脚本生成并发送 render 卡片。在此之前禁止输出 render 卡片
+    - **含后端任务**（有 Controller）：**必须等 Controller 端到端自检通过，且前端 adapterApi 对接代码已完成并部署后**，才使用脚本生成并发送 render 卡片。在此之前禁止输出 render 卡片。若 Controller 自检 3 次失败已停下来交还用户决策，则同样禁止输出 render 卡片
     - **新对话修改已有页面**：若用户在新对话中对已部署的页面进行修改，修改部署完成后**必须重新输出** render 卡片（即使该页面此前已输出过卡片），确保用户能看到最新效果
     ```bash
     node $SKILL_DIR/scripts/form-link.mjs generate --pageMeta <页面元数据文件路径> [--formNumber <实体编码>] [--env <环境名>]
@@ -607,8 +549,8 @@ kd project create <page_name> --type page
     - `--env`：可选，不传则使用默认环境
     - 脚本会自动从页面元数据提取 title 和 formId，拼接环境 URL，输出 `:::render:kdform {...}:::`
     - **禁止手动拼接 render 卡片 JSON，必须使用此脚本生成**
-13. [可选] 若用户明确要求"打开页面"或"查看效果"，执行 `kd open`
-14. [可选] 若用户明确要求本地联调，执行 `kd debug`
+12. [可选] 若用户明确要求"打开页面"或"查看效果"，执行 `kd open`
+13. [可选] 若用户明确要求本地联调，执行 `kd debug`
 
 不要只完成其中的"创建组件"或"本地跑起来"，除非用户明确只要某个局部步骤。
 
@@ -632,15 +574,12 @@ kd project create <page_name> --type page
 
 | 子技能 | 用途 | 激活条件 | 入口文件 |
 |--------|------|---------|----------|
-| kwc-react-development | React 框架下的 KWC 组件代码编写 | `.kd/config.json` 中 `framework=react` | [SKILL.md](./kwc-react-development/SKILL.md) |
-| kwc-vue-development | Vue 3 框架下的 KWC 组件代码编写 | `.kd/config.json` 中 `framework=vue` | [SKILL.md](./kwc-vue-development/SKILL.md) |
-| kwc-lwc-development | LWC 框架下的 KWC 组件代码编写 | `.kd/config.json` 中 `framework=lwc` | [SKILL.md](./kwc-lwc-development/SKILL.md) |
 | kwc-ks-controller-development | KingScript 脚本控制器开发 | `app/ks/controller/` 目录已存在 | [SKILL.md](./kwc-ks-controller-development/SKILL.md) |
 | kingscript-code-generator | Kingscript 代码生成、SDK 索引检索、风险审查 | Kingscript 二开或 KS Controller 编写 | [SKILL.md](./kingscript-code-generator/SKILL.md) |
 
 ### 路由规则
 
-1. **KWC 工程开发**：本文档（脚手架工作流）为主入口，代码实现阶段根据 framework 配置引用对应框架子技能
+1. **KWC 工程开发（前端）**：本文档（脚手架工作流）为主入口；前端组件代码 Claude 自由实现，遵循 [`references/kwc-frontend-contract.md`](./references/kwc-frontend-contract.md) 中的 KWC 框架契约
 2. **Controller 开发**：识别后端需求后引用 kwc-ks-controller-development，遇 SDK/语言问题参考 kingscript-code-generator
 3. **Kingscript 二开/插件**：直接引用 kingscript-code-generator
 
