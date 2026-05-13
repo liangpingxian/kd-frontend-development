@@ -1,19 +1,21 @@
 /**
  * KWC API 脚本公共基础设施模块
- * 提供 CLI 参数解析、AES 解密、环境配置加载、鉴权、API 调用等通用能力
+ * 提供 CLI 参数解析、密文解密、环境配置加载、鉴权、API 调用等通用能力
  * 零外部依赖，仅使用 Node.js 内置模块
+ *
+ * 解密通过 _secret-store.mjs (SecretStore，namespace=kingdee-kd)
+ * 读取 OS 凭据容器中的 master-key，不再读写 ~/.kd/secret.key。
  */
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
-import { createDecipheriv, randomBytes, publicEncrypt, constants } from 'node:crypto'
+import { randomBytes, publicEncrypt, constants } from 'node:crypto'
+import { unprotect, isKdsec } from './_secret-store.mjs'
 
 // ─── 常量 ───────────────────────────────────────────────
 export const KD_DIR = join(homedir(), '.kd')
 export const CONFIG_FILE = join(KD_DIR, 'config.json')
-export const SECRET_KEY_FILE = join(KD_DIR, 'secret.key')
-export const ALGORITHM = 'aes-256-cbc'
 
 // ─── 内部默认 fatal ─────────────────────────────────────
 
@@ -50,25 +52,16 @@ export function parseArgs(args) {
   return result
 }
 
-/** 读取 secret.key 并返回 Buffer 密钥 */
-export function readSecretKey() {
-  try {
-    const hex = readFileSync(SECRET_KEY_FILE, 'utf-8').trim()
-    return Buffer.from(hex, 'hex')
-  } catch {
-    _fatal('无法读取密钥文件 ~/.kd/secret.key，请先运行 kd env auth openapi')
+/** 解密密文：仅识别新 `kdsec:` 前缀，遇老密文直接 fatal 引导用户重认证 */
+export function decrypt(encoded) {
+  if (!isKdsec(encoded)) {
+    _fatal('Legacy ciphertext found, please re-run "kd env auth" in CLI')
   }
-}
-
-/** AES-256-CBC 解密，输入格式: "iv_base64:cipher_base64" */
-export function decrypt(encoded, key) {
-  const [ivStr, cipherStr] = encoded.split(':')
-  const iv = Buffer.from(ivStr, 'base64')
-  const encrypted = Buffer.from(cipherStr, 'base64')
-  const decipher = createDecipheriv(ALGORITHM, key, iv)
-  let decrypted = decipher.update(encrypted, undefined, 'utf-8')
-  decrypted += decipher.final('utf-8')
-  return decrypted
+  try {
+    return unprotect(encoded)
+  } catch (e) {
+    _fatal(`密文解密失败：${e && e.message ? e.message : String(e)}`)
+  }
 }
 
 /** 读取 ~/.kd/config.json 并返回指定环境配置 */
@@ -195,15 +188,13 @@ export async function resolveToken(env) {
 
   // 情况1: 完整凭据且非 Web OAuth → 每次重新获取 token
   if (hasFullCredentials && auth2 !== true) {
-    const key = readSecretKey()
-    const secret = decrypt(client_secret, key)
+    const secret = decrypt(client_secret)
     return await fetchToken(url, { client_id, client_secret: secret, username, accountId })
   }
 
   // 情况2: Web OAuth → 使用缓存的 access_token 解密后直接用
   if (auth2 === true && access_token) {
-    const key = readSecretKey()
-    return decrypt(access_token, key)
+    return decrypt(access_token)
   }
 
   // 情况3: 无可用凭据
@@ -317,7 +308,7 @@ function _assembleKerpCookie(setCookies) {
 /**
  * 使用账号密码登录苍穹，返回可直接用于 /kwc/v1 请求的 Cookie 字符串。
  *
- * 优先级: opts.user/opts.password > env.login_account.{name,password}
+ * 优先级: opts.user/opts.password > env.login_account.{fname,password}
  * 必需的环境字段: url, accountId
  *
  * @param {object} env  loadEnvConfig 返回的环境配置
@@ -330,11 +321,11 @@ export async function loginAndGetCookie(env, opts = {}) {
   if (!accountId) throw new Error('登录失败: 环境缺少 accountId 字段')
 
   const loginAccount = env.login_account || {}
-  const user = opts.user || loginAccount.name
+  const user = opts.user || loginAccount.fname
   const password = opts.password || loginAccount.password
   if (!user || !password) {
     throw new Error(
-      '登录失败: 未获取到账号/密码。请在 ~/.kd/config.json 对应环境下补充 "login_account": {"name":"xxx","password":"xxx"}，或通过 --user/--password 传入',
+      '登录失败: 未获取到账号/密码。请在 ~/.kd/config.json 对应环境下补充 "login_account": {"fname":"xxx","password":"xxx"}，或通过 --user/--password 传入',
     )
   }
 
