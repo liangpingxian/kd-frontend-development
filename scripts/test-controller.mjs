@@ -33,7 +33,7 @@
  *        --method GET --assert-not-empty data --assert-field data[0].id
  *
  * 账号/密码来源（优先级从高到低）：
- *   --user --password  >  ~/.kd/config.json 的 env.<name>.login_account.{name,password}
+ *   --user --password  >  ~/.kd/config.json 的 env.<name>.login_account.{fname,password}
  *
  * 参数：
  *   --env <name>           环境名（不传则使用默认环境）
@@ -45,7 +45,7 @@
  *   --q k=v                追加单条 query（可重复）
  *   --body '<json>'        请求体 JSON 字符串
  *   --body-file <path>     请求体 JSON 文件
- *   --user <account>       登录账号（覆盖 env.login_account.name）
+ *   --user <account>       登录账号（覆盖 env.login_account.fname）
  *   --password <pwd>       登录密码（覆盖 env.login_account.password）
  *   --accountId <id>       数据中心 accountId（覆盖 env.accountId）
  *   --isv <isv>            URL 拼装时的 isv（覆盖 env.isv / .kd/config.json.isv）
