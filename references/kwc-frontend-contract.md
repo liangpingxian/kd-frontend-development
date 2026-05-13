@@ -1,7 +1,7 @@
-# KWC 前端契约（Claude 猜不出来的部分）
+# KWC 前端契约（通用前端知识猜不出来的部分）
 
-本文档**只**记录 KWC 框架特有的、Claude 凭通用前端知识无法推导的契约。
-组件用什么 UI 库、布局怎么排、CSS 怎么写、用 div 还是 Shoelace，**全部由 Claude 自由发挥**，不在此约束。
+本文档**只**记录 KWC 框架特有的、凭通用前端知识无法推导的契约。
+组件用什么 UI 库、布局怎么排、CSS 怎么写、用 div 还是 Shoelace，**全部自由发挥**，不在此约束。
 
 适用于 React / Vue / LWC 三种框架。框架特有语法差异（hooks vs composition vs class）按各自习惯写即可。
 

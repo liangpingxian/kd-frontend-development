@@ -9,6 +9,47 @@ version: 1.0.0
 本技能是 KWC 工程的总入口。负责脚手架命令、元数据契约、前后端联调、部署。
 **首次接触 KWC 工程**：先读 [`references/concepts.md`](./references/concepts.md)（交付对象 / 元数据驱动模型 / 组件页面关系约束），后续直接执行无需重复。
 
+## KWC 工程目录结构
+
+`kd project init` 生成的工程统一遵循以下结构（找文件 / 创建文件都按这个走）：
+
+```
+<项目根>/
+├── .kd/                                    CLI 配置（含 config.json，含 framework 字段）
+├── app/
+│   ├── kwc/                                🔴 前端组件目录
+│   │   ├── <ComponentName>/                每个组件一个目录
+│   │   │   ├── <ComponentName>.tsx         组件代码（vue/lwc 工程对应 .vue / .js）
+│   │   │   └── <ComponentName>.js-meta.kwc 组件元数据
+│   │   ├── ExampleComponent/               脚手架自带示例（**可参考但不要部署**，必要时删除其 .js-meta.kwc）
+│   │   ├── static/                         静态资源
+│   │   ├── types/                          类型声明（含 declarations.d.ts）
+│   │   ├── index.html / main.tsx           本地预览入口（**不是交付路径**，详见 concepts.md）
+│   │   └── tsconfig.json
+│   ├── pages/                              🔴 页面元数据目录
+│   │   └── <page_name>.page-meta.kwp       每个页面一个文件
+│   └── ks/controller/                      🔴 后端 Controller 目录（按需创建）
+│       ├── <ControllerName>.kws            Controller 元数据（路由 / 方法 / 权限）
+│       └── <ControllerName>.ts             Controller 脚本（KingScript）
+├── dist/                                   构建产物（不要手动修改）
+├── scripts/                                工程内 npm 脚本
+├── server.ts / vite.config.ts              本地预览相关
+├── package.json
+└── README.md / README_zh.md
+```
+
+**关键路径速查**：
+- 找/写**组件**：`app/kwc/<ComponentName>/`
+- 找/写**页面元数据**：`app/pages/<page_name>.page-meta.kwp`
+- 找/写**Controller**：`app/ks/controller/<ControllerName>.{kws,ts}`
+- 找**框架配置**：`.kd/config.json`（`framework` 字段判定 react/vue/lwc）
+- 找**类型声明**：`app/kwc/types/declarations.d.ts`（新增第三方包必须在此 `declare module`）
+
+**不要做的事**：
+- 不要手工创建上述目录/文件，统一用 `kd project create`
+- 不要把组件直接挂到 `main.tsx` 当成"交付完成"——交付靠 `app/pages/*.page-meta.kwp` 中的 `<controls>`
+- 不要修改 `dist/` 下的产物
+
 ## 阶段判别
 
 按这个顺序判断当前任务该走哪一步：
@@ -44,7 +85,7 @@ SKILL_DIR=$(dirname "$(find ~/ -path '*/kd-frontend-development/scripts/project-
 
 ### 前端组件代码（*.tsx / *.vue / *.js）
 
-**Claude 自由实现**——React/Vue/LWC 怎么写、用什么 UI 库（Shoelace / 原生 div / ECharts 任选）、布局怎么排，按业务需求自行决断。
+**自由实现**——React/Vue/LWC 怎么写、用什么 UI 库（Shoelace / 原生 div / ECharts 任选）、布局怎么排，按业务需求自行决断。
 
 **唯一硬约束**：符合 KWC 框架契约。**编写前必读** [`references/kwc-frontend-contract.md`](./references/kwc-frontend-contract.md)（≤80 行，覆盖 KwcConfig props 形状、`config` 字段、adapterApi 调用入口、declarations.d.ts、main.tsx 非交付路径）。
 
@@ -170,4 +211,4 @@ node $SKILL_DIR/scripts/form-link.mjs generate --pageMeta <页面元数据文件
 | [kwc-ks-controller-development](./kwc-ks-controller-development/SKILL.md) | KingScript 脚本控制器开发 | `app/ks/controller/` 目录已存在 |
 | [kingscript-code-generator](./kingscript-code-generator/SKILL.md) | KingScript SDK 索引检索、风险审查 | 写 Controller 或 Kingscript 二开 |
 
-前端组件代码 Claude 自由实现，遵循 [`references/kwc-frontend-contract.md`](./references/kwc-frontend-contract.md) 即可，不再设独立子技能。
+前端组件代码可自由实现，遵循 [`references/kwc-frontend-contract.md`](./references/kwc-frontend-contract.md) 即可，不再设独立子技能。
