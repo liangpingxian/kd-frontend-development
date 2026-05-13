@@ -212,7 +212,7 @@ Controller 也遵循"元数据 + 代码"的二元模型：
       "url": "https://feature.kingdee.com:1026/feature_vb",
       "accountId": "2453077976581943296",
       "isv": "kdtest",
-      "login_account": { "name": "17299999999", "password": "KDadm!@#2022" }
+      "login_account": { "fname": "17299999999", "password": "KDadm!@#2022" }
     }
   }
 }
