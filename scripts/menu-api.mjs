@@ -89,8 +89,8 @@ async function main() {
   const [command, ...rest] = process.argv.slice(2)
 
   if (!command || !commands[command]) {
-    console.error(`用法: node menu-api.mjs <command> [options]\n`)
-    console.error('支持的命令:')
+    console.error(`Usage: node menu-api.mjs <command> [options]\n`)
+    console.error('Supported commands:')
     for (const [name, cmd] of Object.entries(commands)) {
       console.error(`  ${cmd.usage}`)
     }
@@ -103,7 +103,7 @@ async function main() {
   // 校验必填参数
   for (const key of cmd.required) {
     if (!opts[key]) {
-      fatal(`缺少必填参数 --${key}\n用法: ${cmd.usage}`)
+      fatal(`Missing required --${key}\nUsage: ${cmd.usage}`)
     }
   }
 
@@ -117,6 +117,6 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error(`[menu-api] 未预期的错误: ${err.message}`)
+  console.error(`[menu-api] Unexpected error: ${err.message}`)
   process.exit(1)
 })

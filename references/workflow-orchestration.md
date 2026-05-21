@@ -43,7 +43,7 @@
 
 当需求同时涉及前端组件和后端 Controller 时，按以下流程执行（元数据先于代码）：
 
-1. 若无工程，执行 project-init.mjs 脚本初始化（参数见主 SKILL.md「初始化工程」章节），初始化完成后提示用户手动执行 `cd <项目目录> && npm install`
+1. 若无工程，执行 project-init.mjs 脚本初始化（参数见主 SKILL.md「初始化工程」章节），初始化完成后提示用户手动执行 `cd <项目目录> && npm install --registry=https://registry.npmmirror.com`（国内镜像加速）
 2. 创建工程结构（本 Skill 职责）：
    a. 使用 `kd project create <ComponentName> --type kwc` 创建前端组件（通常 1 个需求只需 1 个组件）
    b. 使用 `kd project create <ControllerName> --type controller` 创建 Controller
@@ -71,7 +71,7 @@
 
 若确认不涉及后端，仅前端开发时，优先按这条顺序执行：
 
-1. 若无工程，执行 project-init.mjs 脚本初始化（参数见主 SKILL.md「初始化工程」章节），初始化完成后提示用户手动执行 `cd <项目目录> && npm install`
+1. 若无工程，执行 project-init.mjs 脚本初始化（参数见主 SKILL.md「初始化工程」章节），初始化完成后提示用户手动执行 `cd <项目目录> && npm install --registry=https://registry.npmmirror.com`（国内镜像加速）
 2. 使用 `kd project create <ComponentName> --type kwc` 创建页面组件（通常 1 个需求只需 1 个组件，所有复杂布局在组件内部完成）
 3. **补全组件 `.js-meta.kwc`**（本 Skill 职责）
 4. **查询关联业务实体**（可选，当组件涉及表单数据绑定时）：使用 `meta-query-api.mjs` 查询关联表单的字段结构，辅助组件设计（见 `references/metadata-operations.md`「元数据查询」章节）
@@ -99,7 +99,7 @@
 
 若确认仅涉及后端，不需要新增前端组件时：
 
-1. 若无工程，执行 project-init.mjs 脚本初始化（参数见主 SKILL.md「初始化工程」章节），初始化完成后提示用户手动执行 `cd <项目目录> && npm install`
+1. 若无工程，执行 project-init.mjs 脚本初始化（参数见主 SKILL.md「初始化工程」章节），初始化完成后提示用户手动执行 `cd <项目目录> && npm install --registry=https://registry.npmmirror.com`（国内镜像加速）
 2. 使用 `kd project create <ControllerName> --type controller` 创建 Controller
 3. **查询业务实体字段**（当 Controller 涉及实体数据操作时）：使用 `meta-query-api.mjs` 先搜索表单再获取字段结构（见 `references/metadata-operations.md`「元数据查询」章节），**禁止猜测字段名**
 4. **补全 Controller 元数据 `.kws`**（本 Skill 职责）

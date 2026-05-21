@@ -39,14 +39,14 @@ function darwinGetMasterKey(namespace) {
   )
   if (read.status !== 0) {
     throw new Error(
-      `macOS Keychain 未找到 master-key (service=${namespace}, account=master-key)，` +
-        '请先在终端运行 `kd env auth` 初始化密钥。'
+      `macOS Keychain: master-key not found (service=${namespace}, account=master-key). ` +
+        'Run `kd env auth` in a terminal first to initialize the key.'
     )
   }
   const hex = (read.stdout || '').trim()
   const buf = Buffer.from(hex, 'hex')
   if (buf.length !== 32) {
-    throw new Error(`macOS Keychain 中的 master-key 长度异常 (${buf.length} bytes)，请重新运行 kd env auth`)
+    throw new Error(`macOS Keychain: master-key has invalid length (${buf.length} bytes). Re-run kd env auth.`)
   }
   return buf
 }

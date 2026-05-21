@@ -7,11 +7,9 @@
  * 公共基础设施函数来自 ./_shared.mjs
  */
 
-import { parseArgs, createFatal } from './_shared.mjs'
+import { parseArgs, createFatal, augmentPathWithNpmGlobalBin } from './_shared.mjs'
 import { spawn, execSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
 import path from 'node:path'
-import os from 'node:os'
 
 const fatal = createFatal('project-init')
 
@@ -20,46 +18,57 @@ const fatal = createFatal('project-init')
 const VALID_FRAMEWORKS = ['react', 'vue', 'lwc']
 const VALID_LANGUAGES = ['ts', 'js']
 
-const USAGE = `用法: node project-init.mjs --name <name> --framework <react|vue|lwc> --language <ts|js> --app <appCode> [--cwd <path>] [--registry <url>]
+const USAGE = `Usage: node project-init.mjs --name <name> --framework <react|vue|lwc> --language <ts|js> --app <appCode>
 
-必填参数:
-  --name        项目名称
-  --framework   框架 (react / vue / lwc)
-  --language    语言 (ts / js)
-  --app         苍穹应用编码
+Required:
+  --name        project name
+  --framework   framework (react / vue / lwc)
+  --language    language (ts / js)
+  --app         Cosmic app identifier
 
-可选参数:
-  --cwd <path>       工程创建的目标目录（可选，默认当前目录）
-  --registry <url>   npm 镜像地址（可选，默认读环境变量 KWC_NPM_REGISTRY；常用: https://registry.npmmirror.com）
+The project is created at <current shell cwd>/<name>. To target a different parent directory, cd into it before invoking this script.
 
-注意: 脚本默认不执行 npm install，初始化完成后请手动执行 npm install 安装依赖。
+Note: this script does NOT run npm install. After init, run it yourself (in CN networks, prefer --registry=https://registry.npmmirror.com).
 
-示例:
-  node project-init.mjs --name my-project --framework react --language ts --app kdec_contract --cwd /workspace
-  node project-init.mjs --name my-project --framework react --language ts --app kdec_contract --registry https://registry.npmmirror.com`
+Example:
+  cd /workspace && node project-init.mjs --name my-project --framework react --language ts --app kdec_contract`
 
 // ─── 工具函数 ────────────────────────────────────────────
 
 /** 检测 kd CLI 是否已安装，未安装则自动安装 */
-function ensureKdCli() {
-  const whichCmd = os.platform() === 'win32' ? 'where' : 'which'
+/** 检测 kd CLI 是否可调用（直接尝试运行，不依赖 which/PATH 字符串匹配） */
+function isKdAvailable() {
   try {
-    execSync(`${whichCmd} kd`, { stdio: 'ignore' })
+    execSync('kd -v', { stdio: 'ignore' })
+    return true
   } catch {
-    console.error('[project-init] kd CLI 未检测到，正在自动安装 @kdcloudjs/cli ...')
-    try {
-      execSync('npm i -g @kdcloudjs/cli', { stdio: 'inherit' })
-    } catch (err) {
-      fatal(`kd CLI 安装失败: ${err.message}`)
-    }
+    return false
+  }
+}
+
+function ensureKdCli() {
+  augmentPathWithNpmGlobalBin()
+  if (isKdAvailable()) return
+
+  console.error('[project-init] kd CLI not detected, installing @kdcloudjs/cli ...')
+  try {
+    execSync('npm i -g @kdcloudjs/cli --registry=https://registry.npmmirror.com', { stdio: 'inherit' })
+  } catch (err) {
+    fatal(`Failed to install kd CLI: ${err.message}`)
+  }
+  // 安装完再补一次 PATH 并校验（新装的 bin 可能就在刚拿到的 prefix 下）
+  augmentPathWithNpmGlobalBin()
+  if (!isKdAvailable()) {
+    fatal('kd CLI still not callable after install. Check that the npm global bin directory is on PATH (`npm config get prefix`).')
   }
 }
 
 /**
  * 调用 kd project init 原生参数完成工程初始化（无需交互）
+ * 工程生成在 process.cwd() 下；调用方负责在调用前 cd 到目标父目录。
  * @returns {Promise<void>}
  */
-function runKdProjectInit(name, framework, language, app, cwdPath) {
+function runKdProjectInit(name, framework, language, app) {
   return new Promise((resolve, reject) => {
     const proc = spawn(
       'kd',
@@ -68,15 +77,14 @@ function runKdProjectInit(name, framework, language, app, cwdPath) {
         '--language', language,
         '--app', app],
       {
-        cwd: cwdPath,
         stdio: 'inherit',
         shell: process.platform === 'win32',
       }
     )
-    proc.on('error', err => reject(new Error(`启动 kd project init 失败: ${err.message}`)))
+    proc.on('error', err => reject(new Error(`Failed to spawn 'kd project init': ${err.message}`)))
     proc.on('close', code => {
       if (code === 0) resolve()
-      else reject(new Error(`kd project init 退出码 ${code}`))
+      else reject(new Error(`'kd project init' exited with code ${code}`))
     })
   })
 }
@@ -92,43 +100,34 @@ async function main() {
     process.exit(0)
   }
 
-  // 解析可选参数
-  const cwdPath = args.cwd ? path.resolve(args.cwd) : process.cwd()
-  if (args.cwd && !existsSync(cwdPath)) {
-    fatal(`--cwd 目录不存在: ${cwdPath}`)
-  }
-
-  const registry = (args.registry && args.registry !== true)
-    ? args.registry
-    : (process.env.KWC_NPM_REGISTRY || null)
-
   // 校验必填参数
   const { name, framework, language, app } = args
 
-  if (!name) fatal(`缺少必填参数 --name\n${USAGE}`)
-  if (!framework) fatal(`缺少必填参数 --framework\n${USAGE}`)
-  if (!language) fatal(`缺少必填参数 --language\n${USAGE}`)
-  if (!app) fatal(`缺少必填参数 --app\n${USAGE}`)
+  if (!name) fatal(`Missing required --name\n${USAGE}`)
+  if (!framework) fatal(`Missing required --framework\n${USAGE}`)
+  if (!language) fatal(`Missing required --language\n${USAGE}`)
+  if (!app) fatal(`Missing required --app\n${USAGE}`)
 
   if (!VALID_FRAMEWORKS.includes(framework)) {
-    fatal(`--framework 值无效: "${framework}"，支持: ${VALID_FRAMEWORKS.join(' / ')}`)
+    fatal(`Invalid --framework: "${framework}". Supported: ${VALID_FRAMEWORKS.join(' / ')}`)
   }
   if (!VALID_LANGUAGES.includes(language)) {
-    fatal(`--language 值无效: "${language}"，支持: ${VALID_LANGUAGES.join(' / ')}`)
+    fatal(`Invalid --language: "${language}". Supported: ${VALID_LANGUAGES.join(' / ')}`)
   }
 
   // 检测 / 安装 kd CLI
   ensureKdCli()
 
   // 执行 kd project init（自动交互）
-  console.error('[project-init] 正在初始化项目...')
+  console.error('[project-init] Initializing project...')
   try {
-    await runKdProjectInit(name, framework, language, app, cwdPath)
+    await runKdProjectInit(name, framework, language, app)
   } catch (err) {
-    fatal(`kd project init 失败: ${err.message}`)
+    fatal(`'kd project init' failed: ${err.message}`)
   }
 
-  const projectDir = path.resolve(cwdPath, name)
+  const projectDir = path.resolve(process.cwd(), name)
+  const installCmd = 'npm install --registry=https://registry.npmmirror.com'
 
   // 输出结果摘要
   const result = {
@@ -141,14 +140,14 @@ async function main() {
     installed: false,
     nextSteps: [
       `cd ${projectDir}`,
-      registry ? `npm install --registry ${registry}` : 'npm install',
+      installCmd,
     ],
   }
   console.log(JSON.stringify(result, null, 2))
-  console.error(`\n[project-init] 初始化完成！请手动执行 npm install 安装依赖：\n  cd ${projectDir} && ${registry ? `npm install --registry ${registry}` : 'npm install'}`)
+  console.error(`\n[project-init] Done. Install dependencies manually:\n  cd ${projectDir} && ${installCmd}`)
 }
 
 main().catch(err => {
-  console.error(`[project-init] 未预期的错误: ${err.message}`)
+  console.error(`[project-init] Unexpected error: ${err.message}`)
   process.exit(1)
 })

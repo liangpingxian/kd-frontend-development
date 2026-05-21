@@ -12,9 +12,13 @@ import { execSync } from 'node:child_process'
 import {
   createFatal,
   parseArgs,
+  augmentPathWithNpmGlobalBin,
 } from './_shared.mjs'
 
 const fatal = createFatal('batch-create')
+
+// 非交互 shell 下 npm 全局 bin 通常不在 PATH，先补一下，避免 `kd` 命令 ENOENT
+augmentPathWithNpmGlobalBin()
 
 // ─── 工具函数 ────────────────────────────────────────────
 
@@ -74,7 +78,7 @@ function main() {
 
   // 2. 再创建 Controller
   if (controllers.length > 0 && !env) {
-    console.warn('[batch-create] 警告: 未指定 --env，Controller 创建通常需要环境来拉取 SDK')
+    console.warn('[batch-create] Warning: --env not specified; Controller creation typically needs an env to fetch SDK.')
   }
   for (const name of controllers) {
     results.controllers.push(runCreate(name, 'controller', env))

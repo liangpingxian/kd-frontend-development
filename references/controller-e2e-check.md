@@ -14,7 +14,7 @@
 
 ## 2. 账号/密码配置
 
-在 `~/.kd/config.json` 的对应环境下补一段 `login_account`：
+脚本会从 `~/.kd/config.json` 的对应环境读取 `login_account.{fname,password}`（由 `kd env auth` 等工具写入），形如：
 
 ```json
 {
@@ -23,13 +23,13 @@
       "url": "https://feature.kingdee.com:1026/feature_vb",
       "accountId": "2453077976581943296",
       "isv": "kdtest",
-      "login_account": { "fname": "17299999999", "password": "KDadm!@#2022" }
+      "login_account": { "fname": "<手机号>", "password": "<密码>" }
     }
   }
 }
 ```
 
-账号密码会用网关返回的 RSA 公钥 PKCS1v15 加密后提交 /auth/yzjlogin.do，**明文密码仅存在本地配置文件中**，不会出现在命令行历史中。也可以通过 `--user`/`--password` 临时覆盖。
+读取到的账号密码会用网关返回的 RSA 公钥 PKCS1v15 加密后提交 /auth/yzjlogin.do，不会出现在命令行历史中。也可以通过 `--user`/`--password` 临时覆盖配置文件中的值。
 
 ## 3. 使用方式
 
@@ -86,4 +86,4 @@ node $SKILL_DIR/scripts/test-controller.mjs \
    - 当前推测的可能原因（环境、字段、权限、SDK 限制等）
    - 建议用户介入的下一步（例如：确认环境是否有数据、确认实体字段、提供权限信息等）
    把判断与决策交还用户，不要让 AI 自行降级"交付质量"
-7. 自检通过后才能进入 adapterApi / 前端组件代码编写
+7. 自检通过后才能进入 adapterApi / 前端组件代码编写-<!---->

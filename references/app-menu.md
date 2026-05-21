@@ -2,14 +2,9 @@
 
 按需读取本文件，用于在部署后将页面注册到应用菜单，使页面在苍穹环境中可被导航访问。所有操作通过 `menu-api.mjs` 脚本完成。
 
-## 路径推算规则
+## 脚本位置
 
-```
-SKILL_DIR = 本参考文档所在目录的上级 (skills/kd-frontend-development/)
-menu_api  = SKILL_DIR/scripts/menu-api.mjs
-```
-
-AI 运行时根据 SKILL_DIR 动态推算脚本绝对路径，禁止硬编码。
+`menu-api.mjs` 位于 Skill 根目录的 `scripts/` 子目录下（即 `SKILL.md` 同级 `scripts/menu-api.mjs`）。AI 加载本 Skill 时已知 SKILL.md 路径，直接拼接调用即可，无需运行时探测。
 
 ## 核心概念
 

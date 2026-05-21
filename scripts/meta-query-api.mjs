@@ -84,8 +84,8 @@ async function main() {
   const [command, ...rest] = process.argv.slice(2)
 
   if (!command || !commands[command]) {
-    console.error(`用法: node meta-query-api.mjs <command> [options]\n`)
-    console.error('支持的命令:')
+    console.error(`Usage: node meta-query-api.mjs <command> [options]\n`)
+    console.error('Supported commands:')
     for (const [name, cmd] of Object.entries(commands)) {
       console.error(`  ${cmd.usage}`)
     }
@@ -99,14 +99,14 @@ async function main() {
   if (command === 'queryFormsByApp') {
     opts.appNumber = resolveAppNumber(opts)
     if (!opts.appNumber) {
-      fatal('缺少 appNumber：未通过 --appNumber 传入，且在 kd.config.json / ~/.kd/config.json 中均未找到 app 字段\n用法: ' + cmd.usage)
+      fatal('Missing appNumber: --appNumber not passed and `app` field not found in kd.config.json / ~/.kd/config.json.\nUsage: ' + cmd.usage)
     }
   }
 
   // 校验必填参数
   for (const key of cmd.required) {
     if (!opts[key]) {
-      fatal(`缺少必填参数 --${key}\n用法: ${cmd.usage}`)
+      fatal(`Missing required --${key}\nUsage: ${cmd.usage}`)
     }
   }
 
@@ -120,6 +120,6 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error(`[meta-query-api] 未预期的错误: ${err.message}`)
+  console.error(`[meta-query-api] Unexpected error: ${err.message}`)
   process.exit(1)
 })

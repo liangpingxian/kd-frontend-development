@@ -32,11 +32,14 @@
 > `build` 只做本地编译，输出 "Success" 但服务端仍跑旧代码。**每次改完 Controller（.ts 代码或 .kws 版本号）后，必须执行 `kd project deploy` 才能让改动生效。**
 >
 > 错误表现：改了代码后调接口还是旧逻辑/旧响应/500，看起来像业务 bug 实际是没部署。
-7. **端到端自检（🔴 硬性门槛）**：部署成功后，**必须**运行 `../scripts/test-controller.mjs`（登录→Cookie→/kwc/v1）对每个要对接的方法跑至少一轮。**自检未全部通过前，禁止进入 KWC 前端对接代码编写（adapterApi / 前端组件）**。完整使用方式、验证标准、重试上限与超限处理详见 [`../references/controller-e2e-check.md`](../references/controller-e2e-check.md)（唯一权威）
-   - 关键纪律：必须用 `--assert-not-empty` / `--assert-field` 验证返回数据正确性，仅 HTTP 200 不够
-   - 数据为空时不要直接判定"环境无数据"，先按 `reference/faq.md` 中的「数据查询结果为空时的诊断模式」排查
+7. **端到端自检（🔴 硬性门槛）**：部署成功后，**必须**运行 `../scripts/test-controller.mjs`（登录→Cookie→/kwc/v1）对每个要对接的方法跑至少一轮。这不属于「禁止运行部署」的约束，是只读接口调用。**自检未全部通过前，禁止进入 KWC 前端对接代码编写（adapterApi / 前端组件）**；详见主 SKILL.md 「Controller 端到端自检」节
+   - **必须使用 `--assert-*` 参数验证返回数据正确性**，仅验证连通性（HTTP 200）不够。至少要：
+     - `--assert-not-empty data`（确认有数据返回）
+     - 或 `--assert-field <关键字段>`（确认关键字段存在）
+   - 如果测试返回空数据，应检查 Controller 代码中的查询条件、参数传递是否正确
+   - 当数据断言失败（返回空数据）时，**禁止直接判定为“环境无数据”**。必须先按 `reference/faq.md` 中的「数据查询结果为空时的诊断模式」排查，确认是代码逻辑问题还是确实无数据
    - `QueryServiceHelper.query` 禁止使用 `topN=0`（等价于 LIMIT 0），查全量请用 3 参重载
-   - 重试 3 次仍失败 → 停下来向用户输出诊断报告，**禁止改前端写假数据掩盖问题**
+   - **重试上限**：自检失败的「修改 → 部署 → 测试」循环最多执行 3 次。3 次后仍失败，**放弃修复 Controller，转入 Mock 数据模式**（前端组件使用硬编码假数据，保留注释的 adapterApi 调用备后续恢复）。详见主 SKILL.md 「Mock 数据模式」节
 
 ## 参考资源
 

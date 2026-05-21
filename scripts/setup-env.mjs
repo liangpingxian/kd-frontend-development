@@ -12,9 +12,12 @@ import { spawn, execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { createFatal, parseArgs, fetchDatacenters, loadEnvConfig } from './_shared.mjs'
+import { createFatal, parseArgs, fetchDatacenters, loadEnvConfig, augmentPathWithNpmGlobalBin } from './_shared.mjs'
 
 const fatal = createFatal('setup-env')
+
+// 非交互 shell 下 npm 全局 bin 通常不在 PATH，先补一下，避免 `kd` 命令 ENOENT
+augmentPathWithNpmGlobalBin()
 
 // ─── 常量 ───────────────────────────────────────────────
 
@@ -49,7 +52,7 @@ function createEnv(envName, envUrl) {
     })
   } catch (err) {
     const stderr = err.stderr || err.message
-    fatal(`环境创建失败: ${stderr}`)
+    fatal(`Failed to create env: ${stderr}`)
   }
 }
 
@@ -78,10 +81,10 @@ function runAuth(envName, datacenterId, clientId, clientSecret, username) {
     proc.stdout.on('data', d => { stdout += d })
     proc.stderr.on('data', d => { stderr += d })
 
-    proc.on('error', err => reject(new Error(`启动 kd env auth openapi 失败: ${err.message}`)))
+    proc.on('error', err => reject(new Error(`Failed to spawn 'kd env auth openapi': ${err.message}`)))
     proc.on('close', code => {
       if (code === 0) resolve({ stdout, stderr })
-      else reject(new Error(`kd env auth openapi 退出码 ${code}: ${stderr || stdout}`))
+      else reject(new Error(`'kd env auth openapi' exited with code ${code}: ${stderr || stdout}`))
     })
   })
 }
@@ -94,7 +97,7 @@ function verifyAuth(envName) {
     const envConfig = config.env?.[envName]
 
     if (!envConfig) {
-      return { success: false, reason: `环境 "${envName}" 不在配置文件中` }
+      return { success: false, reason: `env "${envName}" not present in config file` }
     }
 
     // 检查关键认证字段
@@ -111,9 +114,9 @@ function verifyAuth(envName) {
     if (!hasAccessToken) missing.push('access_token')
     if (!hasUsername) missing.push('username')
 
-    return { success: false, reason: `认证字段缺失: ${missing.join(', ')}` }
+    return { success: false, reason: `Missing auth fields: ${missing.join(', ')}` }
   } catch (e) {
-    return { success: false, reason: `无法读取配置文件: ${e.message}` }
+    return { success: false, reason: `Failed to read config file: ${e.message}` }
   }
 }
 
@@ -125,7 +128,7 @@ async function main() {
   // 1. 校验始终必填的参数
   for (const key of ALWAYS_REQUIRED) {
     if (!opts[key] || opts[key] === true) {
-      fatal(`缺少必填参数 --${key}\n用法: node setup-env.mjs --envName <name> [--envUrl <url>] --clientId <id> --clientSecret <secret> --username <user> [--datacenter <accountId>]\n说明: --envUrl 在环境不存在时必填；--datacenter 仅在多数据中心时必填`)
+      fatal(`Missing required --${key}\nUsage: node setup-env.mjs --envName <name> [--envUrl <url>] --clientId <id> --clientSecret <secret> --username <user> [--datacenter <accountId>]\nNotes: --envUrl is required when the env does not exist yet; --datacenter is required only when multiple datacenters are available`)
     }
   }
 
@@ -140,10 +143,10 @@ async function main() {
       try {
         effectiveEnvUrl = loadEnvConfig(envName).url
       } catch (e) {
-        fatal(`无法从配置文件读取环境 "${envName}" 的 url: ${e.message}`)
+        fatal(`Failed to read url for env "${envName}" from config: ${e.message}`)
       }
     } else {
-      fatal(`环境 "${envName}" 不存在，需要创建新环境，但缺少必填参数 --envUrl\n用法: node setup-env.mjs --envName <name> --envUrl <url> --clientId <id> --clientSecret <secret> --username <user>`)
+      fatal(`Env "${envName}" does not exist. Creating a new env requires --envUrl.\nUsage: node setup-env.mjs --envName <name> --envUrl <url> --clientId <id> --clientSecret <secret> --username <user>`)
     }
   }
 
@@ -152,32 +155,32 @@ async function main() {
   try {
     datacenters = await fetchDatacenters(effectiveEnvUrl, clientId)
   } catch (err) {
-    fatal(`数据中心获取失败: ${err.message}`)
+    fatal(`Failed to fetch datacenters: ${err.message}`)
   }
 
   // 4. 决定使用哪个 accountId（多个且未指定时直接 exit 2，不走后续副作用）
   let datacenterId
   if (datacenters.length === 1) {
     datacenterId = datacenters[0].id
-    console.error(`[setup-env] 检测到唯一数据中心: ${datacenters[0].name} (accountId=${datacenterId})，自动选用`)
+    console.error(`[setup-env] Single datacenter detected: ${datacenters[0].name} (accountId=${datacenterId}). Using it automatically.`)
   } else if (userDatacenter) {
     const matched = datacenters.find(d => String(d.id) === String(userDatacenter))
     if (!matched) {
-      console.error(`[setup-env] --datacenter "${userDatacenter}" 不在可用列表中，可用候选：\n`)
+      console.error(`[setup-env] --datacenter "${userDatacenter}" not in available list. Candidates:\n`)
       for (const d of datacenters) {
         console.error(`  ${d.name}\t(accountId=${d.id})`)
       }
       process.exit(EXIT_NEED_DATACENTER)
     }
     datacenterId = matched.id
-    console.error(`[setup-env] 使用指定数据中心: ${matched.name} (accountId=${datacenterId})`)
+    console.error(`[setup-env] Using specified datacenter: ${matched.name} (accountId=${datacenterId})`)
   } else {
     // 多个且未指定→ 打印候选 + 退出码 2（此时本地还没 createEnv，不会产生孤儿环境）
-    console.error('[setup-env] 该环境有多个可用数据中心，请通过 --datacenter <accountId> 指定后重跑：\n')
+    console.error('[setup-env] Multiple datacenters available. Re-run with --datacenter <accountId>:\n')
     for (const d of datacenters) {
       console.error(`  ${d.name}\t(accountId=${d.id})`)
     }
-    console.error('\n示例:')
+    console.error('\nExample:')
     console.error(
       `  node scripts/setup-env.mjs --envName ${envName}${envUrl && envUrl !== true ? ` --envUrl ${envUrl}` : ''} ` +
       `--clientId ${clientId} --clientSecret <secret> --username ${username} --datacenter ${datacenters[0].id}`
@@ -191,7 +194,7 @@ async function main() {
     createEnv(envName, effectiveEnvUrl)
     created = true
   } else {
-    console.error(`[setup-env] 环境 "${envName}" 已存在，跳过创建步骤`)
+    console.error(`[setup-env] Env "${envName}" already exists, skipping create.`)
   }
 
   // 6. 调用 kd env auth openapi 完成认证
@@ -204,10 +207,10 @@ async function main() {
   // 6. 验证认证状态（从配置文件验证，而非仅检查环境列表）
   const authResult = verifyAuth(envName)
   if (!authResult.success) {
-    fatal(`认证未落库: ${authResult.reason}\n请手动执行 kd env auth openapi -e ${envName} 进行认证`)
+    fatal(`Auth not persisted: ${authResult.reason}\nRun manually: kd env auth openapi -e ${envName}`)
   }
 
-  console.error(`[setup-env] ✅ 认证验证通过，环境 "${envName}" 已就绪`)
+  console.error(`[setup-env] ✅ Auth verified. Env "${envName}" is ready.`)
 
   // 输出结果
   const result = {
@@ -217,13 +220,13 @@ async function main() {
     datacenter: datacenterId,
     authenticated: true,
     message: created
-      ? `环境 ${envName} 创建并认证成功`
-      : `环境 ${envName} 已存在，认证成功`,
+      ? `Env ${envName} created and authenticated successfully`
+      : `Env ${envName} already existed; authenticated successfully`,
   }
   console.log(JSON.stringify(result, null, 2))
 }
 
 main().catch(err => {
-  console.error(`[setup-env] 未预期的错误: ${err.message}`)
+  console.error(`[setup-env] Unexpected error: ${err.message}`)
   process.exit(1)
 })

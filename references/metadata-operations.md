@@ -131,7 +131,7 @@ node "{meta_query_api}" getEntityFields --formNumber {formNumber}
 2. 运行 `kd project init <project-name>`。
 3. 在交互流程中按用户要求选择框架和语言；若用户未指定，默认选择 `react` + `ts`，无需询问用户。若用户明确指定了其他框架（Vue/LWC），则按用户指定的执行。
 4. 输入应用标识 `app`（规则见主 SKILL.md"需要用户提供或确认的输入"一节）。
-5. 初始化完成后进入项目目录，执行 `npm install`。
+5. 初始化完成后进入项目目录，执行 `npm install --registry=https://registry.npmmirror.com`（国内镜像加速，默认 registry 在国内会很慢）。
 6. 仅在需要本地辅助预览组件时，再执行 `npm run dev`。
 
 补充：`kd project init` 依赖 `git clone` 下载模板，若失败优先检查 `git`。

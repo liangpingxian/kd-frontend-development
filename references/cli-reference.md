@@ -19,7 +19,7 @@
 ## 安装 CLI
 
 ```bash
-npm i -g @kdcloudjs/cli
+npm i -g @kdcloudjs/cli --registry=https://registry.npmmirror.com
 kd -v
 ```
 
@@ -45,7 +45,7 @@ kd project init my-demo-project
 
 ```bash
 cd my-demo-project
-npm install
+npm install --registry=https://registry.npmmirror.com
 npm run dev
 ```
 
