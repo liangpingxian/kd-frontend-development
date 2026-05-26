@@ -1,19 +1,48 @@
 /**
  * KWC API 脚本公共基础设施模块
- * 提供 CLI 参数解析、AES 解密、环境配置加载、鉴权、API 调用等通用能力
+ * 提供 CLI 参数解析、密文解密、环境配置加载、鉴权、API 调用等通用能力
  * 零外部依赖，仅使用 Node.js 内置模块
+ *
+ * 解密通过 _secret-store.mjs (SecretStore，namespace=kingdee-kd)
+ * 读取 OS 凭据容器中的 master-key，不再读写 ~/.kd/secret.key。
  */
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { homedir } from 'node:os'
-import { createDecipheriv, randomBytes, publicEncrypt, constants } from 'node:crypto'
+import { homedir, platform } from 'node:os'
+import { execSync } from 'node:child_process'
+import { randomBytes, publicEncrypt, constants } from 'node:crypto'
+import { unprotect, isKdsec } from './_secret-store.mjs'
 
 // ─── 常量 ───────────────────────────────────────────────
 export const KD_DIR = join(homedir(), '.kd')
 export const CONFIG_FILE = join(KD_DIR, 'config.json')
-export const SECRET_KEY_FILE = join(KD_DIR, 'secret.key')
-export const ALGORITHM = 'aes-256-cbc'
+
+// ─── 非交互 shell 的 PATH 修正 ──────────────────────────
+
+/**
+ * 把 npm 全局 bin 目录补进当前进程的 PATH。
+ * Node.js 在非交互 shell 下不会加载 ~/.zshrc / ~/.bashrc，
+ * 所以用户配置的 npm prefix（如 ~/.npm-global/bin）可能不在 PATH 里，
+ * 导致 `which kd` / 直接 spawn `kd` 报 ENOENT。
+ * 调用 `npm config get prefix` 拿到全局 prefix 后注入到 process.env.PATH。
+ *
+ * 幂等：重复调用不会重复追加。npm 不可用时静默跳过。
+ */
+export function augmentPathWithNpmGlobalBin() {
+  try {
+    const prefix = execSync('npm config get prefix', { encoding: 'utf-8' }).trim()
+    if (!prefix) return
+    const binDir = platform() === 'win32' ? prefix : join(prefix, 'bin')
+    const sep = platform() === 'win32' ? ';' : ':'
+    const currentPath = process.env.PATH || ''
+    if (!currentPath.split(sep).includes(binDir)) {
+      process.env.PATH = binDir + sep + currentPath
+    }
+  } catch {
+    // npm 不可用时静默跳过；后续真正调用 kd 时会自然暴露问题
+  }
+}
 
 // ─── 内部默认 fatal ─────────────────────────────────────
 
@@ -50,25 +79,16 @@ export function parseArgs(args) {
   return result
 }
 
-/** 读取 secret.key 并返回 Buffer 密钥 */
-export function readSecretKey() {
-  try {
-    const hex = readFileSync(SECRET_KEY_FILE, 'utf-8').trim()
-    return Buffer.from(hex, 'hex')
-  } catch {
-    _fatal('cannot read secret key ~/.kd/secret.key, please run `kd env auth openapi` first')
+/** 解密密文：仅识别新 `kdsec:` 前缀；遇老 `iv:ciphertext` 格式直接报错引导用户重认证 */
+export function decrypt(encoded) {
+  if (!isKdsec(encoded)) {
+    _fatal('legacy ciphertext detected, please re-run `kd env auth openapi` to migrate credentials')
   }
-}
-
-/** AES-256-CBC 解密，输入格式: "iv_base64:cipher_base64" */
-export function decrypt(encoded, key) {
-  const [ivStr, cipherStr] = encoded.split(':')
-  const iv = Buffer.from(ivStr, 'base64')
-  const encrypted = Buffer.from(cipherStr, 'base64')
-  const decipher = createDecipheriv(ALGORITHM, key, iv)
-  let decrypted = decipher.update(encrypted, undefined, 'utf-8')
-  decrypted += decipher.final('utf-8')
-  return decrypted
+  try {
+    return unprotect(encoded)
+  } catch (e) {
+    _fatal(`ciphertext decryption failed: ${e && e.message ? e.message : String(e)}`)
+  }
 }
 
 /** 读取 ~/.kd/config.json 并返回指定环境配置 */
@@ -208,15 +228,13 @@ export async function resolveToken(env) {
 
   // 情况1: 完整凭据且非 Web OAuth → 每次重新获取 token
   if (hasFullCredentials && auth2 !== true) {
-    const key = readSecretKey()
-    const secret = decrypt(client_secret, key)
+    const secret = decrypt(client_secret)
     return await fetchToken(url, { client_id, client_secret: secret, username, accountId })
   }
 
   // 情况2: Web OAuth → 使用缓存的 access_token 解密后直接用
   if (auth2 === true && access_token) {
-    const key = readSecretKey()
-    return decrypt(access_token, key)
+    return decrypt(access_token)
   }
 
   // 情况3: 无可用凭据
