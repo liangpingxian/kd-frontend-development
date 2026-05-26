@@ -150,8 +150,8 @@ function runAssertions(assertions, httpStatus, responseData) {
         const pass = httpStatus === expected
         results.push({
           pass,
-          label: `assert-status: 期望 ${expected}`,
-          detail: pass ? `实际 ${httpStatus} ✅` : `实际 ${httpStatus} ❌`,
+          label: `assert-status: expected ${expected}`,
+          detail: pass ? `actual ${httpStatus} ✅` : `actual ${httpStatus} ❌`,
         })
         break
       }
@@ -160,8 +160,8 @@ function runAssertions(assertions, httpStatus, responseData) {
         const pass = val !== undefined && val !== null
         results.push({
           pass,
-          label: `assert-field: ${a.path} 存在且非 null`,
-          detail: pass ? `值 = ${JSON.stringify(val)} ✅` : `实际值 = ${JSON.stringify(val)} ❌`,
+          label: `assert-field: ${a.path} exists and is non-null`,
+          detail: pass ? `value = ${JSON.stringify(val)} ✅` : `actual value = ${JSON.stringify(val)} ❌`,
         })
         break
       }
@@ -172,17 +172,17 @@ function runAssertions(assertions, httpStatus, responseData) {
         else if (val && typeof val === 'object') pass = Object.keys(val).length > 0
         results.push({
           pass,
-          label: `assert-not-empty: ${a.path} 为非空数组或非空对象`,
+          label: `assert-not-empty: ${a.path} is non-empty array or non-empty object`,
           detail: pass
-            ? `长度/键数 = ${Array.isArray(val) ? val.length : Object.keys(val).length} ✅`
-            : `实际值 = ${JSON.stringify(val)} ❌（${val == null ? '值为 null/undefined' : Array.isArray(val) ? '空数组' : typeof val === 'object' ? '空对象' : '非数组/对象类型: ' + typeof val}）`,
+            ? `length/keys = ${Array.isArray(val) ? val.length : Object.keys(val).length} ✅`
+            : `actual value = ${JSON.stringify(val)} ❌ (${val == null ? 'value is null/undefined' : Array.isArray(val) ? 'empty array' : typeof val === 'object' ? 'empty object' : 'not array/object, type: ' + typeof val})`,
         })
         break
       }
       case 'contains': {
         const eqIdx = a.expr.indexOf('=')
         if (eqIdx === -1) {
-          results.push({ pass: false, label: `assert-contains: ${a.expr}`, detail: '格式错误，需 path=value ❌' })
+          results.push({ pass: false, label: `assert-contains: ${a.expr}`, detail: 'malformed, expected path=value ❌' })
           break
         }
         const cPath = a.expr.slice(0, eqIdx)
@@ -192,14 +192,14 @@ function runAssertions(assertions, httpStatus, responseData) {
         results.push({
           pass,
           label: `assert-contains: ${cPath} = "${expected}"`,
-          detail: pass ? `匹配 ✅` : `实际值 = ${JSON.stringify(val)} ❌`,
+          detail: pass ? `match ✅` : `actual value = ${JSON.stringify(val)} ❌`,
         })
         break
       }
       case 'type': {
         const eqIdx = a.expr.indexOf('=')
         if (eqIdx === -1) {
-          results.push({ pass: false, label: `assert-type: ${a.expr}`, detail: '格式错误，需 path=type ❌' })
+          results.push({ pass: false, label: `assert-type: ${a.expr}`, detail: 'malformed, expected path=type ❌' })
           break
         }
         const tPath = a.expr.slice(0, eqIdx)
@@ -209,8 +209,8 @@ function runAssertions(assertions, httpStatus, responseData) {
         const pass = actualType === expectedType
         results.push({
           pass,
-          label: `assert-type: ${tPath} 类型为 ${expectedType}`,
-          detail: pass ? `实际类型 ${actualType} ✅` : `实际类型 ${actualType} ❌`,
+          label: `assert-type: ${tPath} should be ${expectedType}`,
+          detail: pass ? `actual type ${actualType} ✅` : `actual type ${actualType} ❌`,
         })
         break
       }
@@ -222,15 +222,15 @@ function runAssertions(assertions, httpStatus, responseData) {
 
 function resolvePath(opts, env, projectCfg) {
   if (typeof opts.path === 'string') {
-    if (!opts.path.startsWith('/')) fatal(`--path 必须以 / 开头，收到: ${opts.path}`)
+    if (!opts.path.startsWith('/')) fatal(`--path must start with /, got: ${opts.path}`)
     return opts.path
   }
   const endpoint = typeof opts.endpoint === 'string' ? opts.endpoint : null
-  if (!endpoint) fatal('缺少接口路径，请使用 --path 直接指定完整路径，或使用 --sub + --endpoint 三段式拼装')
+  if (!endpoint) fatal('missing endpoint path. Use --path for the full path, or use --sub + --endpoint to assemble it')
   const isv = opts.isv || env.isv || projectCfg.isv
   const app = opts.app || projectCfg.app
-  if (!isv) fatal('无法确定 isv：请在环境 / .kd/config.json 中配置，或通过 --isv 传入')
-  if (!app) fatal('无法确定 app：请在 .kd/config.json 中配置，或通过 --app 传入')
+  if (!isv) fatal('cannot determine isv: configure it in env / .kd/config.json, or pass --isv')
+  if (!app) fatal('cannot determine app: configure it in .kd/config.json, or pass --app')
   const segs = ['/kwc/v1', isv, app]
   if (opts.sub) segs.push(String(opts.sub).replace(/^\/+|\/+$/g, ''))
   segs.push(String(endpoint).replace(/^\/+|\/+$/g, ''))
@@ -241,10 +241,10 @@ function resolveBody(opts) {
   if (typeof opts['body-file'] === 'string') {
     const p = opts['body-file']
     const txt = readFileSync(p, 'utf-8')
-    try { return JSON.parse(txt) } catch { fatal(`--body-file ${p} 不是合法 JSON`) }
+    try { return JSON.parse(txt) } catch { fatal(`--body-file ${p} is not valid JSON`) }
   }
   if (typeof opts.body === 'string') {
-    try { return JSON.parse(opts.body) } catch { fatal(`--body 不是合法 JSON: ${opts.body}`) }
+    try { return JSON.parse(opts.body) } catch { fatal(`--body is not valid JSON: ${opts.body}`) }
   }
   return undefined
 }
@@ -262,12 +262,12 @@ async function main() {
   const query = { ...parseQueryString(typeof opts.query === 'string' ? opts.query : ''), ...collectRepeatedQ(argv) }
   const body = resolveBody(opts)
 
-  console.log(`[test-controller] 环境: ${env.name || '(default)'}  ${baseUrl}`)
-  console.log(`[test-controller] 接口: ${method} ${path}${Object.keys(query).length ? ' ?' + new URLSearchParams(query).toString() : ''}`)
+  console.log(`[test-controller] env: ${env.name || '(default)'}  ${baseUrl}`)
+  console.log(`[test-controller] endpoint: ${method} ${path}${Object.keys(query).length ? ' ?' + new URLSearchParams(query).toString() : ''}`)
   if (opts.verbose && body !== undefined) console.log('[test-controller] body:', JSON.stringify(body))
 
   // 1) 登录拿 Cookie
-  console.log('[test-controller] 登录中...')
+  console.log('[test-controller] logging in...')
   let cookie
   try {
     cookie = await loginAndGetCookie(env, {
@@ -276,7 +276,7 @@ async function main() {
       accountId: typeof opts.accountId === 'string' ? opts.accountId : undefined,
     })
   } catch (e) {
-    fatal(`登录失败: ${e.message}`)
+    fatal(`login failed: ${e.message}`)
   }
   if (opts.verbose) console.log('[test-controller] Cookie:', cookie.slice(0, 80) + '...')
 
@@ -285,7 +285,7 @@ async function main() {
   try {
     result = await callControllerViaCookie(baseUrl, cookie, path, { method, query, body })
   } catch (e) {
-    fatal(`调用接口失败: ${e.message}`)
+    fatal(`endpoint call failed: ${e.message}`)
   }
 
   // 3) 结果判定
@@ -295,28 +295,28 @@ async function main() {
 
   // 常见业务层失败形态
   if (result.data && result.data.success === false) {
-    fatal(`Controller 业务失败: error_code=${result.data.error_code} error_desc=${result.data.error_desc}`)
+    fatal(`Controller business failure: error_code=${result.data.error_code} error_desc=${result.data.error_desc}`)
   }
   if (result.status >= 400) {
-    fatal(`Controller HTTP 异常: ${result.status}`)
+    fatal(`Controller HTTP error: ${result.status}`)
   }
 
   // 4) 数据断言
   const assertions = collectAssertArgs(argv)
   if (assertions.length > 0) {
-    console.log(`\n[test-controller] 执行数据断言（${assertions.length} 项）...`)
+    console.log(`\n[test-controller] running assertions (${assertions.length})...`)
     const { passed, results: assertResults } = runAssertions(assertions, result.status, result.data)
     for (const r of assertResults) {
       console.log(`  ${r.pass ? '✅' : '❌'} ${r.label} → ${r.detail}`)
     }
     if (!passed) {
       const failCount = assertResults.filter(r => !r.pass).length
-      fatal(`数据断言失败：${failCount}/${assertResults.length} 项未通过`)
+      fatal(`assertions failed: ${failCount}/${assertResults.length} did not pass`)
     }
-    console.log(`[test-controller] ✅ 全部 ${assertResults.length} 项断言通过`)
+    console.log(`[test-controller] ✅ all ${assertResults.length} assertions passed`)
   }
 
-  console.log('[test-controller] ✅ Controller 测试通过')
+  console.log('[test-controller] ✅ Controller test passed')
 }
 
-main().catch(e => fatal(`未预期错误: ${e.message || e}`))
+main().catch(e => fatal(`unexpected error: ${e.message || e}`))

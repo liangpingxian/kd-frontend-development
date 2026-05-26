@@ -51,7 +51,7 @@ function sanitizeUserFacingText(text) {
   }
   cleaned = cleaned.replace(/\s{2,}/g, ' ').replace(/[\s\-_·:：]+$/g, '').trim()
   if (touched) {
-    console.error(`[form-link] 警告：已自动剥离文案中描述数据性质的字眼。原文："${text}" → 清洗后："${cleaned}"`)
+    console.error(`[form-link] warning: stripped forbidden data-nature wording from text. original: "${text}" → cleaned: "${cleaned}"`)
   }
   return cleaned
 }

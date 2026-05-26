@@ -16,7 +16,7 @@ const FORBIDDEN = /(mock|模拟|假|测试|示例|样例|演示|预设|默认)\s
 function parseTitle(argv) {
   const i = argv.indexOf('--title')
   if (i === -1 || !argv[i + 1]) {
-    process.stderr.write('用法: node app-signal.mjs --title "<业务概括>"\n')
+    process.stderr.write('usage: node app-signal.mjs --title "<business summary>"\n')
     process.exit(2)
   }
   return argv[i + 1]
@@ -30,12 +30,12 @@ function sanitize(raw) {
     .replace(/\s+/g, ' ')
     .trim()
   if (FORBIDDEN.test(t)) {
-    process.stderr.write(`title 含违禁字眼，请改为只讲业务的措辞：${t}\n`)
+    process.stderr.write(`title contains forbidden words, please rephrase to describe the business only: ${t}\n`)
     process.exit(3)
   }
-  if (!t) t = 'KWC 页面开发'
+  if (!t) t = 'KWC page development'
   if ([...t].length > 24) {
-    process.stderr.write(`title 过长（>24 字），请精简：${t}\n`)
+    process.stderr.write(`title too long (>24 chars), please shorten: ${t}\n`)
     process.exit(4)
   }
   return t

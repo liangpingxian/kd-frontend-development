@@ -19,7 +19,7 @@ export const ALGORITHM = 'aes-256-cbc'
 
 /** 默认 fatal，使用通用前缀 [kd-api] */
 function _fatal(msg) {
-  console.error(`[kd-api] 错误: ${msg}`)
+  console.error(`[kd-api] error: ${msg}`)
   process.exit(1)
 }
 
@@ -32,7 +32,7 @@ function _fatal(msg) {
  */
 export function createFatal(prefix) {
   return function fatal(msg) {
-    console.error(`[${prefix}] 错误: ${msg}`)
+    console.error(`[${prefix}] error: ${msg}`)
     process.exit(1)
   }
 }
@@ -56,7 +56,7 @@ export function readSecretKey() {
     const hex = readFileSync(SECRET_KEY_FILE, 'utf-8').trim()
     return Buffer.from(hex, 'hex')
   } catch {
-    _fatal('无法读取密钥文件 ~/.kd/secret.key，请先运行 kd env auth openapi')
+    _fatal('cannot read secret key ~/.kd/secret.key, please run `kd env auth openapi` first')
   }
 }
 
@@ -77,20 +77,33 @@ export function loadEnvConfig(envName) {
   try {
     config = JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'))
   } catch {
-    _fatal('无法读取配置文件 ~/.kd/config.json，请先创建环境配置')
+    _fatal('cannot read config file ~/.kd/config.json, please create an environment configuration first')
   }
 
   const envMap = config.env || {}
 
   // 指定了环境名则直接取，否则找 default: true 的环境
   if (envName) {
-    if (!envMap[envName]) _fatal(`环境 "${envName}" 不存在，可用环境: ${Object.keys(envMap).join(', ')}`)
+    if (!envMap[envName]) _fatal(`environment "${envName}" not found, available: ${Object.keys(envMap).join(', ')}`)
     return envMap[envName]
   }
 
   const defaultEnv = Object.values(envMap).find(e => e.default)
-  if (!defaultEnv) _fatal('未找到默认环境，请通过 --env 指定环境名')
+  if (!defaultEnv) _fatal('no default environment found, please specify one with --env')
   return defaultEnv
+}
+
+/**
+ * 独立读取顶层 config.language（不依赖任何 env）。
+ * 文件不存在 / 解析失败 / 字段缺失 → 一律回退 'zh_CN'，不抛错。
+ */
+export function loadLanguage() {
+  try {
+    const config = JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'))
+    return config.language || 'zh_CN'
+  } catch {
+    return 'zh_CN'
+  }
 }
 
 /** 去除 URL 尾部斜杠，避免拼接出双斜杠 */
@@ -104,7 +117,7 @@ export async function safeJson(resp) {
   try {
     return JSON.parse(text)
   } catch {
-    _fatal(`服务端返回非 JSON 响应 (HTTP ${resp.status}):\n${text.slice(0, 500)}`)
+    _fatal(`non-JSON response from server (HTTP ${resp.status}):\n${text.slice(0, 500)}`)
   }
 }
 
@@ -117,8 +130,8 @@ export function compact(obj) {
 export function toInt(value, paramName) {
   if (value == null) return undefined
   const n = Number(value)
-  if (!Number.isInteger(n)) _fatal(`参数 --${paramName} 必须为整数，收到: "${value}"`)
-  if (n < 1 || n > 32767) _fatal(`参数 --${paramName} 必须在 1–32767 范围内，收到: ${n}`)
+  if (!Number.isInteger(n)) _fatal(`argument --${paramName} must be an integer, got: "${value}"`)
+  if (n < 1 || n > 32767) _fatal(`argument --${paramName} must be within 1–32767, got: ${n}`)
   return n
 }
 
@@ -142,14 +155,14 @@ export async function fetchDatacenters(envUrl, clientId) {
       body: JSON.stringify({ client_id: clientId }),
     })
   } catch (e) {
-    throw new Error(`请求数据中心接口失败: ${e.message} (url=${url})`)
+    throw new Error(`datacenter request failed: ${e.message} (url=${url})`)
   }
 
   const data = await safeJson(resp)
   // 兼容几种常见返回壳: { data: [...] } / { datacenters: [...] } / [...]
   const list = Array.isArray(data) ? data : (data.data || data.datacenters || [])
   if (!Array.isArray(list) || list.length === 0) {
-    throw new Error(`数据中心列表为空或结构异常: ${JSON.stringify(data).slice(0, 300)}`)
+    throw new Error(`datacenter list empty or malformed: ${JSON.stringify(data).slice(0, 300)}`)
   }
 
   return list
@@ -162,14 +175,14 @@ export async function fetchDatacenters(envUrl, clientId) {
 
 // ─── 鉴权 ───────────────────────────────────────────────
 
-/** POST getToken 接口获取新 access_token */
-export async function fetchToken(baseUrl, { client_id, client_secret, username, accountId }) {
+/** POST getToken 接口获取新 access_token；language 缺省由 loadLanguage() 读取顶层 config.language */
+export async function fetchToken(baseUrl, { client_id, client_secret, username, accountId, language = loadLanguage() }) {
   const body = {
     client_id,
     client_secret,
     username,
     accountId,
-    language: 'zh_CN',
+    language,
     nonce: randomBytes(8).toString('hex'),
     timestamp: String(Date.now()),
   }
@@ -183,7 +196,7 @@ export async function fetchToken(baseUrl, { client_id, client_secret, username, 
 
   const data = await safeJson(resp)
   if (!data.status || !data.data?.access_token) {
-    _fatal(`获取 token 失败: ${data.errorCode || ''} ${data.message || JSON.stringify(data)}`)
+    _fatal(`failed to fetch token: ${data.errorCode || ''} ${data.message || JSON.stringify(data)}`)
   }
   return data.data.access_token
 }
@@ -207,7 +220,7 @@ export async function resolveToken(env) {
   }
 
   // 情况3: 无可用凭据
-  _fatal('环境未认证，请先运行 kd env auth openapi')
+  _fatal('environment not authenticated, please run `kd env auth openapi` first')
 }
 
 // ─── API 调用 ────────────────────────────────────────────
@@ -223,14 +236,14 @@ export async function callApi(baseUrl, path, token, body) {
 
   // Token 过期处理
   if (resp.status === 401) {
-    _fatal('认证已过期，请重新运行 kd env auth openapi')
+    _fatal('authentication expired, please re-run `kd env auth openapi`')
   }
 
   const data = await safeJson(resp)
 
   // 业务错误处理
   if (data.status === false) {
-    _fatal(`API 返回错误: ${data.errorCode || ''} ${data.message || JSON.stringify(data)}`)
+    _fatal(`API returned error: ${data.errorCode || ''} ${data.message || JSON.stringify(data)}`)
   }
 
   return data
@@ -290,9 +303,9 @@ async function _fetchPublicKey(baseUrl, { accessKey, accountId }) {
   const text = await resp.text()
   let data
   try { data = JSON.parse(text) } catch {
-    throw new Error(`getPublicKey 非 JSON 响应 (HTTP ${resp.status}): ${text.slice(0, 300)}`)
+    throw new Error(`getPublicKey non-JSON response (HTTP ${resp.status}): ${text.slice(0, 300)}`)
   }
-  if (!data.publicKey) throw new Error(`获取公钥失败: ${JSON.stringify(data).slice(0, 400)}`)
+  if (!data.publicKey) throw new Error(`failed to fetch public key: ${JSON.stringify(data).slice(0, 400)}`)
   return data.publicKey
 }
 
@@ -309,7 +322,7 @@ function _assembleKerpCookie(setCookies) {
     else if (first.startsWith('Isolator') && !isolator) isolator = first
   }
   if (!kerp) {
-    throw new Error(`登录响应中未找到 KERPSESSIONID* Cookie。Set-Cookie 原文:\n${setCookies.join('\n')}`)
+    throw new Error(`no KERPSESSIONID* cookie in login response. raw Set-Cookie:\n${setCookies.join('\n')}`)
   }
   return [kerp, isolator].filter(Boolean).join('; ')
 }
@@ -325,16 +338,16 @@ function _assembleKerpCookie(setCookies) {
  * @returns {Promise<string>} Cookie 头字符串，形如 "KERPSESSIONIDxxx=...; Isolatorxxx=..."
  */
 export async function loginAndGetCookie(env, opts = {}) {
-  if (!env || !env.url) throw new Error('登录失败: 环境缺少 url 字段')
+  if (!env || !env.url) throw new Error('login failed: env missing `url` field')
   const accountId = opts.accountId || env.accountId
-  if (!accountId) throw new Error('登录失败: 环境缺少 accountId 字段')
+  if (!accountId) throw new Error('login failed: env missing `accountId` field')
 
   const loginAccount = env.login_account || {}
   const user = opts.user || loginAccount.fname
   const password = opts.password || loginAccount.password
   if (!user || !password) {
     throw new Error(
-      '登录失败: 未获取到账号/密码。请在 ~/.kd/config.json 对应环境下补充 "login_account": {"fname":"xxx","password":"xxx"}，或通过 --user/--password 传入',
+      'login failed: account/password not found. Please add "login_account": {"fname":"xxx","password":"xxx"} under the matching env in ~/.kd/config.json, or pass --user/--password',
     )
   }
 
@@ -369,7 +382,7 @@ export async function loginAndGetCookie(env, opts = {}) {
 
   if (!setCookies.length) {
     const text = await resp.text().catch(() => '')
-    throw new Error(`登录响应无 Set-Cookie (HTTP ${resp.status})。可能是账号密码错误或动态密码限制。响应体片段: ${text.slice(0, 300)}`)
+    throw new Error(`login response has no Set-Cookie (HTTP ${resp.status}). Likely wrong credentials or dynamic-password restriction. Body snippet: ${text.slice(0, 300)}`)
   }
   return _assembleKerpCookie(setCookies)
 }
@@ -384,7 +397,7 @@ export async function loginAndGetCookie(env, opts = {}) {
  * @returns {Promise<{status: number, data: any, raw: string}>}
  */
 export async function callControllerViaCookie(baseUrl, cookie, path, opts = {}) {
-  if (!path || !path.startsWith('/')) throw new Error(`Controller 路径必须以 / 开头: ${path}`)
+  if (!path || !path.startsWith('/')) throw new Error(`controller path must start with /: ${path}`)
   const method = (opts.method || 'GET').toUpperCase()
   const query = opts.query || {}
   const qs = Object.entries(query)
@@ -410,7 +423,7 @@ export async function callControllerViaCookie(baseUrl, cookie, path, opts = {}) 
   const resp = await fetch(url, init)
   if (resp.status >= 300 && resp.status < 400) {
     const loc = resp.headers.get('location') || ''
-    throw new Error(`请求被重定向到 ${loc}（Cookie 可能已失效，请重新登录）`)
+    throw new Error(`request redirected to ${loc} (cookie likely expired, please re-login)`)
   }
 
   const raw = await resp.text()
@@ -434,14 +447,14 @@ export async function callGetApi(baseUrl, path, token, params) {
 
   // Token 过期处理
   if (resp.status === 401) {
-    _fatal('认证已过期，请重新运行 kd env auth openapi')
+    _fatal('authentication expired, please re-run `kd env auth openapi`')
   }
 
   const data = await safeJson(resp)
 
   // 业务错误处理
   if (data.status === false) {
-    _fatal(`API 返回错误: ${data.errorCode || ''} ${data.message || JSON.stringify(data)}`)
+    _fatal(`API returned error: ${data.errorCode || ''} ${data.message || JSON.stringify(data)}`)
   }
 
   return data

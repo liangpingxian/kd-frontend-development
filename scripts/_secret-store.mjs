@@ -40,13 +40,13 @@ function darwinGetMasterKey(namespace) {
   if (read.status !== 0) {
     throw new Error(
       `macOS Keychain: master-key not found (service=${namespace}, account=master-key). ` +
-        'Run `kd env auth` in a terminal first to initialize the key.'
+        'Run `kd env auth openapi` in a terminal first to initialize the key.'
     )
   }
   const hex = (read.stdout || '').trim()
   const buf = Buffer.from(hex, 'hex')
   if (buf.length !== 32) {
-    throw new Error(`macOS Keychain: master-key has invalid length (${buf.length} bytes). Re-run kd env auth.`)
+    throw new Error(`macOS Keychain: master-key has invalid length (${buf.length} bytes). Re-run \`kd env auth openapi\`.`)
   }
   return buf
 }
@@ -109,7 +109,7 @@ $plain = [Security.Cryptography.ProtectedData]::Unprotect($data, $entropy, 'Curr
     if (/key not valid/i.test(e && e.message ? e.message : String(e))) {
       throw new Error(
         'DPAPI decryption failed: this credential is bound to a different Windows user / machine. ' +
-        'Please re-run "kd env auth" to rebuild credentials.'
+        'Please re-run "kd env auth openapi" to rebuild credentials.'
       )
     }
     throw e

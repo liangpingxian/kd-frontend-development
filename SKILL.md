@@ -12,6 +12,7 @@ version: 1.0.0
 ## 🔴 铁律（不可违反）
 
 1. **render 卡片必须由脚本生成**——任何 render:kdform 卡片都必须走 `scripts/form-link.mjs` 输出，禁止手工拼接 JSON
+2. **面向用户的输出语言始终跟随用户当前消息的自然语言**——用户中文→中文回复，用户英文→English reply；进度提示、错误解释、render 卡片的 title 一并随之切换；用户中途切换语言立即跟随，不延续上一种。代码 / 标识符 / 配置 key / 脚本 stdout 原样保留不强制翻译
 
 ## KWC 工程目录结构
 

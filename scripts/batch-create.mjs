@@ -60,8 +60,8 @@ function main() {
   // 校验：至少需要一种创建任务
   if (components.length === 0 && pages.length === 0 && controllers.length === 0) {
     fatal(
-      '至少需要提供 --components / --pages / --controllers 中的一个\n' +
-      '用法: node batch-create.mjs \\\n' +
+      'at least one of --components / --pages / --controllers is required\n' +
+      'usage: node batch-create.mjs \\\n' +
       '  --components UserProfile,OrderList,Dashboard \\\n' +
       '  --pages user_dashboard,order_list \\\n' +
       '  --controllers UserController \\\n' +
