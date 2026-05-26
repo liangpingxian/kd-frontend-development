@@ -1,37 +1,37 @@
-﻿# SDK 模块索引
+# SDK Module Index
 
-本文件基于本地 TypeScript 定义自动生成，用于先按模块缩小 SDK 检索范围。
+This file is auto-generated from local TypeScript definitions and is used to narrow SDK lookup by module first.
 
-- 生成时间：2026-03-24 10:59:15
-- 扫描文件数：1440
-- 模块数：21
+- Generated at: 2026-03-24 10:59:15
+- Scanned files: 1440
+- Modules: 21
 
-| 模块 | 类型导出数 | 常量导出数 | 包数 | 说明 |
+| Module | Type exports | Const exports | Packages | Description |
 |------|------------|------------|------|------|
-| `@constellation/epm` | 47 | 44 | 15 | 业务域 SDK |
-| `@constellation/fi` | 157 | 155 | 27 | 业务域 SDK |
-| `@constellation/hdtc` | 16 | 16 | 4 | 业务域 SDK |
-| `@constellation/hr` | 167 | 148 | 29 | 业务域 SDK |
-| `@constellation/hrmp` | 121 | 121 | 22 | 业务域 SDK |
-| `@constellation/macc` | 11 | 10 | 3 | 业务域 SDK |
-| `@constellation/mmc` | 12 | 12 | 3 | 业务域 SDK |
-| `@constellation/odc` | 4 | 4 | 3 | 业务域 SDK |
-| `@constellation/qmc` | 5 | 5 | 2 | 业务域 SDK |
-| `@constellation/scm` | 99 | 99 | 15 | 业务域 SDK |
-| `@constellation/scmc` | 132 | 131 | 30 | 业务域 SDK |
-| `@constellation/sit` | 40 | 40 | 16 | 业务域 SDK |
-| `@constellation/ssc` | 17 | 15 | 6 | 业务域 SDK |
-| `@constellation/swc` | 177 | 176 | 34 | 业务域 SDK |
-| `@constellation/taxc` | 12 | 12 | 6 | 业务域 SDK |
-| `@constellation/tdc` | 20 | 20 | 5 | 业务域 SDK |
-| `@constellation/tmc` | 104 | 104 | 30 | 业务域 SDK |
-| `@constellation/tsc` | 26 | 26 | 8 | 业务域 SDK |
-| `@constellation/wtc` | 346 | 337 | 37 | 业务域 SDK |
-| `@cosmic/bos-core` | 3282 | 3138 | 201 | 平台基础能力、高频优先 |
-| `@cosmic/bos-script` | 479 | 457 | 18 | Java 桥接与基础运行时 |
+| `@constellation/epm` | 47 | 44 | 15 | Business-domain SDK |
+| `@constellation/fi` | 157 | 155 | 27 | Business-domain SDK |
+| `@constellation/hdtc` | 16 | 16 | 4 | Business-domain SDK |
+| `@constellation/hr` | 167 | 148 | 29 | Business-domain SDK |
+| `@constellation/hrmp` | 121 | 121 | 22 | Business-domain SDK |
+| `@constellation/macc` | 11 | 10 | 3 | Business-domain SDK |
+| `@constellation/mmc` | 12 | 12 | 3 | Business-domain SDK |
+| `@constellation/odc` | 4 | 4 | 3 | Business-domain SDK |
+| `@constellation/qmc` | 5 | 5 | 2 | Business-domain SDK |
+| `@constellation/scm` | 99 | 99 | 15 | Business-domain SDK |
+| `@constellation/scmc` | 132 | 131 | 30 | Business-domain SDK |
+| `@constellation/sit` | 40 | 40 | 16 | Business-domain SDK |
+| `@constellation/ssc` | 17 | 15 | 6 | Business-domain SDK |
+| `@constellation/swc` | 177 | 176 | 34 | Business-domain SDK |
+| `@constellation/taxc` | 12 | 12 | 6 | Business-domain SDK |
+| `@constellation/tdc` | 20 | 20 | 5 | Business-domain SDK |
+| `@constellation/tmc` | 104 | 104 | 30 | Business-domain SDK |
+| `@constellation/tsc` | 26 | 26 | 8 | Business-domain SDK |
+| `@constellation/wtc` | 346 | 337 | 37 | Business-domain SDK |
+| `@cosmic/bos-core` | 3282 | 3138 | 201 | Platform foundation capabilities; prioritize hot APIs |
+| `@cosmic/bos-script` | 479 | 457 | 18 | Java bridging and base runtime |
 
-## 使用建议
+## Usage tips
 
-- 已知模块时，从本文件开始。
-- 进入模块后，再去 `keyword-index.md` / `scenario-index.md` 或 `../classes/<ClassName>.md` 找具体类。
-- 如果只知道类名，先查 `../classes/<ClassName>.md`；无卡片时回退本地 `.d.ts`。
+- When the module is known, start from this file.
+- After entering a module, go to `keyword-index.md` / `scenario-index.md` or `../classes/<ClassName>.md` to find the specific class.
+- If only the class name is known, look up `../classes/<ClassName>.md` first; if no card exists, fall back to local `.d.ts`.

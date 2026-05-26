@@ -1,64 +1,64 @@
-# 前端通过 adapterApi 调用 Controller API 集成指南
+# Frontend Controller API Integration Guide via adapterApi
 
-> **职责说明**：本指南是前端调用后端 Controller API 的**统一参考文档**，由主技能包 `references/kwc-frontend-contract.md` 引用。编写前端组件中的 API 调用代码前，必须阅读本文档。
+> **Scope**: This guide is the **unified reference document** for frontend calling backend Controller APIs, referenced by the main skill package `references/kwc-frontend-contract.md`. You must read this document before writing API call code in frontend components.
 
-## 1. adapterApi 基础用法
+## 1. adapterApi Basics
 
-前端通过 `@kdcloudjs/kwc-shared-utils/api` 提供的 `adapterApi` 调用后端 Controller API。
+The frontend calls backend Controller APIs via `adapterApi` provided by `@kdcloudjs/kwc-shared-utils/api`.
 
 ```typescript
 import { adapterApi } from '@kdcloudjs/kwc-shared-utils/api';
 ```
 
-`adapterApi` 提供以下方法：
-- `doGet(callback)` — 发起 GET 请求
-- `doPost(callback)` — 发起 POST 请求
-- `doPut(callback)` — 发起 PUT 请求
-- `doDelete(callback)` — 发起 DELETE 请求
+`adapterApi` provides the following methods:
+- `doGet(callback)` — Sends a GET request
+- `doPost(callback)` — Sends a POST request
+- `doPut(callback)` — Sends a PUT request
+- `doDelete(callback)` — Sends a DELETE request
 
-每个方法返回一个 adapter 对象，通过 `adapter.update()` 配置请求参数并触发请求，通过 `adapter.disconnect()` 断开连接。
+Each method returns an adapter object. Use `adapter.update()` to configure request parameters and trigger the request, and `adapter.disconnect()` to close the connection.
 
-## 2. GET 请求示例
+## 2. GET Request Example
 
 ```typescript
 import { adapterApi } from '@kdcloudjs/kwc-shared-utils/api';
 
-// 创建 GET 请求 adapter，传入回调处理响应
+// Create a GET request adapter, pass in a callback to handle the response
 const adapter = adapterApi.doGet(({ data, error }) => {
   if (error) {
-    console.error('请求失败:', error.message);
+    console.error('Request failed:', error.message);
     return;
   }
-  console.log('响应数据:', data);
+  console.log('Response data:', data);
 });
 
-// 配置并发起请求
+// Configure and send the request
 adapter.update({
   endpointConfig: {
-    isv: config.isvId,      // 从 config 获取开发商 ID
-    app: config.moduleId,   // 从 config 获取应用 ID
-    source: 'myController/user/123',  // 控制器路径
+    isv: config.isvId,      // Get vendor ID from config
+    app: config.moduleId,   // Get app ID from config
+    source: 'myController/user/123',  // Controller path
     version: 'v1'
   },
-  params: { lang: 'zh_CN' },  // GET → 查询参数
+  params: { lang: 'zh_CN' },  // GET → query parameters
   headers: {}
 });
 
-// 不再需要时断开连接
+// Disconnect when no longer needed
 adapter.disconnect();
 ```
 
-## 3. POST 请求示例
+## 3. POST Request Example
 
 ```typescript
 import { adapterApi } from '@kdcloudjs/kwc-shared-utils/api';
 
 const adapter = adapterApi.doPost(({ data, error }) => {
   if (error) {
-    console.error('请求失败:', error.message);
+    console.error('Request failed:', error.message);
     return;
   }
-  console.log('创建成功:', data);
+  console.log('Created successfully:', data);
 });
 
 adapter.update({
@@ -78,59 +78,59 @@ adapter.update({
 });
 ```
 
-## 4. endpointConfig 配置项
+## 4. endpointConfig Options
 
-| 字段 | 类型 | 必填 | 说明 |
+| Field | Type | Required | Description |
 |------|------|------|------|
-| `isv` | string | 是 | 开发商 ID，从 `config.isvId` 获取 |
-| `app` | string | 是 | 应用 ID，从 `config.moduleId` 获取 |
-| `source` | string | 是 | 控制器路径，即 Controller URL 去掉 `/{isv}/{app}/` 前缀后的路径 |
-| `version` | string | 是 | API 版本，固定为 `'v1'` |
+| `isv` | string | Yes | Vendor ID, obtained from `config.isvId` |
+| `app` | string | Yes | App ID, obtained from `config.moduleId` |
+| `source` | string | Yes | Controller path, i.e., the Controller URL with the `/{isv}/{app}/` prefix removed |
+| `version` | string | Yes | API version, fixed as `'v1'` |
 
-### 4.1 source 字段填写规则
+### 4.1 source Field Rules
 
-`source` 是 `endpointConfig` 中最关键的字段。它对应后端 Controller XML 中配置的 URL 路径，**去掉 `/{isv}/{app}/` 前缀**。
+`source` is the most critical field in `endpointConfig`. It corresponds to the URL path configured in the backend Controller XML, **with the `/{isv}/{app}/` prefix removed**.
 
-**映射规则**：
+**Mapping rule**:
 
 ```
 Controller XML url:  /kdtest/app/myController/user/{id}
-                     ↓ 去掉 /{isv}/{app}/ 前缀
+                     ↓ Remove /{isv}/{app}/ prefix
 endpointConfig.source: myController/user/123
-                                         ↑ 路径参数替换为实际值
+                                         ↑ Path parameters replaced with actual values
 ```
 
-**更多示例**：
+**More examples**:
 
-| Controller XML `<url>` | 方法 `<url>` | 完整路径 | source 值 |
+| Controller XML `<url>` | Method `<url>` | Full path | source value |
 |------------------------|-------------|---------|-----------|
 | `/kd/dev/sample/hello` | `/{name}` | `/kd/dev/sample/hello/World` | `sample/hello/World` |
 | `/kd/dev/sample/users` | `/{id}` | `/kd/dev/sample/users/123` | `sample/users/123` |
-| `/kd/dev/sample/users` | （空） | `/kd/dev/sample/users` | `sample/users` |
+| `/kd/dev/sample/users` | (empty) | `/kd/dev/sample/users` | `sample/users` |
 | `/kd/dev/sample/orders` | `/{id}/process` | `/kd/dev/sample/orders/1001/process` | `sample/orders/1001/process` |
 
-## 5. config 对象结构
+## 5. config Object Structure
 
-前端组件通过 `config` 属性接收上下文配置信息：
+Frontend components receive context configuration via the `config` prop:
 
-| 字段 | 说明 | 示例 |
+| Field | Description | Example |
 |------|------|------|
-| `config.isvId` | 开发商 ID | `'kdtest'` |
-| `config.moduleId` | 应用 ID | `'kdtest_catherine'` |
-| `config.pageId` | 页面 ID | `'root8b3b5a25...'` |
-| `config.formId` | 表单 ID | `'kdtest_myform'` |
-| `config.controlId` | 控件 ID | `'mycomponent'` |
-| `config.metaProps` | 元数据属性 | `{ Region: 'region1' }` |
+| `config.isvId` | Vendor ID | `'kdtest'` |
+| `config.moduleId` | App ID | `'kdtest_catherine'` |
+| `config.pageId` | Page ID | `'root8b3b5a25...'` |
+| `config.formId` | Form ID | `'kdtest_myform'` |
+| `config.controlId` | Control ID | `'mycomponent'` |
+| `config.metaProps` | Metadata properties | `{ Region: 'region1' }` |
 
-## 6. React 组件中完整集成示例
+## 6. Complete Integration Example in a React Component
 
-以下示例展示在 React 组件中完整使用 `adapterApi` 调用后端 Controller API，包含 loading/error 状态管理和 cleanup 处理。
+The following example shows a complete usage of `adapterApi` in a React component to call backend Controller APIs, including loading/error state management and cleanup handling.
 
 ```typescript
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { adapterApi } from '@kdcloudjs/kwc-shared-utils/api';
 
-// 这里声明的就是config对象类型
+// This declares the config object type
 interface UserListProps {
     isvId: string;
     moduleId: string;
@@ -153,12 +153,12 @@ const UserList: React.FC<UserListProps> = (config) => {
   const [error, setError] = useState<string | null>(null);
   const adapterRef = useRef<any>(null);
 
-  // 获取用户列表
+  // Fetch user list
   const fetchUsers = useCallback(() => {
     setLoading(true);
     setError(null);
 
-    // 断开之前的请求
+    // Disconnect previous request
     if (adapterRef.current) {
       adapterRef.current.disconnect();
     }
@@ -166,7 +166,7 @@ const UserList: React.FC<UserListProps> = (config) => {
     adapterRef.current = adapterApi.doGet(({ data, error: apiError }) => {
       setLoading(false);
       if (apiError) {
-        setError(apiError.message || '获取用户列表失败');
+        setError(apiError.message || 'Failed to fetch user list');
         return;
       }
       setUsers(data?.data || []);
@@ -184,7 +184,7 @@ const UserList: React.FC<UserListProps> = (config) => {
     });
   }, [config]);
 
-  // 创建用户
+  // Create user
   const createUser = useCallback((userData: Partial<User>) => {
     setLoading(true);
     setError(null);
@@ -192,10 +192,10 @@ const UserList: React.FC<UserListProps> = (config) => {
     const postAdapter = adapterApi.doPost(({ data, error: apiError }) => {
       setLoading(false);
       if (apiError) {
-        setError(apiError.message || '创建用户失败');
+        setError(apiError.message || 'Failed to create user');
         return;
       }
-      // 创建成功后刷新列表
+      // Refresh list after successful creation
       fetchUsers();
     });
 
@@ -213,7 +213,7 @@ const UserList: React.FC<UserListProps> = (config) => {
     });
   }, [config, fetchUsers]);
 
-  // 组件卸载时断开连接
+  // Disconnect on component unmount
   useEffect(() => {
     return () => {
       if (adapterRef.current) {
@@ -222,22 +222,22 @@ const UserList: React.FC<UserListProps> = (config) => {
     };
   }, []);
 
-  // 初始加载
+  // Initial load
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
   if (loading) {
-    return <div>加载中...</div>;
+    return <div>Loading...</div>;
   }
 
   if (error) {
-    return <div>错误: {error} <button onClick={fetchUsers}>重试</button></div>;
+    return <div>Error: {error} <button onClick={fetchUsers}>Retry</button></div>;
   }
 
   return (
     <div>
-      <h2>用户列表</h2>
+      <h2>User List</h2>
       <ul>
         {users.map((user) => (
           <li key={user.id}>{user.name} - {user.email}</li>
@@ -250,80 +250,80 @@ const UserList: React.FC<UserListProps> = (config) => {
 export default UserList;
 ```
 
-**关键要点**：
+**Key takeaways**:
 
-1. **useRef 管理 adapter**：通过 ref 持有 adapter 引用，确保可以在 cleanup 时断开连接
-2. **请求前断开旧连接**：避免重复请求导致的竞态条件
-3. **useEffect cleanup**：组件卸载时调用 `adapter.disconnect()` 防止内存泄漏
-4. **loading/error 状态管理**：请求开始时设置 loading，回调中根据结果更新状态
+1. **useRef to manage adapter**: Hold the adapter reference via ref to ensure disconnection during cleanup
+2. **Disconnect old connections before new requests**: Avoid race conditions caused by duplicate requests
+3. **useEffect cleanup**: Call `adapter.disconnect()` on component unmount to prevent memory leaks
+4. **loading/error state management**: Set loading when a request starts, update state based on the result in the callback
 
-## 7. 常见错误排查
+## 7. Common Error Troubleshooting
 
 ### 7.1 404 Not Found
 
-| 可能原因 | 排查方式 |
+| Possible Cause | Troubleshooting |
 |---------|---------|
-| source 路径填写错误 | 检查 source 是否正确去掉了 `/{isv}/{app}/` 前缀 |
-| Controller 未部署 | 确认已执行 `kd project deploy` |
-| version 不匹配 | 确认部署的 version 与线上一致 |
-| HTTP 方法不匹配 | 确认 doGet/doPost 与 Controller XML 中的 httpMethod 一致 |
+| source path is incorrect | Check if source correctly removes the `/{isv}/{app}/` prefix |
+| Controller not deployed | Confirm `kd project deploy` has been executed |
+| version mismatch | Confirm the deployed version matches the production version |
+| HTTP method mismatch | Confirm doGet/doPost matches the httpMethod in the Controller XML |
 
 ### 7.2 401 Unauthorized
 
-| 可能原因 | 排查方式 |
+| Possible Cause | Troubleshooting |
 |---------|---------|
-| 用户未登录 | 检查登录状态和 token |
-| 接口未配置 anonymousUser | 如需匿名访问，在 XML 中设置 `<anonymousUser>true</anonymousUser>` |
+| User not logged in | Check login status and token |
+| API not configured for anonymousUser | If anonymous access is needed, set `<anonymousUser>true</anonymousUser>` in the XML |
 
 ### 7.3 403 Forbidden
 
-| 可能原因 | 排查方式 |
+| Possible Cause | Troubleshooting |
 |---------|---------|
-| 用户无权限 | 检查 entityNumber 和 permItemId 配置是否正确 |
-| checkRightApp 配置错误 | 确认验权应用编码 |
+| User lacks permission | Check entityNumber and permItemId configuration |
+| checkRightApp misconfigured | Confirm the permission-check app code |
 
-### 7.4 CORS 跨域错误
+### 7.4 CORS Error
 
-| 可能原因 | 排查方式 |
+| Possible Cause | Troubleshooting |
 |---------|---------|
-| 本地调试跨域 | 使用 `kd debug` 启动本地调试，自动处理跨域 |
-| 请求头不合规 | 检查自定义 headers 是否在允许列表内 |
+| Cross-origin during local debugging | Use `kd debug` to start local debugging, which automatically handles CORS |
+| Non-compliant request headers | Check if custom headers are in the allowed list |
 
-### 7.5 请求参数丢失
+### 7.5 Request Parameters Missing
 
-| 可能原因 | 排查方式 |
+| Possible Cause | Troubleshooting |
 |---------|----------|
-| GET 请求 params 未传递 | 确认 params 对象键值正确 |
-| POST 请求体格式错误 | 确认 headers 中包含 `'Content-Type': 'application/json'` |
-| 后端取参方式不对 | GET 用 `getStringQueryParam`，POST 用 `getMapBody` |
+| GET request params not passed | Confirm the params object keys and values are correct |
+| POST request body format error | Confirm headers include `'Content-Type': 'application/json'` |
+| Backend parameter retrieval mismatch | GET uses `getStringQueryParam`, POST uses `getMapBody` |
 
-### 7.6 响应数据类型不符合预期（数组变对象）
+### 7.6 Response Data Type Mismatch (Array Becomes Object)
 
-| 可能原因 | 排查方式 |
+| Possible Cause | Troubleshooting |
 |---------|----------|
-| KS 运行时将数组 `[]` 序列化为对象 `{}` | 打印实际响应检查字段类型，使用 `Array.isArray()` 校验 |
-| 前端用 `as` 强转而未做运行时校验 | 禁止对 API 响应直接使用 `as` 类型断言，必须先校验再使用 |
-| 后端未将数组字段做 JSON.stringify | 后端调整为 `JSON.stringify(array)`，前端用 `JSON.parse()` 还原 |
+| KS runtime serializes array `[]` as object `{}` | Print the actual response to check field types, use `Array.isArray()` for validation |
+| Frontend uses `as` type assertion without runtime validation | Never use `as` type assertion directly on API responses; always validate before using |
+| Backend did not JSON.stringify the array field | Backend should use `JSON.stringify(array)`, frontend uses `JSON.parse()` to restore |
 
-**典型故障链路**：
+**Typical failure chain**:
 ```
-后端代码：items: ['a', 'b']  →  KS 运行时序列化  →  前端收到 items: {}
-前端代码：(data as MyType).items.map(...)  →  运行时异常  →  白屏
+Backend code: items: ['a', 'b']  →  KS runtime serialization  →  Frontend receives items: {}
+Frontend code: (data as MyType).items.map(...)  →  Runtime exception  →  Blank screen
 ```
 
-**前端防御性解析示例**：
+**Defensive parsing example**:
 ```typescript
 adapterRef.current = adapterApi.doGet(({ data: responseData, error: apiError }) => {
   setLoading(false);
   if (apiError) {
-    setError(apiError.message || '接口调用失败');
+    setError(apiError.message || 'API call failed');
     return;
   }
 
-  // ❌ 危险：直接强转，不做校验
+  // ❌ Dangerous: Direct assertion without validation
   // setData(responseData as MyResponse);
 
-  // ✅ 安全：逐字段校验 + 容错
+  // ✅ Safe: Field-by-field validation + fallback
   const raw = responseData || {};
   setData({
     title: raw.title ?? '',

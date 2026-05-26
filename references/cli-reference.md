@@ -1,47 +1,47 @@
-> **本文档提供 CLI 命令参考，实际执行时：**
-> - 工程初始化 → `node scripts/project-init.mjs`
-> - 环境配置 → `node scripts/setup-env.mjs`  
-> - 创建组件/页面/Controller → `kd project create`
-> 
-> **禁止直接在终端执行本文档中的初始化和环境配置类 CLI 命令（应使用对应脚本）。组件/页面/Controller 创建可直接使用 `kd project create` 命令。**
+> **This document provides CLI command reference. During actual execution:**
+> - Project initialization → `node scripts/project-init.mjs`
+> - Environment configuration → `node scripts/setup-env.mjs`
+> - Creating components/pages/Controllers → `kd project create`
+>
+> **Running the initialization and environment configuration CLI commands directly in the terminal is forbidden (use the corresponding scripts instead). Creating components/pages/Controllers can use `kd project create` directly.**
 
 ---
 
 # KWC CLI Reference
 
-按需读取本文件，用于补充命令语法、OpenAPI 参数和页面元数据示例。
+Read this file on demand. Used for supplementing command syntax, OpenAPI parameters, and page metadata examples.
 
-## 核心概念
+## Core Concepts
 
-- `Project`：本地项目目录，保存源代码、配置文件和元数据。
-- `Env`：远端苍穹环境，一个本地项目可以连接多个环境。
+- `Project`: A local project directory that stores source code, configuration files, and metadata.
+- `Env`: A remote Cosmic environment; one local project can connect to multiple environments.
 
-## 安装 CLI
+## Install the CLI
 
 ```bash
 npm i -g @kdcloudjs/cli --registry=https://registry.npmmirror.com
 kd -v
 ```
 
-更新脚手架到最新版本：
+Update the scaffold to the latest version:
 
 ```bash
 kd update
 ```
 
-## 初始化项目
+## Initialize a Project
 
 ```bash
 kd project init my-demo-project
 ```
 
-交互过程中通常需要：
+During the interactive process, you typically need to:
 
-- 选择框架，如 React、Vue、LWC
-- 选择语言，如 TypeScript、JavaScript
-- 输入应用标识 `app`（必须由用户明确提供，详见 SKILL.md「需要用户提供或确认的输入」一节）
+- Select a framework, such as React, Vue, LWC
+- Select a language, such as TypeScript, JavaScript
+- Enter the application code `app` (must be explicitly provided by the user; see SKILL.md "Inputs the User Must Supply")
 
-初始化后执行：
+After initialization, execute:
 
 ```bash
 cd my-demo-project
@@ -49,39 +49,39 @@ npm install --registry=https://registry.npmmirror.com
 npm run dev
 ```
 
-## 创建组件
+## Create a Component
 
 ```bash
 kd project create DemoComponent1 --type kwc
 kd project create DemoComponent2 --type kwc
 ```
 
-建议：
+Recommendations:
 
-- 使用 `PascalCase` 作为组件名。
-- 先让 CLI 生成组件工程，再补充具体实现代码。
-- 生成后应继续检查并完善 `.js-meta.kwc`，不要把脚手架模板直接当成最终元数据。
+- Use `PascalCase` for component names.
+- Let the CLI generate the component project first, then supplement the specific implementation code.
+- After generation, you should continue to check and complete the `.js-meta.kwc`; do not treat the scaffold template as the final metadata.
 
-## 创建 Controller
+## Create a Controller
 
 ```bash
 kd project create myController --type controller
-kd project create myController --type controller -e dev  # 指定拉取 SDK 的目标环境
+kd project create myController --type controller -e dev  # Specify the target environment for pulling the SDK
 ```
 
-建议：
+Recommendations:
 
-- 使用 `PascalCase` 作为控制器名，建议以 `Controller` 后缀结尾。
-- Controller 工程生成在 `app/ks/controller/<ControllerName>/` 下。
-- 创建后应继续检查并完善 .kws 元数据文件，补齐 name、isv、app、version、url、scriptFile、methods 等必填字段。
+- Use `PascalCase` for the controller name; it is recommended to end with a `Controller` suffix.
+- The Controller project is generated under `app/ks/controller/<ControllerName>/`.
+- After creation, you should continue to check and complete the .kws metadata file, filling in the required fields such as name, isv, app, version, url, scriptFile, methods, etc.
 
-## 创建页面
+## Create a Page
 
 ```bash
 kd project create demo_page --type page
 ```
 
-页面元数据常见示例：
+Common page metadata example:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -90,7 +90,7 @@ kd project create demo_page --type page
     <name>demo_page</name>
     <masterLabel>demo_page</masterLabel>
     <template>oneregion</template>
-    <isv></isv>  <!-- deploy 时由脚手架自动从环境拉取 -->
+    <isv></isv>  <!-- Automatically fetched from the environment by the scaffold during deploy -->
     <app>your_app_code</app>
     <version>1</version>
     <regions>
@@ -115,33 +115,33 @@ kd project create demo_page --type page
 </Page>
 ```
 
-字段提醒：
+Field reminders:
 
-- `name`：页面标识。
-- `masterLabel`：页面展示名。
-- `template`：页面模板。
-- `app`：苍穹应用编码（必须由用户明确提供，详见 SKILL.md）。
-- `version`：正整数；仅当该页面元数据文件有变更并准备重新上传时，手动加 `1`。
-- `control.type`：组件类型名。
-- `control.name`：页面内的组件实例名。
-- 实测默认不会自动插入真实 `<control>` 节点，只保留注释模板。
-- 页面中配置的属性名，应与组件元数据里定义的 `<property name="...">` 对应。
+- `name`: Page identifier.
+- `masterLabel`: Page display name.
+- `template`: Page template.
+- `app`: Cosmic application code (must be explicitly provided by the user; see SKILL.md).
+- `version`: Positive integer; manually increment by `1` only when this page metadata file has changes and is ready to be re-uploaded.
+- `control.type`: Component type name.
+- `control.name`: Component instance name within the page.
+- In practice, the scaffold does not automatically insert real `<control>` nodes; it only keeps the comment template.
+- Property names configured in the page should correspond to the `<property name="...">` defined in the component metadata.
 
-## 环境管理
+## Environment Management
 
-创建环境：
+Create an environment:
 
 ```bash
 kd env create dev --url https://feature.kingdee.com:1026/feature_dev/
 ```
 
-OpenAPI 认证：
+OpenAPI authentication:
 
 ```bash
 kd env auth openapi
 ```
 
-常用环境命令：
+Common environment commands:
 
 ```bash
 kd env set target-env dev
@@ -149,16 +149,16 @@ kd env info
 kd env delete dev
 ```
 
-OpenAPI 认证时通常需要：
+OpenAPI authentication typically requires:
 
-- 数据中心
+- Data center
 - Client ID
 - Client Secret
 - Username
 
-注意：这里的"数据中心"应由脚手架在认证过程中读取列表后供用户选择，不应和其他凭据一样让用户手动输入。
+Note: The "data center" here should be read from a list by the scaffold during the authentication process for the user to select; it should not be treated like other credentials that the user enters manually.
 
-如果环境不存在，先向用户收集以下字段，再继续：
+If the environment does not exist, first collect the following fields from the user before proceeding:
 
 - env name
 - env url
@@ -166,236 +166,236 @@ OpenAPI 认证时通常需要：
 - Client Secret
 - Username
 
-推荐直接让用户按这个模板回填：
+Recommended to have the user fill in using this template:
 
 ```text
-请补充以下环境信息：
+Please provide the following environment info:
 1. env name:
 2. env url:
 3. client id:
 4. client secret:
 5. username:
 
-说明：data center 不需要先手填，后续由脚手架读取候选项供选择。
+Notes: data center does not need to be filled in advance; the scaffold will read the candidates for you to select later.
 ```
 
-相关 OpenAPI 应用需具备这些接口授权：
+The related OpenAPI application needs these interface authorizations:
 
 1. `updateKwc`
 2. `kwcisv`
 3. `updatePageMeta`
 
-补充提醒：
+Additional reminders:
 
-- 环境配置写入 `~/.kd`。
-- 在受限环境中执行 `kd env create` 后，务必再跑 `kd env list` 检查是否真正保存成功。
-- 删除环境后要重新确认默认环境是否被 CLI 自动切换。
+- Environment configuration is written to `~/.kd`.
+- After running `kd env create` in a restricted environment, be sure to run `kd env list` again to check whether it was actually saved.
+- After deleting an environment, reconfirm whether the default environment was automatically switched by the CLI.
 
-## 构建
+## Build
 
-全量构建（前端 + Controller + 元数据）：
+Full build (frontend + Controller + metadata):
 
 ```bash
 npm run build
 ```
 
-仅构建前端组件：
+Build frontend components only:
 
 ```bash
 npm run build:frontend
-npm run build:frontend -- ExampleComponent      # 构建指定组件
-npm run build:frontend -- ComponentA ComponentB  # 构建多个组件
+npm run build:frontend -- ExampleComponent      # Build a specific component
+npm run build:frontend -- ComponentA ComponentB  # Build multiple components
 ```
 
-仅构建 Controller：
+Build Controller only:
 
 ```bash
 npm run build:controller
-npm run build:controller -- --env=dev           # 指定目标环境
-npm run build:controller -- MyController        # 构建指定 Controller
+npm run build:controller -- --env=dev           # Specify target environment
+npm run build:controller -- MyController        # Build a specific Controller
 ```
 
-也可以使用 kd CLI 构建：
+You can also use the kd CLI to build:
 
 ```bash
-kd project build --type frontend              # 构建前端资源
-kd project build --type controller            # 构建 Controller
-kd project build --type controller -e dev     # 构建 Controller 到指定环境
-kd project build myComponent --type frontend  # 构建指定组件
+kd project build --type frontend              # Build frontend assets
+kd project build --type controller            # Build Controller
+kd project build --type controller -e dev     # Build Controller for a specific environment
+kd project build myComponent --type frontend  # Build a specific component
 ```
 
-构建说明：
+Build notes:
 
-- 前端构建输出到 `dist/kwc/`
-- Controller 构建输出到 `dist/controller/`
-- 元数据文件拷贝到 `dist/metadata/`
-- Controller 构建前会检查 `app/ks/controller/` 目录是否存在
+- Frontend build output goes to `dist/kwc/`
+- Controller build output goes to `dist/controller/`
+- Metadata files are copied to `dist/metadata/`
+- Controller build checks that the `app/ks/controller/` directory exists before proceeding
 
-## 部署
+## Deploy
 
-部署整个项目：
+Deploy the entire project:
 
 ```bash
 kd project deploy
 ```
 
-仅部署指定组件到 `sit` 环境：
+Deploy only a specific component to the `sit` environment:
 
 ```bash
 kd project deploy -d app/kwc/MyComponent -e sit
 ```
 
-仅部署指定页面元数据到 `sit` 环境：
+Deploy only specific page metadata to the `sit` environment:
 
 ```bash
 kd project deploy -d app/pages/my_page -e sit
 ```
 
-仅部署指定 Controller 到 `sit` 环境：
+Deploy only a specific Controller to the `sit` environment:
 
 ```bash
 kd project deploy -d app/ks/controller/MyController -e sit
 ```
 
-部署包含的内容（一次 deploy 上传全部）：
+Content included in deployment (a single deploy uploads everything):
 
-1. 组件元数据（.js-meta.kwc）
-2. 页面元数据（.page-meta.kwp）
-3. Controller 元数据（.kws）及 Controller 脚本 — 开发阶段由 deploy 直接处理，无需预先 build
-4. 前端静态文件（dist/kwc/）— 需先执行 `npm run build:frontend`，开发环境自动上传
+1. Component metadata (.js-meta.kwc)
+2. Page metadata (.page-meta.kwp)
+3. Controller metadata (.kws) and Controller script — during the development phase, deploy handles the Controller directly; no pre-build is needed
+4. Frontend static files (dist/kwc/) — need to run `npm run build:frontend` first; the development environment auto-uploads
 
-注意：
+Notes:
 
-- 部署时脚手架会自动替换组件及页面元数据中的 `isv`。
-- 若未指定环境，则使用默认环境。
-- 若环境未认证，CLI 会直接阻止部署。
-- 从 0.0.13 版本开始，部署到开发环境时，deploy 会同时将前端构建产物（静态文件）上传到该环境。
-- 不要把 `deploy` 当成每次改代码后的必跑步骤；先看是否真的改了元数据文件。
+- During deployment, the scaffold automatically replaces the `isv` in component and page metadata.
+- If no environment is specified, the default environment is used.
+- If the environment is not authenticated, the CLI will block the deployment.
+- Starting from version 0.0.13, when deploying to a development environment, deploy also uploads the frontend build artifacts (static files) to that environment.
+- Do not treat `deploy` as a required step after every code change; first check whether metadata files were actually modified.
 
-版本管理规则：
+Version management rules:
 
-| 变更类型 | 是否需要递增 `version` | 是否需要 `deploy` | 推荐动作 |
+| Change Type | Need to Increment `version`? | Need to `deploy`? | Recommended Action |
 | --- | --- | --- | --- |
-| 只改组件实现代码，未改任何元数据 | 否 | 视需求 | 本地调试：`npm run build` + `kd debug`；查看环境效果：`npm run build` + `kd project deploy`（上传静态文件）+ `kd open` |
-| 改了组件元数据 `.js-meta.kwc` | 是，递增该组件元数据 `version` | 是 | 部署该组件或整个项目 |
-| 改了页面元数据 `.page-meta.kwp` | 是，递增该页面元数据 `version` | 是 | 部署该页面元数据或整个项目 |
-| 同时改了组件元数据和页面元数据 | 是，分别递增 | 是 | 部署受影响路径或整个项目 |
-| 新建组件元数据或页面元数据 | 初始值设为 `1` | 是 | 首次上传 |
-| 修改 Controller 代码或 .kws 元数据 | 是，递增 Controller 元数据 version | 是 | 直接 `kd project deploy`（开发阶段无需 build） |
+| Only changed component implementation code, no metadata changed | No | As needed | Local debug: `npm run build` + `kd debug`; view environment result: `npm run build` + `kd project deploy` (upload static files) + `kd open` |
+| Changed component metadata `.js-meta.kwc` | Yes, increment that component metadata `version` | Yes | Deploy that component or the entire project |
+| Changed page metadata `.page-meta.kwp` | Yes, increment that page metadata `version` | Yes | Deploy that page metadata or the entire project |
+| Changed both component and page metadata | Yes, increment separately | Yes | Deploy the affected paths or the entire project |
+| Created new component or page metadata | Initial value set to `1` | Yes | First upload |
+| Modified Controller code or .kws metadata | Yes, increment Controller metadata version | Yes | Run `kd project deploy` directly (no build needed during development) |
 
-判断提醒：
+Decision reminders:
 
-- 是否需要 `deploy`，先看元数据文件是否变更。
-- 是否需要递增 `version`，也先看对应元数据文件是否变更。
-- 只改组件代码，不要因为"刚改了东西"就盲目 `deploy`。
+- Whether you need to `deploy` depends on whether metadata files have changed.
+- Whether you need to increment `version` also depends on whether the corresponding metadata file has changed.
+- If only component code was changed, do not blindly `deploy` just because "something was modified."
 
-构建前置条件（开发阶段）：
+Build prerequisites (development phase):
 
-- 改了前端代码 → 先 `npm run build:frontend`，再 deploy
-- 改了 Controller 代码或 .kws → 直接 deploy，不需要 build（开发阶段 deploy 直接处理 Controller）
-- 只改元数据文件 → 直接 deploy，不需要 build
-- `npm run build:controller` 和 `npm run build` 仅用于生产环境构建产物
+- Changed frontend code → run `npm run build:frontend` first, then deploy
+- Changed Controller code or .kws → deploy directly; no build needed (deploy handles the Controller directly during development)
+- Only changed metadata files → deploy directly; no build needed
+- `npm run build:controller` and `npm run build` are only for production build artifacts
 
-## 打开表单
+## Open a Form
 
-部署后直接在浏览器中打开环境上已部署的表单页面，无需 DNS 代理：
+After deployment, directly open the deployed form page in the browser on the environment, no DNS proxy needed:
 
 ```bash
-kd open -e dev -f kdtest_demo_page          # 打开 dev 环境的表单（kdtest_demo_page 取自 .page-meta.kwp 中的 <name> 值）
-kd open -e sit -f kdtest_demo_page          # 打开 sit 环境的表单
+kd open -e dev -f kdtest_demo_page          # Open the form on the dev environment (kdtest_demo_page is taken from the <name> value in .page-meta.kwp)
+kd open -e sit -f kdtest_demo_page          # Open the form on the sit environment
 ```
 
-### 选项说明
+### Option Descriptions
 
-- `-e, --target-env <name>`：**（必填）** 指定目标环境（如 `dev`, `sit`）
-- `-f, --formid <name>`：**（必填）** 指定表单。**必须读取 `.page-meta.kwp` 文件中 `<name>` 节点的值，不是表单文件名称**（文件名和元数据 name 可能不同，元数据 name 已包含 ISV 前缀）
+- `-e, --target-env <name>`: **(Required)** Specify the target environment (e.g. `dev`, `sit`)
+- `-f, --formid <name>`: **(Required)** Specify the form. **Must read the value of the `<name>` node in the `.page-meta.kwp` file, not the form file name** (the file name and metadata name may differ; the metadata name already includes the ISV prefix)
 
-### 与 kd debug 的区别
+### Differences from kd debug
 
-| 对比项 | `kd debug` | `kd open` |
+| Comparison | `kd debug` | `kd open` |
 |--------|-----------|----------|
-| 运行方式 | 通过 DNS 代理，将本地开发服务器与环境连接 | 直接打开环境上已部署的页面，无 DNS 代理 |
-| 适用场景 | 本地开发调试，实时预览代码修改 | 部署后验证线上效果 |
-| 是否需要本地服务 | 是，需要本地 dev server 运行 | 否，直接访问远端环境 |
-| `-f` 参数 | `.page-meta.kwp` 中 `<name>` 节点的值（不是文件名） | `.page-meta.kwp` 中 `<name>` 节点的值（不是文件名） |
+| How it works | Connects the local dev server to the environment via DNS proxy | Directly opens the deployed page on the environment; no DNS proxy |
+| Use case | Local development debugging, live preview of code changes | Verifying the online result after deployment |
+| Requires local server | Yes, the local dev server must be running | No, directly accesses the remote environment |
+| `-f` parameter | The value of the `<name>` node in `.page-meta.kwp` (not the file name) | The value of the `<name>` node in `.page-meta.kwp` (not the file name) |
 
-### 使用前提
+### Prerequisites
 
-- 已通过 `kd project deploy` 将元数据和前端静态文件部署到目标环境
+- Metadata and frontend static files have been deployed to the target environment via `kd project deploy`
 
-### 表单名称取值
+### Form Name Value
 
-与 `kd debug` 一致，`-f` 传入当前本地 `.page-meta.kwp` 中 `<name>` 节点的实际值。deploy 后脚手架会自动更新本地文件中的 name（拼接 isv 前缀），因此应使用 deploy 后的完整名称。
+Same as `kd debug`, `-f` takes the actual value of the `<name>` node in the current local `.page-meta.kwp`. After deploy, the scaffold automatically updates the local file's name (prepending the isv prefix), so use the full post-deploy name.
 
-## 调试
+## Debug
 
-> 仅当用户明确要求本地调试或联调时使用 `kd debug`。若只需查看环境上的部署效果，应使用 `kd open`。
+> Use `kd debug` only when the user explicitly requests local debugging or integration testing. If you only need to view the deployment result on the environment, use `kd open`.
 
 ```bash
-kd debug                              # 交互选择表单
-kd debug -e sit                       # 指定环境
-kd debug -f kdtest_demo_page           # 直接指定表单（值取自 .page-meta.kwp 中 <name> 节点，不是文件名）
-kd debug -f kdtest_demo_page -e sit    # 同时指定表单和环境
+kd debug                              # Interactively select a form
+kd debug -e sit                       # Specify an environment
+kd debug -f kdtest_demo_page           # Directly specify a form (value from the <name> node in .page-meta.kwp, not the file name)
+kd debug -f kdtest_demo_page -e sit    # Specify both form and environment
 ```
 
-### 选项说明
+### Option Descriptions
 
-- `-e, --target-env <name>`：指定调试连接的后端环境
-- `-f, --formid <name>`：指定调试表单。**必须读取 `.page-meta.kwp` 文件中的 `<name>` 节点值，不是表单文件名称**（文件名和元数据 name 可能不同，元数据 name 已包含 ISV 前缀）
+- `-e, --target-env <name>`: Specify the backend environment to connect for debugging
+- `-f, --formid <name>`: Specify the debug form. **Must read the value of the `<name>` node in the `.page-meta.kwp` file, not the form file name** (the file name and metadata name may differ; the metadata name already includes the ISV prefix)
 
-### 表单名称与 ISV 前缀机制
+### Form Name and ISV Prefix Mechanism
 
-理解 `kd debug -f` 参数时，需要明确表单名称在 deploy 前后的变化：
+When understanding the `kd debug -f` parameter, be clear about how the form name changes before and after deploy:
 
-1. **创建页面阶段**：你在 `.page-meta.kwp` 中填写的 `<name>` 可以是业务标识，如 `demo_page`
-2. **Deploy 阶段**：执行 `kd project deploy` 时，脚手架会：
-   - 自动从环境拉取 isv 标识（如 `kdtest`）
-   - 将 isv 前缀拼接到 name 上，形成 `kdtest_demo_page` 上传到远端
-   - **同时更新本地的 `.page-meta.kwp` 文件**，将 `<name>` 改为 `kdtest_demo_page`，并填入 `<isv>kdtest</isv>`
-3. **Debug 阶段**：`kd debug -f` 参数应传入**当前本地文件中 `<name>` 节点的实际值**
-   - 首次 deploy 前，本地 name 可能是 `demo_page`
-   - Deploy 后，本地 name 会自动变成 `kdtest_demo_page`
-   - 因此 debug 时应使用 deploy 后的完整名称
+1. **Page creation phase**: The `<name>` you fill in `.page-meta.kwp` can be a business identifier, e.g. `demo_page`
+2. **Deploy phase**: When you run `kd project deploy`, the scaffold will:
+   - Automatically fetch the isv identifier from the environment (e.g. `kdtest`)
+   - Concatenate the isv prefix to the name, forming `kdtest_demo_page` for upload to the remote
+   - **Simultaneously update the local `.page-meta.kwp` file**, changing `<name>` to `kdtest_demo_page` and filling in `<isv>kdtest</isv>`
+3. **Debug phase**: The `kd debug -f` parameter should be passed the **actual value of the `<name>` node in the current local file**
+   - Before the first deploy, the local name might be `demo_page`
+   - After deploy, the local name automatically becomes `kdtest_demo_page`
+   - Therefore, when debugging, use the full post-deploy name
 
-示例流程：
+Example flow:
 
 ```bash
-# 1. 创建页面，此时 .page-meta.kwp 中 <name>demo_page</name>
+# 1. Create the page; at this point .page-meta.kwp has <name>demo_page</name>
 kd project create demo_page --type page
 
-# 2. 部署后，脚手架自动更新本地文件为 <name>kdtest_demo_page</name> 和 <isv>kdtest</isv>
+# 2. After deploy, the scaffold automatically updates the local file to <name>kdtest_demo_page</name> and <isv>kdtest</isv>
 kd project deploy
 
-# 3. 调试时使用更新后的完整名称
+# 3. When debugging, use the updated full name
 kd debug -f kdtest_demo_page
 ```
 
-如果不确定当前的 name 值，可以直接打开 `.page-meta.kwp` 查看 `<name>` 节点。
+If you are unsure of the current name value, you can directly open `.page-meta.kwp` and check the `<name>` node.
 
-### 调试约定（按需触发）
+### Debug Conventions (Triggered on Demand)
 
-- 仅当用户明确要求本地调试或联调时才使用 `kd debug`；查看环境效果优先使用 `kd open`
-- 运行 `kd debug` 时**必须使用后台模式**（`is_background: true`），因为这是一个持续运行的开发服务器，不会自动结束
-- 若使用前台模式运行 `kd debug`，命令会在 90 秒后因超时被强制终止，导致本地服务被 kill
-- `kd debug` 启动后会先打开浏览器访问对应地址，但此时本地服务可能尚未完全启动，需等待服务启动完成后再刷新
-- 可以通过 `get_terminal_output` 查看 `kd debug` 的运行状态和输出
-- 先确保 `target-env` 正确，再运行 `kd debug`
-- AI 应结合当前任务、最近修改页面和 `app/pages/*.page-meta.kwp` 自行判断预览目标
-- `kd debug` 会自动打开浏览器，后续在浏览器里继续定位并验证目标页面
+- Only use `kd debug` when the user explicitly requests local debugging or integration testing; prefer `kd open` for viewing environment results
+- When running `kd debug`, you **must use background mode** (`is_background: true`), because this is a long-running dev server that does not finish on its own
+- If you run `kd debug` in foreground mode, the command will be forcibly terminated after 90 seconds due to timeout, killing the local server
+- After `kd debug` starts, it first opens the browser to the target address, but the local server may not be fully started at that point; wait for the server to start before refreshing the browser
+- You can view `kd debug`'s status and output via `get_terminal_output`
+- Ensure `target-env` is correct before running `kd debug`
+- The AI should determine the preview target based on the current task, recently modified pages, and `app/pages/*.page-meta.kwp`
+- `kd debug` automatically opens the browser; continue navigating to the target page in the browser to verify
 
-### 调试前确认
+### Pre-Debug Confirmation
 
-- 已部署过组件或页面元数据
-- 当前默认环境正确，或已通过 `-e <env>` 参数指定
-- `.kd/config.json` 中 `app` 编码与目标应用一致
-- 若 `.kd/config.json` 缺少 `isv/app`，静态路由不会挂载
-- `localhost:3333` 未被占用
+- Components or page metadata have been deployed
+- The current default environment is correct, or has been specified via the `-e <env>` parameter
+- The `app` code in `.kd/config.json` matches the target application
+- If `.kd/config.json` is missing `isv/app`, static routes will not be mounted
+- `localhost:3333` is not occupied
 
-### 注意事项
+### Notes
 
-- 若需在不同 app 间切换调试，请手动修改 `.kd/config.json` 中的 `app` 编码
+- If you need to switch debugging between different apps, manually modify the `app` code in `.kd/config.json`
 
-按需深入读取：
+On-demand deep reading:
 
 - `component-metadata.md`
 - `env-setup.md`

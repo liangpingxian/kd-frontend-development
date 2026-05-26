@@ -1,34 +1,34 @@
-# KingScript 语法示例
-- 定义数值变量
+# KingScript Syntax Examples
+- Defining a numeric variable
 ```kingscript
-// 定义一个数值变量
+// Define a numeric variable
 let age: number = 25;
 console.log("Age:", age);
 ```
-- 定义字符串变量
+- Defining a string variable
 ```kingscript
-// 定义一个字符串变量
+// Define a string variable
 let name: string = "Alice";
 console.log("Name:", name);
 ```
-- 定义数组变量
+- Defining an array variable
 ```kingscript
-// 定义一个数值数组
+// Define a numeric array
 let numbers: number[] = [1, 2, 3, 4, 5];
 console.log("Numbers:", numbers);
-// 或者使用泛型方式定义
+// Or define it using generic syntax
 let strings: Array<string> = ["Hello", "World"];
 console.log("Strings:", strings);
 ```
-- 定义元组
+- Defining a tuple
 ```kingscript
-// 定义一个元组，包含一个字符串和一个数值
+// Define a tuple containing a string and a number
 let person: [string, number] = ["Bob", 30];
 console.log("Person:", person);
 ```
-- 定义枚举
+- Defining an enum
 ```kingscript
-// 定义一个枚举
+// Define an enum
 enum Color {
     Red,
     Green,
@@ -36,73 +36,73 @@ enum Color {
 }
 let favoriteColor: Color = Color.Green;
 console.log("Favorite Color:", favoriteColor); 
-// 输出: 1
+// Output: 1
 ```
-- 定义布尔变量
+- Defining a boolean variable
 ```kingscript
-// 定义一个布尔变量
+// Define a boolean variable
 let isActive: boolean = true;
 console.log("Is Active:", isActive);
 ```
-- BigDecimal类型变量
+- BigDecimal type variable
 ```kingscript
-//内置类型，数值对象，同Java BigDecimal，用于数值精确计算，在运行时创建为JVM中的BigDecimal对象。
+// Built-in type, a numeric object equivalent to Java's BigDecimal, used for precise numeric calculations; at runtime it is created as a BigDecimal object in the JVM.
 let a = new BigDecimal("0.1");
 let b = new BigDecimal("0.2");
 let c = a.add(b);
 ```
-- BigInt类型变量
+- BigInt type variable
 ```kingscript
-//BigInt是在ECMAScript 2020（ES11）版本中引入的，旨在解决JavaScript中处理大整数时的精度问题
+// BigInt was introduced in ECMAScript 2020 (ES11) to address the precision issues with large integers in JavaScript
 let number1 = 12345678912312n;
 let number2 = BigInt(12345678912312);
 let number3 = BigInt('12345678912312');
-//运算（同类型）
+// Operations (same type)
 let value1 = number1 + number2;
 let value2 = number2 * 123n;
 ```
-- 集合类型变量
+- Collection type variables
 ```kingscript
-//内置类型，类似Java集合，有HashMap、TreeMap、ArrayList、LinkedList、HashSet、TreeSet。
-//使用时需要从@cosmic/bos-script引入，如：
+// Built-in types, similar to Java collections, including HashMap, TreeMap, ArrayList, LinkedList, HashSet, TreeSet.
+// They need to be imported from @cosmic/bos-script, for example:
 import { HashMap } from "@cosmic/bos-script/java/util"
 let map = new HashMap()
 map.put("key", "value")
 ```
-- fori 循环
+- fori loop
 ```kingscript
-// 使用 fori 循环遍历数组
+// Use a fori loop to iterate over an array
 let fruits: string[] = ["Apple", "Banana", "Cherry"];
 for (let i: number = 0; i < fruits.length; i++) {
     console.log(`Fruit ${i}:`, fruits[i]);
 }
 ```
-- for of 循环
+- for of loop
 ```kingscript
-// 使用 for of 循环遍历数组
+// Use a for...of loop to iterate over an array
 let colors: string[] = ["Red", "Green", "Blue"];
 for (const color of colors) {
     console.log("Color:", color);
 }
 ```
-- 接口定义
+- Interface definition
 ```kingscript
-// 定义一个接口
+// Define an interface
 interface Person {
     name: string;
     age: number;
     isStudent: boolean;
 }
-// 使用接口定义一个对象
+// Use the interface to define an object
 let alice: Person = {
     name: "Alice",
     age: 20,
     isStudent: true
 };
 ```
-- 类定义
+- Class definition
 ```kingscript
-// 定义一个类
+// Define a class
 class Animal {
     name: string;
     constructor(name: string) {
@@ -112,8 +112,8 @@ class Animal {
         console.log(`${this.name} makes a sound.`);
     }
 }
-// 使用类
+// Use the class
 let myAnimal = new Animal("Dog");
 myAnimal.speak();
-// 输出: Dog makes a sound.
+// Output: Dog makes a sound.
 ```

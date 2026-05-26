@@ -1,30 +1,30 @@
 # BasedataProp
 
-## 基本信息
+## Basic Information
 
-- 名称: `BasedataProp`
-- Java 类名: `kd.bos.entity.property.BasedataProp`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/entity/property`
-- 类型: 基础资料字段元数据
+- Name: `BasedataProp`
+- Java class: `kd.bos.entity.property.BasedataProp`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/entity/property`
+- Type: Base data field metadata
 
-## 用途概览
+## Overview
 
-`BasedataProp` 描述的是基础资料字段本身的元数据，比如引用的资料类型、字段结构、显示规则等。它是“基础资料字段长什么样”的入口，不是“当前控件怎么弹 F7”的入口。
+`BasedataProp` describes the metadata of base data fields themselves, such as the referenced data type, field structure, and display rules. It is the entry point for "what a base data field looks like", not the entry point for "how the current control pops up F7".
 
-## 典型场景
+## Typical Scenarios
 
-- 判断某字段是不是基础资料字段
-- 通用工具里识别字段引用类型
-- 排查基础资料字段回填异常时确认元数据定义
+- Determining whether a field is a base data field
+- Identifying field reference types in generic tools
+- Confirming metadata definitions when troubleshooting base data field backfill anomalies
 
-## 常见搭配
+## Common Pairings
 
-- 基础资料控件: [BasedataEdit.md](BasedataEdit.md)
-- 主数据字段: [MasterBasedataProp.md](MasterBasedataProp.md)
-- 多选字段: [MulBasedataProp.md](MulBasedataProp.md)
+- Base data control: [BasedataEdit.md](BasedataEdit.md)
+- Master data field: [MasterBasedataProp.md](MasterBasedataProp.md)
+- Multi-select field: [MulBasedataProp.md](MulBasedataProp.md)
 
-## 关键词
+## Keywords
 
-- 中文: 基础资料字段, F7 字段元数据
-- 英文: `BasedataProp`
+- Chinese: base data field, F7 field metadata
+- English: `BasedataProp`

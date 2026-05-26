@@ -1,34 +1,34 @@
 # DBRoute
 
-## 基本信息
+## Basic Information
 
-- 名称: `DBRoute`
-- Java 类名: `kd.bos.db.DBRoute`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/db`
-- 类型: 数据库路由对象
+- Name: `DBRoute`
+- Java class: `kd.bos.db.DBRoute`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/db`
+- Type: Database route object
 
-## 用途概览
+## Overview
 
-`DBRoute` 用来描述数据库访问路由。凡是直接使用数据库能力、分库或按路由取主键的场景，都可能碰到它。
+`DBRoute` is used to describe database access routes. Any scenario involving direct database capabilities, database sharding, or primary key retrieval by route may encounter it.
 
-## 高频用法
+## Common Methods
 
-| 方法 | 作用 |
+| Method | Purpose |
 |------|------|
-| `of(...)` | 创建路由 |
-| `getPrimaryKeys(...)` | 在指定路由上取主键 |
+| `of(...)` | Create route |
+| `getPrimaryKeys(...)` | Get primary keys on the specified route |
 
-## 运行时注意事项
+## Runtime Notes
 
-- 直接数据库访问属于高风险能力，优先确认有没有更高层的 service/helper 可用。
-- 路由错了通常不是“查不到”这么简单，还可能带来组织边界或数据隔离问题。
+- Direct database access is a high-risk capability; prioritize confirming whether a higher-level service/helper is available.
+- A wrong route typically does not just mean "cannot find data"; it may also cause organization boundary or data isolation issues.
 
-## 常见搭配
+## Common Pairings
 
-- 异常体系: [KDException.md](KDException.md)
+- Exception system: [KDException.md](KDException.md)
 
-## 关键词
+## Keywords
 
-- 中文: 数据库路由, 分库路由
-- 英文: `DBRoute`
+- Chinese: database route, sharding route
+- English: `DBRoute`

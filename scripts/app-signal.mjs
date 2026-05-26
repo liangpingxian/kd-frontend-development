@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * 开发态动画信号脚本
- * 输出一行 :::render:kdapp ...::: 让右侧 UI 进入"正在开发"动画态
- * 调用方：模型在端到端开发链路的第一次回应里跑一次，stdout 原样贴回正文
+ * Development-mode animation signal script
+ * Outputs a line :::render:kdapp ...::: to put the right-side UI into the "developing" animation state
+ * Caller: the model runs this once in the first response of the end-to-end development chain; stdout is pasted back verbatim into the body
  *
- * 用法：
- *   node app-signal.mjs --title "签到时长查询页面"
+ * Usage:
+ *   node app-signal.mjs --title "Check-in Duration Query Page"
  */
 
 function parseTitle(argv) {

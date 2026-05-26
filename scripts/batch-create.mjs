@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * KWC 批量创建脚本
- * 一次调用批量创建多个组件、页面、Controller，避免逐个执行 kd project create
- * 零外部依赖，仅使用 Node.js 内置模块
- * 公共基础设施函数来自 ./_shared.mjs
+ * KWC batch-create script.
+ * Creates multiple components, pages, and controllers in a single invocation — avoids running `kd project create` one at a time.
+ * Zero external dependencies — only Node.js built-ins.
+ * Shared infrastructure helpers live in ./_shared.mjs.
  */
 
 import { execSync } from 'node:child_process'
@@ -17,18 +17,18 @@ import {
 
 const fatal = createFatal('batch-create')
 
-// 非交互 shell 下 npm 全局 bin 通常不在 PATH，先补一下，避免 `kd` 命令 ENOENT
+// Non-interactive shells usually don't have the npm global bin on PATH; patch it first to avoid ENOENT when spawning `kd`.
 augmentPathWithNpmGlobalBin()
 
-// ─── 工具函数 ────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────
 
-/** 将逗号分隔的字符串拆为去空白的名称数组，空串返回空数组 */
+/** Split a comma-separated string into a trimmed name list; empty input → empty array. */
 function splitNames(raw) {
   if (!raw || raw === true) return []
   return raw.split(',').map(s => s.trim()).filter(Boolean)
 }
 
-/** 执行单条 kd project create 命令，返回结果对象 */
+/** Execute a single kd project create command, returning a result object */
 function runCreate(name, type, env) {
   const args = ['project', 'create', name, '--type', type]
   if (env && type === 'controller') args.push('-e', env)
@@ -41,13 +41,13 @@ function runCreate(name, type, env) {
   }
 }
 
-/** 构建某一类别的汇总统计 */
+/** Build summary statistics for a category */
 function summarize(items) {
   const success = items.filter(r => r.success).length
   return { total: items.length, success, failed: items.length - success }
 }
 
-// ─── 主流程 ──────────────────────────────────────────────
+// ─── Main flow ──────────────────────────────────────────────
 
 function main() {
   const opts = parseArgs(process.argv.slice(2))
@@ -57,7 +57,7 @@ function main() {
   const controllers = splitNames(opts.controllers)
   const env         = typeof opts.env === 'string' ? opts.env : undefined
 
-  // 校验：至少需要一种创建任务
+  // Validation: at least one type of creation task is required
   if (components.length === 0 && pages.length === 0 && controllers.length === 0) {
     fatal(
       'at least one of --components / --pages / --controllers is required\n' +
@@ -71,12 +71,12 @@ function main() {
 
   const results = { components: [], controllers: [], pages: [] }
 
-  // 1. 先创建组件
+  // 1. Create components first
   for (const name of components) {
     results.components.push(runCreate(name, 'kwc', env))
   }
 
-  // 2. 再创建 Controller
+  // 2. Then create Controllers
   if (controllers.length > 0 && !env) {
     console.warn('[batch-create] Warning: --env not specified; Controller creation typically needs an env to fetch SDK.')
   }
@@ -84,12 +84,12 @@ function main() {
     results.controllers.push(runCreate(name, 'controller', env))
   }
 
-  // 3. 最后创建页面
+  // 3. Finally create pages
   for (const name of pages) {
     results.pages.push(runCreate(name, 'page', env))
   }
 
-  // 汇总
+  // Summary
   const details = [
     ...results.components,
     ...results.controllers,
@@ -109,7 +109,7 @@ function main() {
 
   console.log(JSON.stringify(output, null, 2))
 
-  // 如果全部失败则以非零码退出
+  // Exit with non-zero code if all failed
   if (details.length > 0 && details.every(r => !r.success)) {
     process.exit(1)
   }

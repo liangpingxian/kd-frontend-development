@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * KWC 工程初始化脚本
- * 使用 kd project init 原生参数一键创建工程，跨平台（macOS / Linux / Windows）
- * 零外部依赖，仅使用 Node.js 内置模块
- * 公共基础设施函数来自 ./_shared.mjs
+ * KWC Project Initialization Script
+ * Uses kd project init native parameters for one-click project creation, cross-platform (macOS / Linux / Windows)
+ * Zero external dependencies, uses only Node.js built-in modules
+ * Common infrastructure functions from ./_shared.mjs
  */
 
 import { parseArgs, createFatal, augmentPathWithNpmGlobalBin } from './_shared.mjs'
@@ -13,7 +13,7 @@ import path from 'node:path'
 
 const fatal = createFatal('project-init')
 
-// ─── 常量 ───────────────────────────────────────────────
+// ─── Constants ───────────────────────────────────────────────
 
 const VALID_FRAMEWORKS = ['react', 'vue', 'lwc']
 const VALID_LANGUAGES = ['ts', 'js']
@@ -33,10 +33,10 @@ Note: this script does NOT run npm install. After init, run it yourself (in CN n
 Example:
   cd /workspace && node project-init.mjs --name my-project --framework react --language ts --app kdec_contract`
 
-// ─── 工具函数 ────────────────────────────────────────────
+// ─── Utility Functions ────────────────────────────────────────
 
-/** 检测 kd CLI 是否已安装，未安装则自动安装 */
-/** 检测 kd CLI 是否可调用（直接尝试运行，不依赖 which/PATH 字符串匹配） */
+/** Check if kd CLI is installed; auto-install if not */
+/** Check if kd CLI is callable (directly try running it, without relying on which/PATH string matching) */
 function isKdAvailable() {
   try {
     execSync('kd -v', { stdio: 'ignore' })
@@ -56,7 +56,7 @@ function ensureKdCli() {
   } catch (err) {
     fatal(`Failed to install kd CLI: ${err.message}`)
   }
-  // 安装完再补一次 PATH 并校验（新装的 bin 可能就在刚拿到的 prefix 下）
+  // After installation, augment PATH again and verify (the newly installed bin may be under the prefix we just obtained)
   augmentPathWithNpmGlobalBin()
   if (!isKdAvailable()) {
     fatal('kd CLI still not callable after install. Check that the npm global bin directory is on PATH (`npm config get prefix`).')
@@ -64,8 +64,8 @@ function ensureKdCli() {
 }
 
 /**
- * 调用 kd project init 原生参数完成工程初始化（无需交互）
- * 工程生成在 process.cwd() 下；调用方负责在调用前 cd 到目标父目录。
+ * Call kd project init with native parameters to complete project initialization (no interaction required)
+ * The project is generated under process.cwd(); the caller is responsible for cd'ing to the target parent directory before calling.
  * @returns {Promise<void>}
  */
 function runKdProjectInit(name, framework, language, app) {
@@ -89,18 +89,18 @@ function runKdProjectInit(name, framework, language, app) {
   })
 }
 
-// ─── 主流程 ──────────────────────────────────────────────
+// ─── Main Flow ─────────────────────────────────────────────
 
 async function main() {
   const args = parseArgs(process.argv.slice(2))
 
-  // --help 支持
+  // --help support
   if (args.help || process.argv.includes('--help')) {
     console.log(USAGE)
     process.exit(0)
   }
 
-  // 校验必填参数
+  // Validate required parameters
   const { name, framework, language, app } = args
 
   if (!name) fatal(`Missing required --name\n${USAGE}`)
@@ -115,10 +115,10 @@ async function main() {
     fatal(`Invalid --language: "${language}". Supported: ${VALID_LANGUAGES.join(' / ')}`)
   }
 
-  // 检测 / 安装 kd CLI
+  // Detect / install kd CLI
   ensureKdCli()
 
-  // 执行 kd project init（自动交互）
+  // Execute kd project init (automatic interaction)
   console.error('[project-init] Initializing project...')
   try {
     await runKdProjectInit(name, framework, language, app)
@@ -129,7 +129,7 @@ async function main() {
   const projectDir = path.resolve(process.cwd(), name)
   const installCmd = 'npm install --registry=https://registry.npmmirror.com'
 
-  // 输出结果摘要
+  // Output result summary
   const result = {
     success: true,
     project: name,

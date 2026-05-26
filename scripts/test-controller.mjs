@@ -1,61 +1,62 @@
 #!/usr/bin/env node
 
 /**
- * Controller 端到端自检脚本
+ * Controller End-to-End Self-Check Script
  *
- * 背景：
- *   苍穹部署后的 Controller 只暴露在 /kwc/v1/{isv}/{app}/... 这条路径上，
- *   该前缀仅支持 session Cookie 鉴权（无法用 OpenAPI access_token）。
- *   因此"写完 Controller 的端到端测试"必须走：
- *     账号密码登录 → 解析租户化 Cookie → 调 /kwc/v1
+ * Background:
+ *   Controllers deployed on Cosmic are only exposed at /kwc/v1/{isv}/{app}/...,
+ *   and this prefix only supports session Cookie authentication (OpenAPI access_token cannot be used).
+ *   Therefore, "writing an end-to-end test for a Controller" must go through:
+ *     Username/password login → Parse tenant-scoped Cookie → Call /kwc/v1
  *
- * 本脚本的职责就是封装上述流程，供 kwc-ks-controller-development 技能在
- * Controller 编写完成、部署完毕之后进行强制自检（必须通过本脚本测试全绿后，
- * 才能进入 KWC 前端对接代码的编写）。
+ * This script's responsibility is to encapsulate the above flow for the
+ * kwc-ks-controller-development skill to perform mandatory self-checks after
+ * Controller writing and deployment are complete (KWC frontend integration code
+ * may only be written after this script's tests all pass).
  *
- * 使用：
- *   # 方式 A：直接指定完整路径
+ * Usage:
+ *   # Mode A: Specify the full path directly
  *   node scripts/test-controller.mjs --env vb \
  *        --path /kwc/v1/kdtest/kdtest_kwc_test/demo/hello \
  *        --method GET --query "name=VB"
  *
- *   # 方式 B：三段式（isv/app 会从 .kd/config.json 自动读取）
+ *   # Mode B: Three-segment style (isv/app is auto-read from .kd/config.json)
  *   node scripts/test-controller.mjs --env vb \
  *        --sub demo --endpoint hello --method GET --query "name=VB"
  *
- *   # 方式 C：POST + JSON body
+ *   # Mode C: POST + JSON body
  *   node scripts/test-controller.mjs --env vb --path /kwc/v1/kdtest/xx/yy \
  *        --method POST --body '{"a":1}'
  *
- *   # 方式 D：带数据断言
+ *   # Mode D: With data assertions
  *   node scripts/test-controller.mjs --env vb \
  *        --path /kwc/v1/kdtest/kdtest_kwc_test/expense/list \
  *        --method GET --assert-not-empty data --assert-field data[0].id
  *
- * 账号/密码来源（优先级从高到低）：
- *   --user --password  >  ~/.kd/config.json 的 env.<name>.login_account.{fname,password}
+ * Account/password sources (priority from high to low):
+ *   --user --password  >  ~/.kd/config.json env.<name>.login_account.{fname,password}
  *
- * 参数：
- *   --env <name>           环境名（不传则使用默认环境）
- *   --path <absolute>      以 / 开头的完整接口路径（优先级最高）
- *   --sub <seg>            自定义子目录（path 未传时与 --endpoint 配合使用）
- *   --endpoint <seg>       末尾资源名（path 未传时必需）
- *   --method <HTTP>        默认 GET
- *   --query "k=v&k2=v2"    query 参数（或重复使用 --q）
- *   --q k=v                追加单条 query（可重复）
- *   --body '<json>'        请求体 JSON 字符串
- *   --body-file <path>     请求体 JSON 文件
- *   --user <account>       登录账号（覆盖 env.login_account.fname）
- *   --password <pwd>       登录密码（覆盖 env.login_account.password）
- *   --accountId <id>       数据中心 accountId（覆盖 env.accountId）
- *   --isv <isv>            URL 拼装时的 isv（覆盖 env.isv / .kd/config.json.isv）
- *   --app <app>            URL 拼装时的 app（覆盖 .kd/config.json.app）
- *   --verbose              输出请求详情
- *   --assert-status <code>          断言 HTTP 状态码（如 --assert-status 200）
- *   --assert-field <jsonpath>       断言字段存在且非 null/undefined（如 --assert-field data）
- *   --assert-not-empty <jsonpath>   断言字段为非空数组或非空对象（如 --assert-not-empty data）
- *   --assert-contains <path=value>  断言字段包含特定值（如 --assert-contains data[0].name=张三）
- *   --assert-type <path=type>       断言字段类型（如 --assert-type data=array）
+ * Parameters:
+ *   --env <name>           Environment name (uses default environment if not provided)
+ *   --path <absolute>      Full API path starting with / (highest priority)
+ *   --sub <seg>            Custom subdirectory (used with --endpoint when --path is not provided)
+ *   --endpoint <seg>       Last resource segment (required when --path is not provided)
+ *   --method <HTTP>        Default GET
+ *   --query "k=v&k2=v2"    Query parameters (or use --q repeatedly)
+ *   --q k=v                Append a single query parameter (repeatable)
+ *   --body '<json>'        Request body JSON string
+ *   --body-file <path>     Request body JSON file
+ *   --user <account>       Login account (overrides env.login_account.fname)
+ *   --password <pwd>       Login password (overrides env.login_account.password)
+ *   --accountId <id>       Data center accountId (overrides env.accountId)
+ *   --isv <isv>            isv for URL assembly (overrides env.isv / .kd/config.json.isv)
+ *   --app <app>            app for URL assembly (overrides .kd/config.json.app)
+ *   --verbose              Output request details
+ *   --assert-status <code>          Assert HTTP status code (e.g., --assert-status 200)
+ *   --assert-field <jsonpath>       Assert field exists and is non-null/undefined (e.g., --assert-field data)
+ *   --assert-not-empty <jsonpath>   Assert field is a non-empty array or non-empty object (e.g., --assert-not-empty data)
+ *   --assert-contains <path=value>  Assert field contains a specific value (e.g., --assert-contains data[0].name=John)
+ *   --assert-type <path=type>       Assert field type (e.g., --assert-type data=array)
  */
 
 import { readFileSync, existsSync } from 'node:fs'
@@ -93,7 +94,7 @@ function parseQueryString(str) {
   return out
 }
 
-/** 收集所有 --q k=v（支持多次） */
+/** Collect all --q k=v entries (supports multiple) */
 function collectRepeatedQ(argv) {
   const out = {}
   for (let i = 0; i < argv.length; i++) {
@@ -107,7 +108,7 @@ function collectRepeatedQ(argv) {
   return out
 }
 
-/** 收集所有重复出现的 --assert-* 参数 */
+/** Collect all repeating --assert-* parameters */
 function collectAssertArgs(argv) {
   const assertions = []
   for (let i = 0; i < argv.length; i++) {
@@ -127,8 +128,8 @@ function collectAssertArgs(argv) {
 }
 
 /**
- * 解析简单 jsonpath：支持点路径 + 数组索引
- * 例: "data", "data.rows", "data[0].name", "data.total"
+ * Parse simple jsonpath: supports dot-notation paths + array indexing
+ * Example: "data", "data.rows", "data[0].name", "data.total"
  */
 function resolveJsonPath(obj, path) {
   const segments = path.replace(/\[(\d+)\]/g, '.$1').split('.')
@@ -140,7 +141,7 @@ function resolveJsonPath(obj, path) {
   return current
 }
 
-/** 执行所有断言，返回 { passed: boolean, results: Array } */
+/** Execute all assertions, returns { passed: boolean, results: Array } */
 function runAssertions(assertions, httpStatus, responseData) {
   const results = []
   for (const a of assertions) {
@@ -266,7 +267,7 @@ async function main() {
   console.log(`[test-controller] endpoint: ${method} ${path}${Object.keys(query).length ? ' ?' + new URLSearchParams(query).toString() : ''}`)
   if (opts.verbose && body !== undefined) console.log('[test-controller] body:', JSON.stringify(body))
 
-  // 1) 登录拿 Cookie
+  // 1) Login to get Cookie
   console.log('[test-controller] logging in...')
   let cookie
   try {
@@ -280,7 +281,7 @@ async function main() {
   }
   if (opts.verbose) console.log('[test-controller] Cookie:', cookie.slice(0, 80) + '...')
 
-  // 2) 调 Controller
+  // 2) Call Controller
   let result
   try {
     result = await callControllerViaCookie(baseUrl, cookie, path, { method, query, body })
@@ -288,12 +289,12 @@ async function main() {
     fatal(`endpoint call failed: ${e.message}`)
   }
 
-  // 3) 结果判定
+  // 3) Evaluate results
   console.log(`[test-controller] HTTP ${result.status}`)
   const out = result.data != null ? JSON.stringify(result.data, null, 2) : result.raw.slice(0, 800)
   console.log(out)
 
-  // 常见业务层失败形态
+  // Common business-layer failure patterns
   if (result.data && result.data.success === false) {
     fatal(`Controller business failure: error_code=${result.data.error_code} error_desc=${result.data.error_desc}`)
   }
@@ -301,7 +302,7 @@ async function main() {
     fatal(`Controller HTTP error: ${result.status}`)
   }
 
-  // 4) 数据断言
+  // 4) Data assertions
   const assertions = collectAssertArgs(argv)
   if (assertions.length > 0) {
     console.log(`\n[test-controller] running assertions (${assertions.length})...`)

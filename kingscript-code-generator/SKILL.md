@@ -1,133 +1,133 @@
 ---
 name: kingscript-code-generator
-description: "用 KingScript 做 KWC 脚本控制器后端 API 开发（REST/Web API）与数据 CRUD（DynamicObject / QueryServiceHelper / QFilter）。优先复用本仓库内的 SDK 索引、运行时约束、安全模板，不编造 API。"
+description: "Use KingScript to develop KWC script controller backend APIs (REST/Web API) and data CRUD (DynamicObject / QueryServiceHelper / QFilter). Prefer reusing the SDK index, runtime constraints, and safe templates in this repository — do not invent APIs."
 ---
 
-# Kingscript 后端开发入口
+# Kingscript Backend Development Entry Point
 
-本 skill 聚焦「用 KingScript 在 KWC 脚本控制器里写后端 API + 数据 CRUD」。不覆盖表单/列表/操作/报表等老式前端耦合插件体系。
+This skill focuses on "writing backend APIs + data CRUD in KWC script controllers using KingScript." It does not cover legacy frontend-coupled plugin systems such as forms, lists, operations, or reports.
 
-## 何时触发
+## When to Trigger
 
-- 写或改 KWC 脚本控制器、REST / Web API
-- 用 KingScript 做新增、修改、查询、删除数据
-- 诊断 KWC 运行时报错、审查生成代码
-- 解释 SDK 类、方法、Java 开放能力映射
+- Writing or modifying KWC script controllers, REST / Web APIs
+- Using KingScript to create, update, query, or delete data
+- Diagnosing KWC runtime errors, reviewing generated code
+- Explaining SDK classes, methods, and Java open-capability mappings
 
-## 任务路由速查
+## Task Routing Quick Reference
 
-| 用户问什么 | 先读这里 |
+| What the user asks | Read this first |
 |---|---|
-| KWC 控制器怎么配、怎么写、怎么部署 | `references/backend/脚本控制器开发指南.md` |
-| 起手模板 / 保守写法 | `references/backend/controller-safe-template.md` |
-| 数据 CRUD 怎么写 | `references/sdk/classes/QueryServiceHelper.md` + `QFilter.md` + `DynamicObject.md` + `BusinessDataServiceHelper.md` |
-| 金额 / BigDecimal / 大整数 ID | `references/backend/runtime-number-bridge.md` |
-| 日期字段 / QFilter 日期入参 | `references/backend/runtime-date-bridge.md` |
-| DynamicObject 读取规范 | `references/backend/runtime-dynamicobject.md` |
-| 运行时报错 / 500 空体 | `references/backend/faq-runtime-pitfalls.md` + `references/sdk/indexes/error-index.md` |
-| 不知道用哪个类 | `references/sdk/indexes/keyword-index.md` 或 `scenario-index.md` |
-| 已知类名找说明 | `references/sdk/classes/<ClassName>.md`（若无卡片则查 `indexes/module-index.md` 定位模块） |
-| 已知方法名找说明 | `references/sdk/indexes/methods-hot.md`（后端高频）|
-| 语法 / 关键字 / 命名 | `references/syntax/` |
-| Java ↔ KingScript 类型桥接 | `references/backend/runtime-number-bridge.md` + `runtime-date-bridge.md` + `runtime-dynamicobject.md` |
+| How to configure, write, and deploy a KWC controller | `references/backend/script-controller-guide.md` |
+| Starter template / conservative style | `references/backend/controller-safe-template.md` |
+| How to write data CRUD | `references/sdk/classes/QueryServiceHelper.md` + `QFilter.md` + `DynamicObject.md` + `BusinessDataServiceHelper.md` |
+| Amount / BigDecimal / large integer IDs | `references/backend/runtime-number-bridge.md` |
+| Date fields / QFilter date parameters | `references/backend/runtime-date-bridge.md` |
+| DynamicObject read conventions | `references/backend/runtime-dynamicobject.md` |
+| Runtime errors / empty HTTP 500 body | `references/backend/faq-runtime-pitfalls.md` + `references/sdk/indexes/error-index.md` |
+| Don't know which class to use | `references/sdk/indexes/keyword-index.md` or `scenario-index.md` |
+| Known class name, need docs | `references/sdk/classes/<ClassName>.md` (if no card exists, locate the module via `indexes/module-index.md`) |
+| Known method name, need docs | `references/sdk/indexes/methods-hot.md` (frequently-used backend methods) |
+| Syntax / keywords / naming | `references/syntax/` |
+| Java ↔ KingScript type bridging | `references/backend/runtime-number-bridge.md` + `runtime-date-bridge.md` + `runtime-dynamicobject.md` |
 
-## 资料地图（叶子文件直达）
+## Reference Map (Direct Links to Leaf Files)
 
-### 定制开发专题（必读）
+### Custom Development Topics (Required Reading)
 
-- `references/backend/脚本控制器开发指南.md` — KWC 控制器完整开发指南（配置、URL、权限、请求/响应 API）
-- `references/backend/controller-safe-template.md` — 保守起手模板（含 `toJavaSafe` 递归转换）
-- `references/backend/faq-runtime-pitfalls.md` — P0 硬约束总表 + 14 条常见坑
-- `references/backend/runtime-number-bridge.md` — BigDecimal / Long / BigInt 运行时约束
-- `references/backend/runtime-date-bridge.md` — Java Date ↔ JS Date 桥接约束
-- `references/backend/runtime-dynamicobject.md` — DynamicObject 读取规范
+- `references/backend/script-controller-guide.md` — Complete KWC controller development guide (config, URL, permissions, request/response API)
+- `references/backend/controller-safe-template.md` — Conservative starter template (includes recursive `toJavaSafe` conversion)
+- `references/backend/faq-runtime-pitfalls.md` — P0 hard-constraint master table + 14 common pitfalls
+- `references/backend/runtime-number-bridge.md` — BigDecimal / Long / BigInt runtime constraints
+- `references/backend/runtime-date-bridge.md` — Java Date ↔ JS Date bridging constraints
+- `references/backend/runtime-dynamicobject.md` — DynamicObject read conventions
 
-### SDK 索引（按已知信息反查）
+### SDK Indexes (Reverse Lookup by Known Info)
 
-- `references/sdk/indexes/methods-hot.md` — 后端 CRUD 高频方法
-- `references/sdk/indexes/keyword-index.md` — 按关键字/口语反查
-- `references/sdk/indexes/scenario-index.md` — 按业务场景反查
-- `references/sdk/indexes/error-index.md` — 按报错反查
-- `references/sdk/indexes/deprecated-index.md` — 废弃/不推荐清单
-- `references/sdk/indexes/module-index.md` — 按模块反查
-- `references/sdk/indexes/microservice-index.md` — 按微服务反查
+- `references/sdk/indexes/methods-hot.md` — Frequently-used backend CRUD methods
+- `references/sdk/indexes/keyword-index.md` — Reverse lookup by keyword / colloquial term
+- `references/sdk/indexes/scenario-index.md` — Reverse lookup by business scenario
+- `references/sdk/indexes/error-index.md` — Reverse lookup by error message
+- `references/sdk/indexes/deprecated-index.md` — Deprecated / discouraged list
+- `references/sdk/indexes/module-index.md` — Reverse lookup by module
+- `references/sdk/indexes/microservice-index.md` — Reverse lookup by microservice
 
-### SDK 类知识卡（CRUD 核心）
+### SDK Class Knowledge Cards (CRUD Core)
 
-- **数据访问**：`QueryServiceHelper` · `QFilter` · `QCP` · `BusinessDataServiceHelper` · `DBRoute`
-- **数据模型**：`DynamicObject` · `DynamicObjectCollection`
-- **元数据**：`EntityType` · `MainEntityType` · `EntryType` · `SubEntryType` · `EntityMetadataCache`
-- **基础资料元数据**：`BasedataProp` · `MulBasedataProp` · `MasterBasedataProp`
-- **弹性域元数据**：`FlexEntityType` · `FlexProp` · `FlexProperty`
-- **操作结果与校验**：`OperationResult` · `ValidateResult` · `ValidationErrorInfo` · `ErrorLevel`
-- **数值 / 日期**：`BigDecimal` · `Date`
-- **请求上下文 / 异常 / 序列化**：`RequestContext` · `KDException` · `SerializationUtils`
+- **Data access**: `QueryServiceHelper` · `QFilter` · `QCP` · `BusinessDataServiceHelper` · `DBRoute`
+- **Data model**: `DynamicObject` · `DynamicObjectCollection`
+- **Metadata**: `EntityType` · `MainEntityType` · `EntryType` · `SubEntryType` · `EntityMetadataCache`
+- **Base data metadata**: `BasedataProp` · `MulBasedataProp` · `MasterBasedataProp`
+- **Flex field metadata**: `FlexEntityType` · `FlexProp` · `FlexProperty`
+- **Operation results & validation**: `OperationResult` · `ValidateResult` · `ValidationErrorInfo` · `ErrorLevel`
+- **Numbers / dates**: `BigDecimal` · `Date`
+- **Request context / exceptions / serialization**: `RequestContext` · `KDException` · `SerializationUtils`
 
-所有类文件统一放在 `references/sdk/classes/<ClassName>.md`。
+All class files live under `references/sdk/classes/<ClassName>.md`.
 
-### SDK 其他
+### Other SDK
 
-- `references/sdk/strategy.md` — SDK 检索策略与降级路线
-- `references/sdk/manifests/modules.json` — 21 个业务域模块统计（识别 `@constellation/*` / `@cosmic/*` 归属）
-- `references/sdk/manifests/summary.json` — SDK 整体统计
+- `references/sdk/strategy.md` — SDK lookup strategy and fallback paths
+- `references/sdk/manifests/modules.json` — Statistics for 21 business-domain modules (identifies `@constellation/*` / `@cosmic/*` ownership)
+- `references/sdk/manifests/summary.json` — Overall SDK statistics
 
-### 语法 / 关键字 / 命名
+### Syntax / Keywords / Naming
 
-- `references/syntax/命名规范.md`
-- `references/syntax/保留关键字.md`
-- `references/syntax/变量.md`
-- `references/syntax/方法.md`
-- `references/syntax/类.md`
-- `references/syntax/接口.md`
-- `references/syntax/条件判断.md`
-- `references/syntax/循环.md`
-- `references/syntax/异常处理.md`
-- `references/syntax/模块及引用.md`
-- `references/syntax/语法示例.md`
+- `references/syntax/naming-conventions.md`
+- `references/syntax/reserved-keywords.md`
+- `references/syntax/variables.md`
+- `references/syntax/methods.md`
+- `references/syntax/classes.md`
+- `references/syntax/interfaces.md`
+- `references/syntax/conditionals.md`
+- `references/syntax/loops.md`
+- `references/syntax/exception-handling.md`
+- `references/syntax/modules-and-imports.md`
+- `references/syntax/syntax-examples.md`
 
-## 运行时硬约束（P0）
+## Runtime Hard Constraints (P0)
 
-完整规则、代码例子、症状/原因/错误写法都在 `references/backend/faq-runtime-pitfalls.md` 顶部的「P0 总表 + 自检清单」。输出代码前必须逐条核对，违反一条即视为不合格。精要回顾：
+The full rules, code examples, and symptom/cause/wrong-pattern breakdowns are in the "P0 master table + self-check list" at the top of `references/backend/faq-runtime-pitfalls.md`. Every constraint must be verified before outputting code; violating any one makes the output unacceptable. Brief recap:
 
-1. 禁 `?.` / `??` / 深层解构 / 对 Java 对象链式 JS 调用
-2. 禁用 `Number()/toFixed()/Number.isFinite()` 处理 Java 数值；大整数走 `BigInt("...")`
-3. 禁把 Java Date 当 JS Date 用
-4. DynamicObject 统一 `row.get('fieldKey')`；分录字段必须带 `entryentity.` 前缀
-5. 顶层响应必须是对象（不允许返回数组）
-6. 响应内容必须是 Java 集合（`ArrayList` / `HashMap` / `HashSet`），用 `toJavaSafe` 递归转换
-7. adapterApi 必查 `config.app` / `config.isvId`
-8. 禁定义 `static` 方法与 `static` 变量
+1. No `?.` / `??` / deep destructuring / chained JS calls on Java objects
+2. Do not process Java numbers with `Number()/toFixed()/Number.isFinite()`; wrap large integers with `BigInt("...")`
+3. Do not treat a Java Date as a JS Date
+4. Read DynamicObject uniformly via `row.get('fieldKey')`; entry fields must carry the `entryentity.` prefix
+5. The top-level response must be an object (arrays are not allowed as the top level)
+6. Response content must be Java collections (`ArrayList` / `HashMap` / `HashSet`); convert recursively with `toJavaSafe`
+7. For adapterApi, always check `config.app` / `config.isvId`
+8. Do not define `static` methods or `static` variables
 
-## 降级检索链路
+## Fallback Lookup Paths
 
-1. 用户只给了类名 → `sdk/classes/<ClassName>.md`（无卡片则按 `sdk/indexes/module-index.md` 反查模块）
-2. 只给了方法名 → `sdk/indexes/methods-hot.md`
-3. 只给了业务词 → `sdk/indexes/scenario-index.md` 或 `keyword-index.md`
-4. 只给了报错 → `sdk/indexes/error-index.md` + `backend/faq-runtime-pitfalls.md`
-5. 仍不足 → 本地 `.d.ts` 或在线 Javadoc；未命中必须明确声明假设与缺口，不得编造
+1. User gives only a class name → `sdk/classes/<ClassName>.md` (no card → locate the module via `sdk/indexes/module-index.md`)
+2. Only a method name → `sdk/indexes/methods-hot.md`
+3. Only a business term → `sdk/indexes/scenario-index.md` or `keyword-index.md`
+4. Only an error message → `sdk/indexes/error-index.md` + `backend/faq-runtime-pitfalls.md`
+5. Still not enough → local `.d.ts` or online Javadoc; if nothing matches, state assumptions and gaps explicitly — do not fabricate
 
-## 输出规则
+## Output Rules
 
-每次输出按下列结构：
+Each output follows this structure:
 
-1. **场景**：一句话说清楚目标
-2. **假设**：列出当前依赖的前置条件（实体、字段、权限、运行时版本）
-3. **代码或方案**：按上面 P0 硬约束给出，所有非全局符号必须显式 import
-4. **风险**：列明未验证的点、已知的运行时坑位
-5. **待确认问题**：需要用户回答后才能收敛的信息
+1. **Scenario**: one-sentence statement of the goal
+2. **Assumptions**: list the prerequisites being relied on (entity, fields, permissions, runtime version)
+3. **Code or plan**: produced per the P0 hard constraints above; all non-global symbols must be explicitly imported
+4. **Risks**: unverified points, known runtime pitfalls
+5. **Questions to confirm**: information needed from the user before converging
 
-代码硬约束：
+Code hard constraints:
 
-- 生成代码前必须确认每个外部类、助手类、工具类的真实 import 路径
-- 不得依赖 IDE 自动导入；不需要 import 的符号必须说明理由（全局 / 局部定义 / 框架注入）
-- 调 `obj.method()` 前必须确认 `method` 属于 `obj` 当前类型或其声明继承链
-- 不允许按「近似名字」猜方法（例：声明是 `addItemClickListeners`，就不能写 `addItemClickService`）
-- 事件参数不得写成 `any`，按声明层类型原样写
+- Before generating code, confirm the real import path of every external class, helper class, and utility class
+- Do not rely on IDE auto-import; for any symbol that does not need an import, state the reason (global / locally defined / framework-injected)
+- Before calling `obj.method()`, confirm `method` belongs to `obj`'s current type or its declared inheritance chain
+- Do not guess methods by "similar name" (e.g., if the declaration is `addItemClickListeners`, do not write `addItemClickService`)
+- Event parameter types must not be written as `any`; copy them verbatim from the declaration layer
 
-## 禁止事项
+## Prohibitions
 
-- 不编造 Kingscript API、事件名、上下文对象结构
-- 不假设 TypeScript 声明保证运行时可用
-- 不忽略权限、租户、组织、账套、生命周期边界
-- 不定义 `static` 方法或 `static` 变量（含 `static readonly`）
-- 当用户指出生成代码有问题时，不仅修当前片段；还要判断是否应沉淀成可复用约束，并回写到 SKILL.md 或对应运行时文档，避免同类问题再次发生
+- Do not invent Kingscript APIs, event names, or context object structures
+- Do not assume TypeScript declarations guarantee runtime availability
+- Do not ignore permission, tenant, organization, account-book, or lifecycle boundaries
+- Do not define `static` methods or `static` variables (including `static readonly`)
+- When the user points out a problem in generated code, do not just fix the current snippet — also decide whether it should be distilled into a reusable constraint and back-ported to SKILL.md or the relevant runtime document, to prevent recurrence

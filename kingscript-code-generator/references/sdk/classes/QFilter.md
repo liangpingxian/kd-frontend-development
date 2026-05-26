@@ -1,57 +1,57 @@
 # QFilter
 
-## 基本信息
+## Basic Information
 
-- 名称：`QFilter`
-- Java 类名：`kd.bos.orm.query.QFilter`
-- TS 导出名：`QFilter`
-- 所属模块：`@cosmic/bos-core`
-- 所属包：`kd/bos/orm`
-- 命名空间：`kd.bos.orm.query`
-- 类型：查询过滤条件类
-- 来源：
-  - TS 声明：`@cosmic/bos-core/kd/bos/orm/query.d.ts`
-  - Javadoc：待补充
+- Name: `QFilter`
+- Java class: `kd.bos.orm.query.QFilter`
+- TS export name: `QFilter`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/orm`
+- Namespace: `kd.bos.orm.query`
+- Type: Query filter condition class
+- Sources:
+  - TS declaration: `@cosmic/bos-core/kd/bos/orm/query.d.ts`
+  - Javadoc: TBD
 
-## 用途概述
+## Overview
 
-用于构造查询过滤条件，常与 `BusinessDataServiceHelper`、`QueryServiceHelper`、`QCP` 搭配使用。
+Used to construct query filter conditions, commonly paired with `BusinessDataServiceHelper`, `QueryServiceHelper`, and `QCP`.
 
-## 典型场景
+## Typical Scenarios
 
-- 按主键、编码、状态查询业务数据
-- 构造 `=`、`like`、`in` 等条件
-- 多个条件组合后传给查询服务
-- 在插件中根据用户输入动态拼接查询条件
+- Query business data by primary key, code, or status
+- Construct conditions such as `=`, `like`, `in`
+- Combine multiple conditions and pass them to the query service
+- Dynamically assemble query conditions based on user input in plugins
 
-## 用户常见问法
+## Common User Phrasings
 
-- 过滤条件怎么写
-- `in` 查询怎么写
-- `QFilter` 为什么会类型转换错误
-- 查询服务的 filters 应该传什么
+- How to write filter conditions
+- How to write an `in` query
+- Why does `QFilter` throw a type conversion error
+- What should be passed as filters to the query service
 
-## 常见搭配
+## Common Pairings
 
 - `QCP`
-  - 用于表示比较操作符，如 `equals`、`in`
+  - Used to represent comparison operators such as `equals`, `in`
 - `BusinessDataServiceHelper`
-  - 常用于加载业务对象
+  - Commonly used to load business objects
 - `QueryServiceHelper`
-  - 常用于查询单条或多条数据
+  - Commonly used to query single or multiple records
 - `ArrayList`
-  - 在 `in` 这类场景下，单个 `QFilter` 内部往往需要 Java 集合类型
+  - In scenarios like `in`, a single `QFilter` internally often requires Java collection types
 
-## 高价值规则
+## High-Value Rules
 
-- 单个 `QFilter` 内部的参数，要优先按运行时要求准备类型
-- 多个 `QFilter` 组合时，外层通常使用 TypeScript 数组
-- `in` 场景不要默认传 JS 原生数组，优先检查是否应使用 `ArrayList`
-- 编辑器类型通过，不代表运行时类型一定兼容
+- Parameters inside a single `QFilter` should prioritize types as required by the runtime
+- When combining multiple `QFilter` objects, the outer layer typically uses a TypeScript array
+- For `in` scenarios, do not default to passing JS native arrays; check whether `ArrayList` should be used instead
+- Editor type checking passing does not guarantee runtime type compatibility
 
-## 示例代码
+## Example Code
 
-### 场景 1：简单等值查询
+### Scenario 1: Simple equality query
 
 ```kingscript
 let filters = [];
@@ -59,7 +59,7 @@ filters.push(new QFilter("id", "=", 10001));
 let data = BusinessDataServiceHelper.loadSingle("bos_user", "id,name", filters);
 ```
 
-### 场景 2：`in` 查询
+### Scenario 2: `in` query
 
 ```kingscript
 let filters = [];
@@ -70,38 +70,38 @@ filters.push(new QFilter("number", QCP.in, list));
 let datas = BusinessDataServiceHelper.load("bd_currency", "name", filters);
 ```
 
-## 运行时注意事项
+## Runtime Notes
 
-- `QFilter` 是运行时强相关类型，重点不是“能不能写出来”，而是“传进去的值类型对不对”
-- 过滤字段名、实体名、比较操作符和值类型需要同时匹配
-- 对于集合型参数，优先参考已有 FAQ 和示例，不要自由猜测
+- `QFilter` is a runtime-strongly-related type; the focus is not on "whether it can be written", but on "whether the value type passed in is correct"
+- Filter field name, entity name, comparison operator, and value type all need to match simultaneously
+- For collection-type parameters, prioritize referencing existing FAQs and examples; do not guess freely
 
-## 常见错误
+## Common Errors
 
-### 1. `QFilter` 类型转换错误
+### 1. `QFilter` type conversion error
 
-常见现象：
-- 运行时报类型转换异常
-- 查询条件看起来没问题，但服务执行失败
+Common symptoms:
+- Runtime type conversion exception
+- Query conditions appear fine, but service execution fails
 
-高概率原因：
-- `in` 条件值传成了不兼容的 JS 类型
-- 把 Java 容器和 TS 数组的使用层级搞反了
+High-probability causes:
+- The `in` condition value was passed as an incompatible JS type
+- Mixing up the usage levels of Java containers and TS arrays
 
-建议排查顺序：
-1. 检查单个 `QFilter` 内部的值是否需要 Java 类型
-2. 检查外层 filters 是否是数组
-3. 检查操作符和参数类型是否匹配
+Recommended troubleshooting order:
+1. Check whether the value inside a single `QFilter` requires a Java type
+2. Check whether the outer filters is an array
+3. Check whether the operator and parameter type match
 
-## 相关文档
+## Related Documents
 
 - [BusinessDataServiceHelper.md](BusinessDataServiceHelper.md)
 - [QueryServiceHelper.md](QueryServiceHelper.md)
 - troubleshooting.md
-- 4.4.9QFilter类型转换错误.md
+- 4.4.9 QFilter Type Conversion Error
 
-## 关键词
+## Keywords
 
-- 中文关键词：过滤条件、条件构造、查询条件、`in` 查询
-- 英文关键词：`QFilter`、`QCP`、filter
-- 常见报错词：类型转换错误、QFilter 转换失败
+- Chinese keywords: filter condition, condition construction, query condition, `in` query
+- English keywords: `QFilter`, `QCP`, filter
+- Common error terms: type conversion error, QFilter conversion failed

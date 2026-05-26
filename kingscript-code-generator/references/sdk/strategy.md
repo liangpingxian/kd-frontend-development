@@ -1,96 +1,96 @@
-# SDK 检索策略
+# SDK Lookup Strategy
 
-定义本 skill 的 SDK 检索降级链路，聚焦 KWC 脚本控制器后端 API + 数据 CRUD。
+Defines the SDK lookup fallback chain for this skill, focused on KWC script controller backend APIs + data CRUD.
 
-## 目标
+## Goals
 
-- 高频类优先命中知识卡。
-- 长尾类通过本地 `.d.ts` 和在线 Javadoc 兜底。
-- 明确"何时继续降级，何时停止并声明假设"。
+- Hit knowledge cards first for hot classes.
+- Fall back to local `.d.ts` and online Javadoc for long-tail classes.
+- Be explicit about "when to continue falling back vs. when to stop and declare assumptions".
 
-## 降级链路
+## Fallback chain
 
-### 第 1 层：知识卡
+### Layer 1: Knowledge cards
 
-- `references/sdk/classes/<ClassName>.md` — 27 个核心类（数据访问、元数据、基础资料/弹性域、运行时上下文等）
-- Java ↔ KingScript 类型桥接细节走 `../backend/runtime-number-bridge.md` / `runtime-date-bridge.md` / `runtime-dynamicobject.md`
+- `references/sdk/classes/<ClassName>.md` — 27 core classes (data access, metadata, master data / flex fields, runtime context, etc.)
+- Java ↔ KingScript type bridging details live in `../backend/runtime-number-bridge.md` / `runtime-date-bridge.md` / `runtime-dynamicobject.md`
 
-适用：已知类名且已有知识卡 / 高频类 / 需要用途 + 场景 + 风险 + FAQ。
+Use when: the class name is known and has a knowledge card / hot class / you need purpose + scenario + risks + FAQ.
 
-### 第 2 层：索引
+### Layer 2: Indexes
 
-未命中知识卡时按问题类型进入：
+When no knowledge card matches, enter by question type:
 
-- 方法名 → `indexes/methods-hot.md`
-- 模块 → `indexes/module-index.md`
-- 业务场景 → `indexes/scenario-index.md`
-- 关键词 / 口语 → `indexes/keyword-index.md`
-- 报错 → `indexes/error-index.md`（配合 `../backend/faq-runtime-pitfalls.md`）
-- 废弃 → `indexes/deprecated-index.md`
-- 微服务 → `indexes/microservice-index.md`
+- Method name → `indexes/methods-hot.md`
+- Module → `indexes/module-index.md`
+- Business scenario → `indexes/scenario-index.md`
+- Keyword / colloquial term → `indexes/keyword-index.md`
+- Error → `indexes/error-index.md` (paired with `../backend/faq-runtime-pitfalls.md`)
+- Deprecated → `indexes/deprecated-index.md`
+- Microservice → `indexes/microservice-index.md`
 
-适用：需要先定位类/包/模块；用户说法与 SDK 正式名称不一致；还没有对应知识卡。
+Use when: you need to locate a class/package/module first; the user's wording does not match the SDK's official name; no knowledge card exists yet.
 
-### 第 3 层：模块统计
+### Layer 3: Module statistics
 
-索引仍不足以回答细节时，读取结构化清单：
+When the indexes still aren't enough for detailed answers, read the structured manifests:
 
-- `manifests/summary.json` — 整体统计
-- `manifests/modules.json` — 21 个业务域模块统计（识别 `@constellation/*` / `@cosmic/*` 归属）
+- `manifests/summary.json` — overall statistics
+- `manifests/modules.json` — statistics for 21 business-domain modules (identifies `@constellation/*` / `@cosmic/*` ownership)
 
-适用：识别陌生类型属于哪个业务域 / 模块是否在 SDK 范围内。
+Use when: identifying which business domain an unfamiliar type belongs to / whether a module is in SDK scope.
 
-### 第 4 层：本地声明（.d.ts）
+### Layer 4: Local declarations (.d.ts)
 
-清单无法解释语义或需要更细签名时，读取本地 `@cosmic/bos-core`、`@cosmic/bos-script` 的 `.d.ts`。
+When the manifests can't explain semantics or you need finer signatures, read the local `.d.ts` for `@cosmic/bos-core` and `@cosmic/bos-script`.
 
-- 优先打开单个命中的 `.d.ts`，不整目录扫描。
-- 只读取与目标类 / 包 / 方法直接相关的文件。
+- Open the single matched `.d.ts` first; do not scan the entire directory.
+- Only read files directly related to the target class / package / method.
 
-### 第 5 层：在线 Javadoc
+### Layer 5: Online Javadoc
 
-本地声明只有结构、没有语义说明时，读取 [Cosmic V8.0.1 Javadoc](https://dev.kingdee.com/sdk/Cosmic%20V8.0.1/index.html?nav=class)。
+When local declarations only provide structure but no semantic description, consult [Cosmic V8.0.1 Javadoc](https://dev.kingdee.com/sdk/Cosmic%20V8.0.1/index.html?nav=class).
 
-适用：需要参数 / 返回值语义、版本信息、废弃说明；本地 `.d.ts` 注释不足。
+Use when: you need parameter / return-value semantics, version info, or deprecation notes; local `.d.ts` comments are insufficient.
 
-### 第 6 层：有界回答
+### Layer 6: Bounded answer
 
-以上各层仍不能确认时：
+When none of the above can confirm:
 
-- 明确说明查到了什么 / 缺什么 / 哪些是推断
-- 提供有界方案，不编造 SDK 内容
+- State clearly what you found / what's missing / what is inferred
+- Provide a bounded plan; do not fabricate SDK content
 
-## 检索停止条件
+## Stop conditions for lookup
 
-满足任意一条即可停止继续降级：
+Stop falling back as soon as any one of the following holds:
 
-- 已能确认类 / 场景 / 边界 / 风险
-- 已能给出足够可信的结构化回答
-- 再继续读取只会增加噪音、不会显著提高确定性
+- Class / scenario / boundaries / risks are confirmed
+- A sufficiently trustworthy structured answer can be given
+- Further reading would only add noise without meaningfully improving certainty
 
-## 不允许的行为
+## Disallowed behaviors
 
-- 跳过索引层直接整目录扫 `node_modules`
-- 只看 TypeScript 声明就默认运行时一定可用
-- 只确认方法名存在，不确认它属于当前变量类型或其继承链
-- 根据近似命名编造 API（例：把 `queryOne` 写成 `queryFirst`）
-- 把 A 事件参数、B 事件参数的方法互相挪用
-- 在生成代码里用 `any` 代替声明层给出的具体类型
-- 本地和在线来源冲突时擅自选一个而不说明
+- Skipping the index layer and scanning all of `node_modules` directly
+- Assuming runtime availability based only on TypeScript declarations
+- Confirming only that a method name exists, without confirming it belongs to the current variable's type or its inheritance chain
+- Fabricating APIs from similar names (e.g. writing `queryFirst` instead of `queryOne`)
+- Mixing methods from event A's parameters with those from event B's parameters
+- Using `any` in generated code instead of the concrete type given in the declarations
+- Picking one source when local and online sources conflict, without saying so
 
-## 输出要求
+## Output requirements
 
-涉及 SDK 解释时至少说明：命中的类或方法 · 来源层级（知识卡 / 索引 / 清单 / 本地声明 / 在线 Javadoc）· 已确认事实 · 运行时边界 · 待确认项。
+When explaining SDK content, state at minimum: matched class or method · source layer (knowledge card / index / manifest / local declaration / online Javadoc) · confirmed facts · runtime boundaries · open items.
 
-## 反馈闭环
+## Feedback loop
 
-当用户或运行时日志证明某段代码有问题时，不只修当前片段，还要判断：
+When the user or runtime logs prove a piece of code is wrong, don't just fix the current snippet — also judge:
 
-1. 这是单点笔误还是一类会重复出现的生成风险？
-2. 如能抽象成稳定规则，就同步回写到：
-   - 入口约束：`SKILL.md`
-   - 检索规则：`sdk/strategy.md`（本文件）
-   - 事实说明：对应 `sdk/classes/` / `sdk/indexes/`
-   - 运行时规则：`backend/faq-runtime-pitfalls.md` 顶部 P0 总表
+1. Is this a one-off typo, or a class of recurring generation risk?
+2. If it can be abstracted into a stable rule, write it back to:
+   - Entry constraints: `SKILL.md`
+   - Lookup rules: `sdk/strategy.md` (this file)
+   - Factual notes: the corresponding `sdk/classes/` / `sdk/indexes/`
+   - Runtime rules: the top-level P0 table in `backend/faq-runtime-pitfalls.md`
 
-优先沉淀的典型问题：近似命名伪 API · 方法不属于当前对象类型 · 事件参数被写成 `any` · BigDecimal / 大整数 / Java Date 桥接错误 · 响应体未用 `toJavaSafe` 转换。
+Typical issues to prioritize for distillation: fake APIs from similar names · methods not belonging to the current object's type · event parameters typed as `any` · BigDecimal / large integer / Java Date bridging errors · response bodies not converted with `toJavaSafe`.

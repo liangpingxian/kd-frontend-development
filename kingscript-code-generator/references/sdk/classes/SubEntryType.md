@@ -1,30 +1,30 @@
 # SubEntryType
 
-## 基本信息
+## Basic Information
 
-- 名称: `SubEntryType`
-- Java 类名: `kd.bos.entity.SubEntryType`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/entity`
-- 类型: 子分录实体类型
+- Name: `SubEntryType`
+- Java class: `kd.bos.entity.SubEntryType`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/entity`
+- Type: Sub-entry entity type
 
-## 用途概览
+## Overview
 
-`SubEntryType` 描述的是子分录的元数据结构，常见于多层明细、套件明细、费用拆分等场景。二开里只要出现“分录里还有一层分录”，通常就需要回到它这层确认结构。
+`SubEntryType` describes the metadata structure of sub-entries, commonly found in multi-level details, kit details, expense splits, and similar scenarios. In secondary development, whenever "an entry has another entry nested inside it", you typically need to come back to this level to confirm the structure.
 
-## 典型场景
+## Typical Scenarios
 
-- 子分录字段判断
-- 子分录和父分录的关系确认
-- 嵌套分录调试
+- Sub-entry field determination
+- Sub-entry and parent entry relationship confirmation
+- Nested entry debugging
 
-## 常见搭配
+## Common Pairings
 
-- 子分录控件: [SubEntryGrid.md](SubEntryGrid.md)
-- 分录类型: [EntryType.md](EntryType.md)
-- 元数据基类: [EntityType.md](EntityType.md)
+- Sub-entry control: [SubEntryGrid.md](SubEntryGrid.md)
+- Entry type: [EntryType.md](EntryType.md)
+- Metadata base class: [EntityType.md](EntityType.md)
 
-## 关键词
+## Keywords
 
-- 中文: 子分录类型, 子单据体元数据
-- 英文: `SubEntryType`
+- Chinese: sub-entry type, sub-entry entity metadata
+- English: `SubEntryType`

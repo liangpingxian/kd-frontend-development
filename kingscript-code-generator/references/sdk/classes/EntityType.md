@@ -1,40 +1,40 @@
 # EntityType
 
-## 基本信息
+## Basic Information
 
-- 名称: `EntityType`
-- Java 类名: `kd.bos.entity.EntityType`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/entity`
-- 类型: 实体元数据基类
+- Name: `EntityType`
+- Java class: `kd.bos.entity.EntityType`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/entity`
+- Type: Entity metadata base class
 
-## 用途概览
+## Overview
 
-`EntityType` 表示一个业务实体的元数据定义。字段列表、主键、显示名、父子关系、子实体切片等能力都在这一层。它更偏“元数据”和“结构说明”，不是实际数据对象。
+`EntityType` represents the metadata definition of a business entity. Capabilities such as field lists, primary keys, display names, parent-child relationships, and sub-entity slicing are all at this level. It is more about "metadata" and "structural description", not actual data objects.
 
-## 高频用法
+## Common Methods
 
-| 方法 | 作用 | 典型场景 |
+| Method | Purpose | Typical Scenario |
 |------|------|------|
-| `getName()` | 获取实体名称 | 打日志、调试元数据 |
-| `getFields()` | 获取字段字典 | 判断字段是否存在 |
-| `findProperty(name)` | 查字段元数据 | 动态判断字段类型 |
-| `getPrimaryKey()` | 获取主键字段 | 主键处理、通用工具 |
-| `getSubEntityType(props)` | 派生子实体类型 | 裁剪字段、局部处理 |
+| `getName()` | Get entity name | Logging, metadata debugging |
+| `getFields()` | Get field dictionary | Checking if a field exists |
+| `findProperty(name)` | Look up field metadata | Dynamically determining field type |
+| `getPrimaryKey()` | Get primary key field | Primary key handling, generic tools |
+| `getSubEntityType(props)` | Derive sub-entity type | Trimming fields, partial processing |
 
-## 高价值规则
+## High-Value Rules
 
-- `EntityType` 是“结构”，`DynamicObject` 是“数据”，两者不要混用。
-- 当你在写通用工具、桥接代码或复杂调试时，`EntityType` 的价值会比页面事件更高。
-- 如果问题是“字段到底是不是基础资料/弹性域/分录字段”，优先回到元数据层确认。
+- `EntityType` is "structure", `DynamicObject` is "data"; do not conflate the two.
+- When writing generic tools, bridging code, or complex debugging, `EntityType` provides more value than page events.
+- If the question is "is this field a base data / flex / entry field", prioritize confirming at the metadata layer.
 
-## 常见搭配
+## Common Pairings
 
-- 主实体类型: [MainEntityType.md](MainEntityType.md)
-- 分录类型: [EntryType.md](EntryType.md)
-- 元数据缓存: [EntityMetadataCache.md](EntityMetadataCache.md)
+- Main entity type: [MainEntityType.md](MainEntityType.md)
+- Entry type: [EntryType.md](EntryType.md)
+- Metadata cache: [EntityMetadataCache.md](EntityMetadataCache.md)
 
-## 关键词
+## Keywords
 
-- 中文: 实体类型, 元数据, 字段定义
-- 英文: `EntityType`
+- Chinese: entity type, metadata, field definition
+- English: `EntityType`

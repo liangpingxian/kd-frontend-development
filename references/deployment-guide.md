@@ -1,424 +1,424 @@
-在部署前先完成环境配置。
+Complete environment configuration before deployment.
 
-### 环境存在性检查
+### Environment existence check
 
-当用户提供了具体的环境名称或别名（如 `dev`、`sit`、`uat` 等）时，应先执行环境存在性检查：
+When the user provides a specific environment name or alias (e.g. `dev`, `sit`, `uat`), first run an environment existence check:
 
-1. 运行 `kd env list` 查看当前已配置的环境列表
-2. 若目标环境已存在于列表中：
-   - 不需要再让用户提供 URL、Client ID/Secret 等环境信息
-   - 直接使用该环境进行后续操作（如 deploy、debug）
-   - 若该环境不是当前默认环境，可通过 `kd env set target-env <name>` 切换
-   - 使用 `kd env list` 确认环境认证状态
-3. 只有当环境不存在时，才进入完整的环境创建和认证流程
+1. Run `kd env list` to view the currently configured environments
+2. If the target environment already exists in the list:
+   - Do not collect URL, Client ID/Secret, or any other environment info from the user
+   - Use that environment directly for subsequent operations (deploy, debug, etc.)
+   - If it is not the current default environment, switch with `kd env set target-env <name>`
+   - Use `kd env list` to confirm the environment's authentication status
+3. Only when the environment does not exist do you enter the full environment creation and authentication flow
 
-### 新建环境流程
+### New environment flow
 
-> **⚠️ 必须通过脚本执行，禁止直接在终端运行任何 kd CLI 交互式命令。**
+> **⚠️ Must be executed via the script. Do NOT run any interactive kd CLI commands directly in the terminal.**
 
-当环境不存在时，按以下流程执行：
+When the environment does not exist, follow this flow:
 
-#### 必须使用自动化脚本
+#### Must use the automation script
 
-**必须使用 `setup-env.mjs` 脚本完成环境配置，禁止直接执行 CLI 交互式命令。**
+**You must use the `setup-env.mjs` script to complete environment configuration; running interactive CLI commands directly is forbidden.**
 
-使用 `setup-env.mjs` 一键完成环境创建和认证。脚本会自动检测环境是否已存在，根据情况决定是否需要创建环境。
+Use `setup-env.mjs` to create and authenticate the environment in one shot. The script automatically detects whether the environment already exists and decides whether creation is needed.
 
-AI **必须**先向用户收集以下认证信息，用户未提供时应**停下来询问**：
+The AI **must** first collect the following authentication info from the user; if the user has not provided it, **stop and ask**:
 
-**始终必填：**
-- 环境名（envName）
-- Client ID（clientId）
-- Client Secret（clientSecret）
-- 用户名（username）
+**Always required:**
+- Environment name (envName)
+- Client ID (clientId)
+- Client Secret (clientSecret)
+- Username (username)
 
-**条件必填：**
-- 环境 URL（envUrl）：环境不存在时必填，环境已存在时可省略
+**Conditionally required:**
+- Environment URL (envUrl): required when the environment does not exist; can be omitted when it does
 
-> 若环境已存在（如通过 `kd env create` 创建过），只需提供认证参数（clientId、clientSecret、username），脚本会自动跳过环境创建直接认证。
+> If the environment already exists (e.g. it was created earlier with `kd env create`), you only need to provide the authentication parameters (clientId, clientSecret, username); the script will skip environment creation and authenticate directly.
 
-收集完毕后执行：
+Once collected, execute:
 
-> 脚本位于本技能安装目录的 `scripts/` 子目录下，不在用户项目目录中。请先确定本 SKILL.md 文件的绝对路径，然后执行：
+> The script lives in the `scripts/` subdirectory under this Skill's install directory, not in the user's project. Determine the absolute path to this SKILL.md first, then execute:
 
 ```bash
-# 环境不存在时（需要创建）：
-node $SKILL_DIR/setup-env.mjs --envName <环境名> --envUrl <URL> --clientId <ID> --clientSecret <Secret> --username <用户名>
+# When the environment does not exist (needs creation):
+node $SKILL_DIR/setup-env.mjs --envName <env name> --envUrl <URL> --clientId <ID> --clientSecret <Secret> --username <username>
 
-# 环境已存在时（仅认证，脚本会从 ~/.kd/config.json 读取 url）：
-node $SKILL_DIR/setup-env.mjs --envName <环境名> --clientId <ID> --clientSecret <Secret> --username <用户名>
+# When the environment already exists (auth only; the script reads url from ~/.kd/config.json):
+node $SKILL_DIR/setup-env.mjs --envName <env name> --clientId <ID> --clientSecret <Secret> --username <username>
 
-# 多数据中心时（第一次调用会退出码 2 并打印候选列表，按提示补 --datacenter 重跑）：
-node $SKILL_DIR/setup-env.mjs --envName <环境名> --envUrl <URL> --clientId <ID> --clientSecret <Secret> --username <用户名> --datacenter <accountId>
+# Multi-datacenter (first call exits with code 2 and prints the candidate list; re-run with --datacenter as instructed):
+node $SKILL_DIR/setup-env.mjs --envName <env name> --envUrl <URL> --clientId <ID> --clientSecret <Secret> --username <username> --datacenter <accountId>
 ```
 
-**脚本执行流程（零交互，跨平台）：**
-1. 参数校验
-2. 确定 `envUrl`（优先 `--envUrl`，环境已存在时可从 `~/.kd/config.json` 读取）
-3. 先无副作用地调用 `<envUrl>/auth/getAllDatacenters.do` 探测数据中心列表（失败不会污染本地配置）
-4. 根据数据中心数量决定：
-   - **1 个** → 自动选用，继续
-   - **多个 + 传了 `--datacenter`** → 校验 `accountId` 存在则使用
-   - **多个 + 未传 `--datacenter`** → 打印候选列表 + **退出码 2**，要求调用方补 `--datacenter <accountId>` 重跑（此时本地还没 createEnv，不会残留孤儿环境）
-5. 数据中心确认后才 createEnv（若不存在）
-6. 以 `kd env auth openapi -e <env> --datacenter <id> --client-id <cid> --client-secret <secret> --username <user>` 原生参数完成认证
-7. 从 `~/.kd/config.json` 验证 `client_id / access_token / username` 确已落库
+**Script execution flow (zero-interaction, cross-platform):**
+1. Parameter validation
+2. Determine `envUrl` (prefer `--envUrl`; when the environment exists, may be read from `~/.kd/config.json`)
+3. Probe the datacenter list with a side-effect-free call to `<envUrl>/auth/getAllDatacenters.do` (a failure does not pollute local config)
+4. Decide based on the number of datacenters:
+   - **1** → use it automatically and continue
+   - **Multiple + `--datacenter` provided** → if the `accountId` exists, use it
+   - **Multiple + `--datacenter` not provided** → print the candidate list + **exit code 2**, asking the caller to re-run with `--datacenter <accountId>` (no createEnv has happened yet, so no orphan environments are left behind)
+5. Only after the datacenter is confirmed is createEnv called (if it does not exist)
+6. Authenticate using the native parameters `kd env auth openapi -e <env> --datacenter <id> --client-id <cid> --client-secret <secret> --username <user>`
+7. Verify from `~/.kd/config.json` that `client_id / access_token / username` have indeed been persisted
 
-**退出码约定：**
-- `0`：成功
-- `1`：参数错误 / 认证失败 / 其他错误
-- `2`：多数据中心且未指定 `--datacenter`，stderr 含候选列表，格式为 `accountName<TAB>(accountId=xxx)`
+**Exit code convention:**
+- `0`: success
+- `1`: parameter error / auth failure / other error
+- `2`: multi-datacenter with `--datacenter` not specified; stderr contains the candidate list in the format `accountName<TAB>(accountId=xxx)`
 
-**AI 处理策略：**
-调用脚本遇到退出码 `2` 时，从 stderr 提取候选列表并以选项方式呈现给用户（展示字段用 `accountName`），用户选定后以 `--datacenter <accountId>` 重跑脚本。
+**AI handling strategy:**
+When the script returns exit code `2`, extract the candidate list from stderr and present it as options to the user (display the `accountName` field). After the user selects, re-run the script with `--datacenter <accountId>`.
 
-### 需要收集环境信息的情况
+### When to collect environment info
 
-如果目标环境不存在，或环境存在但尚未完成认证，先停下来收集这些字段：
+If the target environment does not exist, or it exists but is not yet authenticated, stop and collect these fields first:
 
-**始终必填：**
-- 环境别名
+**Always required:**
+- Environment alias
 - Client ID
 - Client Secret
 - Username
 
-**环境不存在时额外必填：**
-- 环境 URL
+**Additionally required when the environment does not exist:**
+- Environment URL
 
-其中 `data center` 不属于预先手填字段，而属于"读取后选择"的字段：
+`data center` is not a pre-filled field; it is a "read-then-select" field:
 
-- 先有环境 URL
-- setup-env.mjs 在认证前会调用 `<envUrl>/auth/getAllDatacenters.do` 读取可用数据中心列表
-- **单个数据中心**：脚本自动选用（accountId），无需用户介入
-- **多个数据中心**：脚本以**退出码 2** 终止并打印候选列表（`accountName <TAB> accountId=...`），AI 应将候选列表作为选项让用户选择（展示字段用 `accountName`，入参字段用 `accountId`），选定后以 `--datacenter <accountId>` 重跑脚本
+- The environment URL must exist first
+- Before authenticating, setup-env.mjs calls `<envUrl>/auth/getAllDatacenters.do` to read the available datacenter list
+- **Single datacenter**: the script auto-selects it (accountId); no user intervention needed
+- **Multiple datacenters**: the script terminates with **exit code 2** and prints the candidate list (`accountName <TAB> accountId=...`); the AI should present the candidates as options to the user (display field: `accountName`; input field: `accountId`), then re-run the script with `--datacenter <accountId>`
 
-收集规则：
+Collection rules:
 
-- 环境别名、环境 URL、Client ID、Client Secret、Username 这些值必须由用户手工提供
-- `data center` 不要让用户自由输入，应让脚手架读取候选项后再选择
-- 不要使用历史环境中的凭据去猜测新环境
-- 不要因为存在 `dev`、`sit`、`base` 等别名，就自动推断这次要绑定哪个环境
+- The environment alias, environment URL, Client ID, Client Secret, and Username must be provided by the user manually
+- Do not let the user freely input `data center`; have the scaffold read the candidates first, then choose
+- Do not guess credentials for a new environment from historical ones
+- Do not auto-infer which environment to bind just because aliases like `dev`, `sit`, `base` exist
 
-交互方式规则：
+Interaction rules:
 
-- 不要假设当前一定支持弹窗或表单式输入
-- 在当前常规模式下，先让用户回填手工字段；数据中心由 setup-env.mjs 处理（单个自动选；多个走退出码 2 再由 AI 承接交互）
-- 若运行环境明确支持结构化选择工具，可以在脚本返回退出码 2 后把候选列表以选项形式展示给用户
-- 即便如此，Client Secret 这类自由文本仍应让用户手填
+- Do not assume that pop-ups or form-style input are necessarily supported in the current mode
+- In normal mode, have the user fill the manual fields first; data center is handled by setup-env.mjs (single auto-selected; multiple via exit code 2 + AI interaction)
+- If the runtime explicitly supports a structured selection tool, after the script returns exit code 2 you may show the candidate list as options to the user
+- Even so, free-form values like Client Secret should still be entered by the user manually
 
-推荐向用户索要环境信息的格式（环境不存在时）：
+Recommended template for asking the user for environment info (when the environment does not exist):
 
 ```text
-请补充以下环境信息：
+Please provide the following environment info:
 1. env name:
-2. env url:（环境已存在时可不填）
+2. env url: (may be omitted if the environment already exists)
 3. client id:
 4. client secret:
 5. username:
 
-说明：
-- 若环境已存在，只需填写 1、3、4、5，脚本会自动跳过创建直接认证
-- data center 不需要先手填，后续会由脚手架读取候选项供选择
+Notes:
+- If the environment already exists, only fill in 1, 3, 4, 5; the script will skip creation and authenticate directly
+- data center does not need to be filled in advance; the scaffold will read the candidates for you to choose from later
 ```
 
-补充：环境配置保存在 `~/.kd` 而非项目目录；创建后必须用 `kd env list` 复核是否持久化成功；环境认证在 URL 不可达时会直接失败。
+Additional notes: environment configuration is saved to `~/.kd` rather than the project directory; after creation, you must double-check persistence with `kd env list`; environment authentication will fail outright if the URL is unreachable.
 
-## 部署与调试
+## Deployment and Debugging
 
-### 构建命令
+### Build commands
 
-开发阶段只需要构建前端，Controller 由 deploy 直接处理：
+In development, you only need to build the frontend; the Controller is handled directly by deploy:
 
-| 场景 | 构建命令 | 说明 |
+| Scenario | Build command | Description |
 |------|---------|------|
-| 改了前端代码（.tsx/.vue/.js） | `npm run build:frontend` | 构建前端静态资源，输出到 dist/kwc/ |
-| 改了 Controller 代码（.ts）或 .kws | 不需要 build | 开发阶段 deploy 直接处理 Controller |
-| 仅改元数据文件（.kwc/.kwp/.kws） | 不需要 build | 元数据由 deploy 直接上传 |
+| Changed frontend code (.tsx/.vue/.js) | `npm run build:frontend` | Builds frontend static assets, output to dist/kwc/ |
+| Changed Controller code (.ts) or .kws | No build needed | In development, deploy handles the Controller directly |
+| Only metadata files changed (.kwc/.kwp/.kws) | No build needed | Metadata is uploaded directly by deploy |
 
-补充用法：
-- `npm run build:frontend -- MyComponent`：构建指定前端组件
-- `npm run build:controller`：仅用于生产环境构建 Controller 产物，开发阶段不需要
-- `npm run build`：全量构建（前端 + Controller），仅用于生产环境
+Additional usage:
+- `npm run build:frontend -- MyComponent`: build a specific frontend component
+- `npm run build:controller`: only used to build Controller artifacts for production; not needed in development
+- `npm run build`: full build (frontend + Controller); only for production
 
-### 部署决策（默认自动部署）
+### Deployment decision (auto-deploy by default)
 
-创建/修改组件、页面或 Controller 后，**必须自动执行部署**：
+After creating/modifying a component, page, or Controller, **deployment must be executed automatically**:
 
-#### 默认流程：直接部署
+#### Default flow: deploy directly
 
 ```bash
 kd project deploy
 ```
 
-CLI 会自动使用已配置的默认环境，**无需 `kd env list`、无需 `-e <环境名>`、无需询问用户**。
+The CLI uses the configured default environment automatically; **no `kd env list`, no `-e <env>`, no need to ask the user**.
 
-#### 异常处理：仅当部署报错提示无环境时
+#### Exception handling: only when deploy errors out saying there is no environment
 
-向用户收集环境信息并通过 setup-env.mjs 创建环境，然后再执行 `kd project deploy`。
+Collect environment info from the user and create the environment via setup-env.mjs, then run `kd project deploy` again.
 
-#### 总结
+#### Summary
 
-| 场景 | 动作 |
+| Scenario | Action |
 |------|------|
-| 有已配置环境（默认情况） | **直接 `kd project deploy`，不问用户、不指定 `-e`** |
-| 部署报错提示无环境 | 收集完整环境信息，创建+认证后部署 |
-| 用户明确说不要部署 | 跳过部署 |
-| 用户明确指定了环境名 | `kd project deploy -e <指定环境>` |
+| Configured environment present (default case) | **Run `kd project deploy` directly; do not ask the user, do not specify `-e`** |
+| Deploy errors out saying no environment | Collect full environment info, create + authenticate, then deploy |
+| User explicitly says "do not deploy" | Skip deployment |
+| User explicitly named an environment | `kd project deploy -e <specified env>` |
 
-#### 部署内容决策树
+#### Deployment content decision tree
 
 ```
-改了什么？
-├── 只改前端代码（.tsx/.vue/.js/.html/.scss）
-│   ├── 用户明确要求仅本地调试 → npm run build:frontend → kd debug（不需要 deploy）
-│   └── 默认 → npm run build:frontend → kd project deploy
-├── 只改 Controller 代码（.ts）或 .kws 元数据
-│   → .kws version + 1 → 直接 kd project deploy（不需要 build）
-├── 前端 + Controller 都改了
-│   → 递增相关 version → npm run build:frontend → kd project deploy
-├── 只改元数据（.js-meta.kwc / .page-meta.kwp）
-│   → version + 1 → 直接 kd project deploy（不需要 build）
-└── 新建组件/页面/Controller
-    → version = 1 → 若有前端代码则 npm run build:frontend → kd project deploy
+What was changed?
+├── Only frontend code (.tsx/.vue/.js/.html/.scss)
+│   ├── User explicitly wants only local debug → npm run build:frontend → kd debug (no deploy needed)
+│   └── Default → npm run build:frontend → kd project deploy
+├── Only Controller code (.ts) or .kws metadata
+│   → .kws version + 1 → kd project deploy directly (no build needed)
+├── Both frontend and Controller changed
+│   → Bump relevant versions → npm run build:frontend → kd project deploy
+├── Only metadata changed (.js-meta.kwc / .page-meta.kwp)
+│   → version + 1 → kd project deploy directly (no build needed)
+└── New component/page/Controller
+    → version = 1 → if frontend code is present, npm run build:frontend → kd project deploy
 ```
 
-### 常用命令
+### Common commands
 
-1. `kd project deploy`：一次性部署整个项目的所有元数据（.js-meta.kwc + .page-meta.kwp + .kws）和前端静态文件到默认环境；开发阶段 Controller 由 deploy 直接处理，无需预先 build
-2. `kd project deploy -d app/kwc/MyComponent -e sit`：仅部署指定组件到 `sit`
-3. `kd project deploy -d app/pages/my_page -e sit`：仅部署指定页面元数据到 `sit`
-4. `kd project deploy -d app/ks/controller/MyController -e sit`：仅部署指定 Controller 到 `sit`
-5. `kd open -e dev -f kdtest_demo_page`：部署后直接打开环境上的表单查看效果（无 DNS 代理）。`-f` 的值必须取自 `.page-meta.kwp` 中的 `<name>` 字段值（已含 ISV 前缀），不是文件名
-6. `kd debug`：进入本地调试，通过 DNS 代理连接环境（**必须使用 `is_background: true` 运行**，仅当用户明确要求调试时使用）。`-f` 的值同样取自 `.page-meta.kwp` 中的 `<name>` 字段值
+1. `kd project deploy`: deploy all metadata (.js-meta.kwc + .page-meta.kwp + .kws) and frontend static files of the entire project in one go to the default environment; in development, the Controller is handled directly by deploy with no prior build
+2. `kd project deploy -d app/kwc/MyComponent -e sit`: deploy only the specified component to `sit`
+3. `kd project deploy -d app/pages/my_page -e sit`: deploy only the specified page metadata to `sit`
+4. `kd project deploy -d app/ks/controller/MyController -e sit`: deploy only the specified Controller to `sit`
+5. `kd open -e dev -f kdtest_demo_page`: after deploy, directly open the form on the environment to view the result (no DNS proxy). The `-f` value must come from the `<name>` field in `.page-meta.kwp` (already includes the ISV prefix), not the file name
+6. `kd debug`: enter local debugging via DNS proxy connecting to the environment (**must be run with `is_background: true`**, only when the user explicitly requests debugging). The `-f` value likewise comes from the `<name>` field in `.page-meta.kwp`
 
-## 页面访问链接
+## Page Access Link
 
-部署成功后，生成页面访问链接供用户点击查看效果。这是部署流程的最后一个执行步骤，**不是任务总结**。
+After a successful deploy, generate a page access link for the user to click and view the result. This is the last execution step of the deployment flow, **not a task summary**.
 
-### 发送时机
+### Timing
 
-> **⚠️ 强制约束：render 卡片（`:::render:kdform ...:::`）是部署流程的完成标志。禁止将 render 卡片的生成延迟到用户请求 `kd open` 或其他后续操作时才执行。但发送时机取决于任务是否涉及后端 Controller。**
+> **⚠️ Mandatory: the render card (`:::render:kdform ...:::`) is the completion marker of the deployment flow. Do not defer render card generation until the user asks for `kd open` or some other follow-up. The timing of emission depends on whether the task involves a backend Controller.**
 
-- **仅前端任务**（无 Controller）：部署成功后**立即**生成并发送 render 卡片，不可等待用户下一步指令
-- **含后端任务**（有 Controller）：**禁止在 Controller 自检通过前输出 render 卡片**。必须等 Controller 端到端自检通过（或 3 次重试上限触发 Mock 降级），且前端 adapterApi 对接代码已完成并部署后，才生成并发送 render 卡片
-- **新对话修改已有页面**：若用户在新对话中对已部署的页面进行修改，修改部署完成后**必须重新输出** render 卡片（即使该页面此前已输出过卡片）
-- **同一段工作内不重复**：如果一段工作涉及多次 deploy，应在该段全部部署完成且满足上述时机条件后发送一次
-- 适用于任何 deploy 形式：整体部署（`kd project deploy`）、指定路径部署（`-d app/kwc/...`、`-d app/pages/...`、`-d app/ks/controller/...`）
+- **Frontend-only task** (no Controller): generate and emit the render card **immediately** after a successful deploy; do not wait for the user's next instruction
+- **Task with backend** (with Controller): **do not emit the render card before the Controller self-check passes**. The render card may only be generated and emitted after the Controller end-to-end self-check passes (or the 3-retry limit triggers a mock fallback) and the frontend adapterApi integration code has been completed and deployed
+- **New conversation modifying an existing page**: if the user modifies a deployed page in a new conversation, after redeployment **you must re-emit** the render card (even if it was emitted before)
+- **No duplicates within a single body of work**: if a single body of work involves multiple deploys, emit once after the entire batch is deployed and the timing condition is met
+- Applies to any deploy form: full deploy (`kd project deploy`), path-scoped deploy (`-d app/kwc/...`, `-d app/pages/...`, `-d app/ks/controller/...`)
 
-### 页面访问链接
+### Page access link
 
-部署成功后，**必须使用脚本生成**页面访问链接，禁止手动拼接 JSON：
+After a successful deploy, **you must use the script to generate** the page access link; manually assembling JSON is forbidden:
 
 ```bash
-node $SKILL_DIR/scripts/form-link.mjs generate --pageMeta <.page-meta.kwp文件路径> [--formNumber <实体编码>] [--env <环境名>]
+node $SKILL_DIR/scripts/form-link.mjs generate --pageMeta <.page-meta.kwp file path> [--formNumber <entity code>] [--env <environment name>]
 ```
 
-| 参数 | 必填 | 说明 |
+| Parameter | Required | Description |
 |------|------|------|
-| `--pageMeta` | ✅ | `.page-meta.kwp` 文件路径，脚本从中提取 `<name>` 和 `<masterLabel>` |
-| `--formNumber` | 可选 | 页面绑定了苍穹后端实体（如通过 Controller 拉业务数据）时传入实体编码；脚本会额外往 payload 写一个 `metadata` URL，指向该实体的字段查询接口 |
-| `--env` | 可选 | 不传则使用默认环境 |
+| `--pageMeta` | ✅ | Path to the `.page-meta.kwp` file; the script extracts `<name>` and `<masterLabel>` from it |
+| `--formNumber` | Optional | Pass when the page binds to a Cosmic backend entity (e.g. business data fetched via a Controller); the script additionally writes a `metadata` URL into the payload pointing to that entity's field-query endpoint |
+| `--env` | Optional | Omit to use the default environment |
 
-**输出示例**（仅前端、未绑定实体）：
+**Example output** (frontend-only, no entity bound):
 ```
-:::render:kdform {"title":"鸡群库存录入工作台","url":"https://xktest.kingdee.com:1026/xkmcp_test/?formId=yx_flock_inventory"}:::
-```
-
-**输出示例**（传了 `--formNumber`，附带实体字段查询 URL）：
-```
-:::render:kdform {"title":"销售合同录入","url":"https://feature.kingdee.com:1026/feature_vb/?formId=kdtest_sal_contract","metadata":"https://feature.kingdee.com:1026/feature_vb/kapi/v2/devportal/ai-meta/getEntityFields?formNumber=kdtest_sal_contract"}:::
+:::render:kdform {"title":"Flock Inventory Entry Workbench","url":"https://xktest.kingdee.com:1026/xkmcp_test/?formId=yx_flock_inventory"}:::
 ```
 
-**URL 拼接规则：**
-- 环境 URL：从 `kd env info` 或 `~/.kd/config.json` 中读取当前环境的 url（如 `https://feature.kingdee.com:1026/feature_vb`）
-- formId：直接使用 `.page-meta.kwp` 中的 `<name>` 值（已包含 ISV 前缀），如 `kdtest_inv_dashboard`
-- 最终 url = `{环境URL}/?formId={页面name}`，如 `https://feature.kingdee.com:1026/feature_vb/?formId=kdtest_inv_dashboard`
+**Example output** (with `--formNumber`, includes the entity field-query URL):
+```
+:::render:kdform {"title":"Sales Contract Entry","url":"https://feature.kingdee.com:1026/feature_vb/?formId=kdtest_sal_contract","metadata":"https://feature.kingdee.com:1026/feature_vb/kapi/v2/devportal/ai-meta/getEntityFields?formNumber=kdtest_sal_contract"}:::
+```
+
+**URL assembly rules:**
+- Environment URL: read the current environment's url from `kd env info` or `~/.kd/config.json` (e.g. `https://feature.kingdee.com:1026/feature_vb`)
+- formId: directly use the `<name>` value from `.page-meta.kwp` (already includes the ISV prefix), e.g. `kdtest_inv_dashboard`
+- Final url = `{env URL}/?formId={page name}`, e.g. `https://feature.kingdee.com:1026/feature_vb/?formId=kdtest_inv_dashboard`
 
 ---
 
-**🚫 禁止格式（常见错误，以下格式均为错误，禁止使用）：**
+**🚫 Forbidden formats (common mistakes; all of the following are wrong and must not be used):**
 
-| 错误示例 | 错误原因 |
+| Wrong example | Reason it is wrong |
 |----------|----------|
-| ❌ `{"formId":"xxx","env":"vb"}` | 缺少 `title` 和完整 `url`，`formId`/`env` 不是合法字段 |
-| ❌ `{"title":"xxx","formId":"xxx"}` | `url` 必须是完整 URL，不能只传 `formId` |
-| ❌ `{"title":"xxx","url":"xxx","metadata":{...}}` | `metadata` 必须是脚本根据 `--formNumber` 拼出的字符串 URL，禁止手工塞 object/数组等结构 |
-| ❌ `{"title":"xxx","url":"xxx","formId":"xxx"}` | `formId` 已包含在 `url` 参数中，禁止单独传 |
-| ❌ `{"title":"xxx","url":"kdtest_opsmonitor"}` | `url` 必须是完整的 HTTP/HTTPS URL，不能只写 formId 值 |
+| ❌ `{"formId":"xxx","env":"vb"}` | Missing `title` and full `url`; `formId`/`env` are not valid fields |
+| ❌ `{"title":"xxx","formId":"xxx"}` | `url` must be a full URL; you cannot just pass `formId` |
+| ❌ `{"title":"xxx","url":"xxx","metadata":{...}}` | `metadata` must be the string URL assembled by the script from `--formNumber`; do not manually stuff in an object/array/etc. |
+| ❌ `{"title":"xxx","url":"xxx","formId":"xxx"}` | `formId` is already inside `url`; do not pass it separately |
+| ❌ `{"title":"xxx","url":"kdtest_opsmonitor"}` | `url` must be a full HTTP/HTTPS URL; you cannot write only the formId value |
 
 ---
 
-> ❗ **必须使用 `form-link.mjs` 脚本生成 render 卡片**，禁止手动拼接 JSON。脚本会自动处理 title / url 的提取和拼接，避免格式错误。
+> ❗ **You must generate the render card via the `form-link.mjs` script**; manually assembling JSON is forbidden. The script automatically handles title / url extraction and assembly, avoiding format errors.
 
-### 执行顺序
-
-```
-仅前端：所有 deploy 完成 → 发送页面访问链接（:::render:kdform ...:::） → 向用户提问是否需要菜单发布（可选）
-含后端：Controller 自检通过 + 前端对接部署完成 → 发送页面访问链接（:::render:kdform ...:::） → 向用户提问是否需要菜单发布（可选）
-```
-
-### 强制约束
-
-- 每段工作的部署完成后**必须**通过 `form-link.mjs` 脚本生成并发送 render 卡片，不可省略或跳过
-- **发送时机遵循上述规则**：仅前端任务部署后立即发送；含后端任务须等 Controller 自检通过 + 前端对接完成后发送；新对话修改后重新发送
-- **render 卡片是部署流程的完成标志**——满足发送条件而未发送 render 卡片，视为部署流程未完成
-- **禁止手动拼接 render 卡片 JSON，必须使用 `form-link.mjs` 脚本生成**
-- **禁止将 render 卡片延迟到 `kd open` 时才生成**——render 卡片与 `kd open` 是独立的两个动作
-- 多轮对话中每段完成的工作都应发送，不要只在最终结束时才发送
-- 同一段工作内不重复发送（多条 deploy 命令属于同一段工作时，等全部完成且满足时机条件后发送一次）
-- 所有值由脚本从实际文件和环境中读取，禁止猜测
-- 任务总结（如有）应作为**独立文本**写在链接卡片之后
-
-## 查看环境效果（kd open）
-
-> render 卡片（`:::render:kdform ...:::`）在满足发送条件后已生成并发送，用户可直接点击卡片中的链接查看效果。
-> 以下 `kd open` 命令是**可选**的补充操作，仅当用户明确要求在浏览器中打开页面时使用。
-
-部署后使用 `kd open` 查看环境上的表单效果：
-
-- `kd open -e <env> -f <page_name>`：直接在浏览器中打开对应环境上已部署的表单页面
-- `-e` 指定目标环境（必填），`-f` 传入页面元数据 `<name>` 值（必填），**必须读取 `.page-meta.kwp` 文件中的 `<name>` 字段值，不是文件名**（文件名和元数据 name 可能不同，元数据 name 已包含 ISV 前缀，如 `kdtest_inv_dashboard`）
-- 不需要本地 dev server 运行，不走 DNS 代理
-- 使用前提：已通过 `kd project deploy` 将元数据和静态文件部署到目标环境
-
-适用场景：用户说"看看效果"、"打开页面"、"查看环境上的表单"、"看看部署结果"等。
-
-### 本地调试（kd debug）
-
-仅当用户明确说"调试"、"本地调试"、"联调"、"实时预览代码修改"时才使用 `kd debug`：
-
-- 运行 `kd debug` 时**必须使用后台模式**（`is_background: true`），因为这是一个持续运行的开发服务器，不会自动结束
-- 若使用前台模式运行 `kd debug`，命令会在 90 秒后因超时被强制终止，导致本地服务被 kill
-- `kd debug` 启动后会先打开浏览器访问对应地址，但此时本地开发服务可能尚未完全启动，页面可能暂时无法访问。应等待服务启动完成后再刷新浏览器
-- 可以通过 `get_terminal_output` 查看 `kd debug` 的运行状态和输出
-- 若目标环境不是当前默认环境，先执行 `kd env set target-env <env-name>`
-- 不要手工拼调试 URL，由 AI 自行结合任务和页面元数据判断预览目标
-- 浏览器自动打开后继续定位目标页面
-
-### 触发决策
-
-前置条件（必须在触发 open/debug 前完成）：
-- 已完成代码编写
-- 已执行必要的 build 命令（若修改了代码）
-- 已执行 kd project deploy（若需要部署）
-- **已满足 render 卡片发送条件并已发送**（`:::render:kdform ...:::`）——仅前端任务部署后立即发送，含后端任务须等 Controller 自检通过 + 前端对接完成后发送。这是 open/debug 的前置步骤
-- 环境已认证
-
-**部署后完整流程决策树：**
+### Execution order
 
 ```
-kd project deploy 成功
+Frontend only: all deploys complete → emit the page access link (:::render:kdform ...:::) → ask the user whether menu publishing is needed (optional)
+With backend: Controller self-check passes + frontend integration deployed → emit the page access link (:::render:kdform ...:::) → ask the user whether menu publishing is needed (optional)
+```
+
+### Mandatory constraints
+
+- After each body of work's deploy completes, you **must** generate and emit the render card via the `form-link.mjs` script; it cannot be omitted or skipped
+- **Emission timing follows the rules above**: frontend-only tasks emit immediately after deploy; tasks with backend wait for Controller self-check passing + frontend integration done; re-emit after modifications in a new conversation
+- **The render card is the completion marker of the deployment flow**—when the conditions for emission are met but the render card has not been emitted, the deployment flow counts as incomplete
+- **Do not manually assemble the render card JSON; you must use the `form-link.mjs` script**
+- **Do not defer the render card to `kd open` time**—the render card and `kd open` are two independent actions
+- In multi-turn conversations, every completed body of work should emit; do not wait to emit only at the very end
+- Do not duplicate within a single body of work (when several deploy commands belong to the same body of work, wait until they all finish and the timing condition is met, then emit once)
+- All values are read by the script from the actual files and environment; do not guess
+- Any task summary (if present) should be written as **separate text** after the link card
+
+## View Environment Result (kd open)
+
+> The render card (`:::render:kdform ...:::`) has already been generated and emitted once its conditions were met; the user can click the link in the card to view the result directly.
+> The `kd open` command below is an **optional** supplementary action, used only when the user explicitly asks to open the page in the browser.
+
+After deploy, use `kd open` to view the form's effect on the environment:
+
+- `kd open -e <env> -f <page_name>`: directly open the deployed form page on the environment in the browser
+- `-e` specifies the target environment (required); `-f` takes the page metadata `<name>` value (required). **You must read the value of the `<name>` field inside the `.page-meta.kwp` file, not the file name** (the file name and the metadata name may differ; the metadata name already includes the ISV prefix, e.g. `kdtest_inv_dashboard`)
+- No local dev server required, no DNS proxy
+- Precondition: the metadata and static files have been deployed to the target environment via `kd project deploy`
+
+Use case: the user says "let me see the result", "open the page", "view the form on the environment", "see the deploy result", etc.
+
+### Local debug (kd debug)
+
+Use `kd debug` only when the user explicitly says "debug", "local debug", "integration", or "live preview code changes":
+
+- When running `kd debug`, you **must use background mode** (`is_background: true`), because this is a long-running dev server that does not finish on its own
+- Running `kd debug` in foreground mode causes the command to be forcibly terminated after 90 seconds due to timeout, killing the local server
+- After `kd debug` starts, it first opens the browser to the target address, but the local dev server may not be fully started at that point and the page may temporarily be unreachable. Wait for the server to start before refreshing the browser
+- You can view `kd debug`'s status and output via `get_terminal_output`
+- If the target environment is not the current default environment, first run `kd env set target-env <env-name>`
+- Do not manually assemble a debug URL; the AI determines the preview target based on the task and page metadata
+- After the browser opens automatically, continue to navigate to the target page
+
+### Trigger decision
+
+Preconditions (must be done before triggering open/debug):
+- Code has been written
+- The necessary build command has been executed (if code was modified)
+- `kd project deploy` has been executed (if deployment is needed)
+- **The conditions for sending the render card have been met and the card has been sent** (`:::render:kdform ...:::`)—for frontend-only tasks, emit immediately after deploy; for tasks with backend, emit after Controller self-check passes + frontend integration is done. This is a precondition for open/debug
+- The environment is authenticated
+
+**Full decision tree after deploy:**
+
+```
+kd project deploy succeeds
   ↓
-任务是否涉及后端 Controller？
-├── 仅前端 → 【必须】立即生成并发送 render 卡片
-└── 含后端 → 等待 Controller 自检通过（或 Mock 降级）+ 前端对接完成 → 【必须】生成并发送 render 卡片
+Does the task involve a backend Controller?
+├── Frontend only → [Required] generate and emit the render card immediately
+└── With backend → wait for Controller self-check to pass (or mock fallback) + frontend integration done → [Required] generate and emit the render card
   ↓
-用户意图判断：
-├── 用户直接点击链接 → 无需脚手架介入
-├── 用户要求"打开页面/看效果/查看部署结果" → kd open
-├── 用户要求"调试/联调/本地调试/实时预览修改" → kd debug
-└── 用户未明确要求 → 结束，等待后续指示
+User intent:
+├── User clicks the link directly → no scaffold action needed
+├── User asks "open page / view result / see deploy result" → kd open
+├── User asks "debug / integration / local debug / live preview changes" → kd debug
+└── User did not explicitly ask → done, wait for follow-up instructions
 ```
 
-补充：环境未认证时 `kd project deploy` 会直接阻止部署。
+Additional note: `kd project deploy` will outright block deployment when the environment is not authenticated.
 
-## 应用菜单管理
+## Application Menu Management
 
-> 菜单管理将部署后的页面注册到应用导航菜单，使页面在苍穹环境中可被用户导航访问。
-> 所有菜单操作通过 `scripts/menu-api.mjs` 脚本完成，详细命令参考见 [references/app-menu.md](app-menu.md)。
+> Menu management registers deployed pages into the application's navigation menu so they can be navigated to by users in the Cosmic environment.
+> All menu operations are performed via the `scripts/menu-api.mjs` script; detailed command reference in [references/app-menu.md](app-menu.md).
 
-### 触发条件
+### Triggers
 
-- `kd project deploy` 成功后，引导用户是否将页面发布到应用菜单
-- 用户直接说"发布菜单"、"添加菜单"、"菜单管理"、"查看菜单"、"修改菜单"、"删除菜单"、"移动菜单"
+- After `kd project deploy` succeeds, guide the user on whether to publish the page to the app menu
+- The user directly says "publish menu", "add menu", "menu management", "view menu", "modify menu", "delete menu", "move menu"
 
-### 前置条件
+### Preconditions
 
-- 环境已认证（通过 setup-env.mjs 或手动认证完成）
-- bizAppNumber 已知（来自 `.kd/config.json` 的 `app` 字段，或用户明确提供）
+- The environment is authenticated (via setup-env.mjs or manual authentication)
+- bizAppNumber is known (from the `app` field of `.kd/config.json`, or explicitly provided by the user)
 
-### 接口依赖关系（强制约束）
+### Interface dependencies (mandatory constraints)
 
-**所有菜单操作必须遵循「先查后改」原则，禁止跳过查询直接执行写操作。**
+**All menu operations must follow the "query before write" principle; you must not skip the query and execute a write operation directly.**
 
 ```
-queryTree（必须）→ 获得 menuId / 菜单结构 → 执行写操作 → getMenu 或 queryTree 验证结果
+queryTree (required) → obtain menuId / menu structure → execute write operation → verify result with getMenu or queryTree
 ```
 
-| 约束 | 说明 |
+| Constraint | Description |
 |------|------|
-| **menuId 只能从接口获取** | `menuId` 只能来自 `queryTree` 返回的菜单树、`addMenu` 返回的新建菜单、或 `getMenu` 返回的详情。禁止凭记忆或猜测构造 menuId |
-| **修改/删除/移动前必须先查询** | 执行 `updateMenu`、`deleteMenu`、`moveMenu` 前，必须先执行 `queryTree` 获取当前菜单树，从返回结果中确认目标 menuId 存在且状态正确 |
-| **新增后必须捕获 menuId** | `addMenu` 成功后，必须从响应中提取新菜单的 `menuId` 并记录，供后续修改/移动使用 |
-| **写操作后必须验证** | 任何写操作（add/update/delete/move）完成后，必须执行 `getMenu` 或 `queryTree` 验证实际状态，不能仅凭返回的 success 判断 |
-| **parentMenuId 必须来自查询** | 新增子菜单时，`parentMenuId` 必须从 `queryTree` 的返回结果中获取已有菜单的 menuId，禁止猜测 |
+| **menuId may only come from interfaces** | `menuId` may only come from `queryTree`'s returned menu tree, `addMenu`'s newly created menu, or `getMenu`'s details. Do not fabricate a menuId from memory or guesswork |
+| **Modify/delete/move must be preceded by a query** | Before executing `updateMenu`, `deleteMenu`, or `moveMenu`, you must run `queryTree` to fetch the current menu tree and confirm from the response that the target menuId exists and is in the right state |
+| **Capture menuId after adding** | After `addMenu` succeeds, you must extract the new menu's `menuId` from the response and record it for subsequent modifications/moves |
+| **Verify after writes** | After any write operation (add/update/delete/move) completes, you must run `getMenu` or `queryTree` to verify the actual state; do not rely solely on the returned success flag |
+| **parentMenuId must come from a query** | When adding a child menu, `parentMenuId` must be the menuId of an existing menu fetched from `queryTree`; do not guess |
 
-### Step 1: 上下文准备
+### Step 1: Context preparation
 
-- 读取 `.kd/config.json` 的 `app` 字段作为 bizAppNumber
-- 若从部署流程进入：formNumber = deploy 后 `.page-meta.kwp` 中 `<name>` 标签的实际值（已含 ISV 前缀）
-- 若用户直接触发菜单管理：仅已知 bizAppNumber，进入 Step 2 查询菜单树
+- Read the `app` field of `.kd/config.json` as bizAppNumber
+- If entering from the deployment flow: formNumber = the actual value of the `<name>` tag in `.page-meta.kwp` after deploy (already including the ISV prefix)
+- If the user directly triggers menu management: only bizAppNumber is known; go to Step 2 to query the menu tree
 
-> ⚠ formNumber 必须从 deploy 后的 `.page-meta.kwp` 文件中读取 `<name>` 标签的实际值，不要自行拼接 ISV 前缀。
+> ⚠ formNumber must be read from the actual value of the `<name>` tag in the post-deploy `.page-meta.kwp` file; do not prepend the ISV prefix yourself.
 
-### Step 2: 查询并展示菜单树（任何操作的前置步骤）
+### Step 2: Query and display the menu tree (a prerequisite for any operation)
 
-**无论用户要求什么菜单操作，都必须先执行此步骤获取当前菜单状态。**
+**Whatever menu operation the user requests, you must first execute this step to fetch the current menu state.**
 
 ```bash
 node "{menu_api}" queryTree --bizAppNumber {bizAppNumber}
 ```
 
-- 按层级缩进展示，用图标区分类型（📁 分组 / 📄 页面 / 🔗 链接），展示规范见 [references/app-menu.md](app-menu.md)
-- **记录所有菜单的 menuId**，后续操作必须使用这里获取到的 menuId
-- 展示后根据来源引导下一步：
-  - **部署后进入** → 根据表单名称和现有菜单结构，推荐菜单放置位置（分析语义关联，推荐同类分组；菜单树为空则推荐创建一级菜单）。推荐前须检查目标位置层级深度（不超过 3 级）
-  - **用户直接触发** → 展示菜单树后等待用户指示操作
+- Display with hierarchical indentation, use icons to distinguish types (📁 group / 📄 page / 🔗 link); display convention in [references/app-menu.md](app-menu.md)
+- **Record every menu's menuId**; subsequent operations must use the menuIds fetched here
+- After display, guide the next step based on the entry point:
+  - **Entered from deployment** → based on the form name and the existing menu structure, recommend a placement (analyze semantic relevance and suggest grouping with similar items; if the menu tree is empty, suggest creating a top-level menu). Check that the target position's depth does not exceed 3 levels before recommending
+  - **Entered directly by the user** → after displaying the menu tree, wait for the user's instruction
 
-### Step 3: 执行菜单操作
+### Step 3: Execute menu operations
 
-根据用户意图执行对应操作（所有 menuId 必须来自 Step 2 的查询结果）：
+Execute the corresponding operation based on user intent (every menuId must come from the Step 2 query result):
 
-| 操作 | 命令 | 执行前检查 |
+| Operation | Command | Pre-execution checks |
 |------|------|------------|
-| 新增 | `addMenu --bizAppNumber {app} --name {name} --formNumber {form} [--parentMenuId {pid}] [--seq {n}]` | 确认菜单名称和位置；检查层级不超 3 级；parentMenuId 必须来自 queryTree 结果；**批量新增同级菜单时必须传递从小开始的递增 --seq 值（如 1、2、3），禁止使用大数值，范围 1–32767** |
-| 修改 | `updateMenu --bizAppNumber {app} --menuId {id} [--name ...] [--visible ...] [--seq {n}]` | menuId 必须来自 queryTree 结果；修改 visible 为 0 时警告级联隐藏；修改 parentMenuId 时检查循环引用和层级 |
-| 删除 | `deleteMenu --bizAppNumber {app} --menuId {id}` | menuId 必须来自 queryTree 结果；检查 HPCE 保护；警告级联删除子菜单；需停下来向用户二次确认（提供"确认删除"/"取消"两个选项） |
-| 移动 | `moveMenu --bizAppNumber {app} --menuId {id} --direction {up/down}` | menuId 必须来自 queryTree 结果；展示当前排序位置；若报错「序号一致」，先用 updateMenu --seq 修改相邻菜单序号再重试 |
+| Add | `addMenu --bizAppNumber {app} --name {name} --formNumber {form} [--parentMenuId {pid}] [--seq {n}]` | Confirm menu name and position; check depth does not exceed 3 levels; parentMenuId must come from the queryTree result; **when bulk-adding sibling menus, you must pass ascending `--seq` values starting from a small number (e.g. 1, 2, 3); do not use large values; range 1–32767** |
+| Modify | `updateMenu --bizAppNumber {app} --menuId {id} [--name ...] [--visible ...] [--seq {n}]` | menuId must come from the queryTree result; when changing visible to 0, warn about cascade hide; when changing parentMenuId, check for circular references and depth |
+| Delete | `deleteMenu --bizAppNumber {app} --menuId {id}` | menuId must come from the queryTree result; check HPCE protection; warn about cascade delete of children; stop and ask the user for second confirmation (provide "Confirm delete"/"Cancel" options) |
+| Move | `moveMenu --bizAppNumber {app} --menuId {id} --direction {up/down}` | menuId must come from the queryTree result; display the current sort position; if the error "identical sequence" appears, first use updateMenu --seq to change adjacent menus' sequences, then retry |
 
-> 每次操作前均需将配置方案展示给用户，并停下来向用户提问获得确认后再执行。
+> Before each operation, present the configuration plan to the user and stop to ask for confirmation before executing.
 
-### Step 4: 验证并展示结果
+### Step 4: Verify and display the result
 
-- 任何写操作完成后**必须**验证实际结果：
-  - **删除操作**：优先用 `getMenu` 确认目标菜单返回 `MENU_NOT_FOUND`（菜单树可能存在短暂缓存延迟）
-  - **其他写操作**：执行 `getMenu`（单个菜单）或 `queryTree`（全局）验证
-- addMenu 成功后，从响应中提取并记录新菜单的 menuId
-- 展示完成信息，并提供后续操作选项：
-  1. 修改此菜单
-  2. 移动菜单位置
-  3. 删除此菜单
-  4. 继续添加其他菜单
-  5. 查看完整菜单树
-  6. 完成
+- After any write operation completes, you **must** verify the actual result:
+  - **Delete**: prefer `getMenu` to confirm the target menu returns `MENU_NOT_FOUND` (the menu tree may have a brief cache delay)
+  - **Other writes**: run `getMenu` (single menu) or `queryTree` (global) to verify
+- After addMenu succeeds, extract and record the new menu's menuId from the response
+- Display the completion info and offer follow-up options:
+  1. Modify this menu
+  2. Move the menu's position
+  3. Delete this menu
+  4. Continue adding more menus
+  5. View the full menu tree
+  6. Done
 
-### 与部署流程的集成
+### Integration with the deployment flow
 
-`kd project deploy` 成功后：
+After `kd project deploy` succeeds:
 
-1. **先发送页面访问链接**：生成并发送 `:::render:kdform ...:::`（见「页面访问链接」章节）
-2. **再引导菜单发布**：向用户提问是否需要将页面发布到应用菜单（提供"发布到菜单"/"跳过"两个选项）
+1. **First emit the page access link**: generate and emit `:::render:kdform ...:::` (see the "Page access link" section)
+2. **Then guide menu publishing**: ask the user whether to publish the page to the app menu (offer "Publish to menu"/"Skip" options)
 
-> 通过弹窗提问："部署成功，是否需要将页面发布到应用菜单？"，选项为"发布到菜单"和"跳过"。
+> Ask via a pop-up: "Deployment succeeded. Do you want to publish the page to the app menu?", with options "Publish to menu" and "Skip".
 
-若用户同意 → 自动进入 Step 1（bizAppNumber 和 formNumber 均已可从当前上下文获取）。
+If the user agrees → automatically enter Step 1 (both bizAppNumber and formNumber are already available from the current context).
 
-### 约束速查
+### Constraint cheat sheet
 
-| 约束 | 何时提醒 |
+| Constraint | When to remind |
 |------|----------|
-| 菜单最多 3 级 | 新增或移动菜单时检查 |
-| HPCE 菜单不可删除 | 删除前检查 menuId 是否以 HPCE 结尾 |
-| 级联隐藏 | 修改 visible 从 1→0 时警告 |
-| 级联删除 | 删除有子菜单的菜单时警告 |
-| formNumber 取实际值 | 新增页面菜单时 |
+| Menu depth ≤ 3 levels | When adding or moving menus |
+| HPCE menus cannot be deleted | Before deleting, check whether menuId ends with HPCE |
+| Cascade hide | Warn when changing visible from 1→0 |
+| Cascade delete | Warn when deleting a menu with children |
+| formNumber must use the actual value | When adding a page menu |

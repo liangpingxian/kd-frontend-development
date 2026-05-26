@@ -1,29 +1,29 @@
 # MulBasedataProp
 
-## 基本信息
+## Basic Information
 
-- 名称: `MulBasedataProp`
-- Java 类名: `kd.bos.entity.property.MulBasedataProp`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/entity/property`
-- 类型: 多选基础资料字段元数据
+- Name: `MulBasedataProp`
+- Java class: `kd.bos.entity.property.MulBasedataProp`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/entity/property`
+- Type: Multi-select base data field metadata
 
-## 用途概览
+## Overview
 
-`MulBasedataProp` 描述的是多选基础资料字段的元数据结构。它和 `MulBasedataEdit` 的区别是，一个管字段定义，一个管页面控件行为。
+`MulBasedataProp` describes the metadata structure of multi-select base data fields. The difference between it and `MulBasedataEdit` is that one manages field definitions while the other manages page control behavior.
 
-## 高频问法
+## Common User Phrasings
 
-- 这个字段为什么是多选资料
-- 多选基础资料到底存什么结构
-- 多选资料字段和普通 `BasedataProp` 有什么差异
+- Why is this field a multi-select data field
+- What structure does multi-select base data actually store
+- What is the difference between a multi-select data field and a regular `BasedataProp`
 
-## 常见搭配
+## Common Pairings
 
-- 多选控件: [MulBasedataEdit.md](MulBasedataEdit.md)
-- 基础资料字段: [BasedataProp.md](BasedataProp.md)
+- Multi-select control: [MulBasedataEdit.md](MulBasedataEdit.md)
+- Base data field: [BasedataProp.md](BasedataProp.md)
 
-## 关键词
+## Keywords
 
-- 中文: 多选基础资料字段, 多值基础资料
-- 英文: `MulBasedataProp`
+- Chinese: multi-select base data field, multi-value base data
+- English: `MulBasedataProp`

@@ -1,69 +1,69 @@
 # Kingscript Code Generator
 
-面向 **KWC 脚本控制器后端 API + 数据 CRUD** 的 AI skill。帮助 AI 助手基于本仓库内的 SDK 索引、运行时约束、安全模板生成、解释、审查 KingScript 代码，不编造不可用的 API。
+An AI skill for **KWC script controller backend APIs + data CRUD**. Helps the AI assistant generate, explain, and review KingScript code based on the SDK index, runtime constraints, and safe templates in this repository — without inventing unusable APIs.
 
-> 仅覆盖后端开发场景。表单插件、列表插件、操作插件、单据转换、报表、移动、打印、工作流等老式前端耦合插件体系**不在本 skill 范围内**。
+> Covers backend development only. Legacy frontend-coupled plugin systems (form plugins, list plugins, operation plugins, bill conversion, reports, mobile, printing, workflow, etc.) are **out of scope for this skill**.
 
-## 目录结构
+## Directory Layout
 
 ```text
 kingscript-code-generator/
-├─ SKILL.md                      # 唯一入口（AI 读这个）
-├─ README.md                     # 本文件
+├─ SKILL.md                      # Sole entry point (AI reads this)
+├─ README.md                     # This file
 ├─ LICENSE
 ├─ .gitignore
 └─ references/
-   ├─ backend/                   # KWC 专题：开发指南 / 安全模板 / 运行时约束 / FAQ
+   ├─ backend/                   # KWC topics: dev guide / safe templates / runtime constraints / FAQ
    ├─ sdk/
-   │  ├─ strategy.md             # SDK 检索策略
-   │  ├─ indexes/                # 按 关键词 / 场景 / 报错 / 模块 反查
-   │  ├─ classes/                # 数据 CRUD + 元数据类知识卡（27 个）
-   │  └─ manifests/              # 模块统计 JSON（modules / summary）
-   └─ syntax/                    # 语法 / 关键字 / 命名规范
+   │  ├─ strategy.md             # SDK lookup strategy
+   │  ├─ indexes/                # Reverse lookup by keyword / scenario / error / module
+   │  ├─ classes/                # Knowledge cards for data CRUD + metadata classes (27 total)
+   │  └─ manifests/              # Module statistics JSON (modules / summary)
+   └─ syntax/                    # Syntax / keywords / naming conventions
 ```
 
-## 安装
+## Installation
 
-本 skill 是 drop-in 形态，无需脚本安装。clone 后做一次软链即可。
+This skill is drop-in. No install script needed — clone and create a symlink once.
 
-**Qoder：**
+**Qoder:**
 ```bash
 ln -s "$(pwd)" ~/.qoder/skills/kingscript-code-generator
 ```
 
-**Claude Code：**
+**Claude Code:**
 ```bash
 ln -s "$(pwd)" ~/.claude/skills/kingscript-code-generator
 ```
 
-**Codex（OpenAI Agents）：**
+**Codex (OpenAI Agents):**
 ```bash
 ln -s "$(pwd)" ~/.agents/skills/kingscript-code-generator
 ```
 
-或者直接把目录复制到对应位置也可以。
+You can also just copy the directory to the appropriate location.
 
-## 使用
+## Usage
 
-安装后，AI 会自动加载 [SKILL.md](./SKILL.md) 作为入口。SKILL.md 里给出了：
+After installation, the AI automatically loads [SKILL.md](./SKILL.md) as the entry point. SKILL.md provides:
 
-- 触发时机
-- 任务路由速查表
-- 完整资料地图（叶子文件直达）
-- P0 运行时硬约束（简表，详细见 FAQ）
-- 降级检索链路
-- 输出规则与禁止事项
+- Trigger conditions
+- Task routing quick reference
+- Full reference map (direct links to leaf files)
+- P0 runtime hard constraints (short table — full details in the FAQ)
+- Fallback lookup paths
+- Output rules and prohibitions
 
-所有文档间链接使用相对路径（`./references/...`），无需运行时路径解析，也不需要任何配置文件。
+All inter-document links use relative paths (`./references/...`). No runtime path resolution or config files are required.
 
-## 维护约定
+## Maintenance Conventions
 
-1. 新增 KWC 专题资料 → `references/backend/`
-2. 新增 SDK 类知识卡 → `references/sdk/classes/<ClassName>.md`，同步更新 `indexes/keyword-index.md` / `scenario-index.md` 等手写索引
-3. 新增运行时约束 → 先更新 `references/backend/faq-runtime-pitfalls.md` 顶部 P0 总表，再补充对应专题文档
-4. **不要重新引入前端耦合内容**（表单插件、列表插件、操作插件、事件类、控件类、视图类等）
-5. 用户指出生成代码有误时，不只修当前片段；还要判断是否应沉淀成可复用约束，并回写到 SKILL.md 或 FAQ
+1. New KWC topic material → `references/backend/`
+2. New SDK class knowledge card → `references/sdk/classes/<ClassName>.md`, and update the hand-written indexes `indexes/keyword-index.md` / `scenario-index.md` accordingly
+3. New runtime constraint → first update the P0 master table at the top of `references/backend/faq-runtime-pitfalls.md`, then add the corresponding topic document
+4. **Do not reintroduce frontend-coupled content** (form plugins, list plugins, operation plugins, event classes, control classes, view classes, etc.)
+5. When the user points out incorrect generated code, do not just fix the current snippet — also decide whether it should be distilled into a reusable constraint and back-ported to SKILL.md or the FAQ
 
-## 许可
+## License
 
 MIT

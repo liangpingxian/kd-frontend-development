@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * KWC 环境一键配置脚本
- * 使用 kd env 原生参数完成环境创建 + OpenAPI 认证，跨平台（macOS / Linux / Windows）
- * 多数据中心时自动打印候选并以退出码 2 终止，提示通过 --datacenter <accountId> 指定后重跑
- * 零外部依赖，仅使用 Node.js 内置模块
- * 公共基础设施函数来自 ./_shared.mjs
+ * KWC one-shot environment setup script.
+ * Uses native `kd env` flags to create the env and complete OpenAPI auth (cross-platform: macOS / Linux / Windows).
+ * When multiple datacenters are available, prints candidates and exits with code 2 so the caller can re-run with --datacenter <accountId>.
+ * Zero external dependencies — only Node.js built-ins.
+ * Shared infrastructure helpers live in ./_shared.mjs.
  */
 
 import { spawn, execSync } from 'node:child_process'
@@ -16,17 +16,17 @@ import { createFatal, parseArgs, fetchDatacenters, loadEnvConfig, augmentPathWit
 
 const fatal = createFatal('setup-env')
 
-// 非交互 shell 下 npm 全局 bin 通常不在 PATH，先补一下，避免 `kd` 命令 ENOENT
+// Non-interactive shells usually don't have the npm global bin on PATH; patch it first to avoid ENOENT when spawning `kd`.
 augmentPathWithNpmGlobalBin()
 
-// ─── 常量 ───────────────────────────────────────────────
+// ─── Constants ──────────────────────────────────────────
 
 const ALWAYS_REQUIRED = ['envName', 'clientId', 'clientSecret', 'username']
-const EXIT_NEED_DATACENTER = 2  // 多数据中心且未指定 --datacenter 时的专用退出码
+const EXIT_NEED_DATACENTER = 2  // Dedicated exit code for "multiple datacenters and --datacenter not specified"
 
-// ─── 工具函数 ───────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────
 
-/** 同步执行命令并返回 stdout，失败返回 null */
+/** Run a command synchronously and return stdout; return null on failure. */
 function execQuiet(cmd) {
   try {
     return execSync(cmd, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }).trim()
@@ -35,15 +35,15 @@ function execQuiet(cmd) {
   }
 }
 
-/** 检查环境是否已存在于 kd env list 输出中 */
+/** Check whether the env already appears in `kd env list` output. */
 function envExists(envName) {
   const output = execQuiet('kd env list')
   if (!output) return false
-  // 按行查找，匹配环境名称（可能出现在表格的某列中）
+  // Scan line by line for the env name (may appear in one of the table columns).
   return output.split('\n').some(line => line.includes(envName))
 }
 
-/** 创建环境 */
+/** Create an env. */
 function createEnv(envName, envUrl) {
   try {
     execSync(`kd env create ${envName} --url ${envUrl}`, {
@@ -56,11 +56,11 @@ function createEnv(envName, envUrl) {
   }
 }
 
-// ─── 认证执行器 ─────────────────────────────────────────
+// ─── Auth runner ────────────────────────────────────────
 
 /**
- * 调用 kd env auth openapi 原生参数完成 OpenAPI 认证（无需 TTY/expect）
- * 使用 spawn + 参数数组，避免 shell 注入与特殊字符转义问题
+ * Invoke `kd env auth openapi` with native flags to complete OpenAPI auth (no TTY / expect required).
+ * Uses spawn + argv array to avoid shell injection and special-character escaping issues.
  */
 function runAuth(envName, datacenterId, clientId, clientSecret, username) {
   return new Promise((resolve, reject) => {
@@ -89,7 +89,7 @@ function runAuth(envName, datacenterId, clientId, clientSecret, username) {
   })
 }
 
-/** 验证认证状态（直接读取 ~/.kd/config.json 验证关键字段） */
+/** Verify auth state by reading ~/.kd/config.json and checking the critical fields. */
 function verifyAuth(envName) {
   try {
     const configPath = join(homedir(), '.kd', 'config.json')
@@ -100,7 +100,7 @@ function verifyAuth(envName) {
       return { success: false, reason: `env "${envName}" not present in config file` }
     }
 
-    // 检查关键认证字段
+    // Check the critical auth fields.
     const hasClientId = !!envConfig.client_id
     const hasAccessToken = !!envConfig.access_token
     const hasUsername = !!envConfig.username
@@ -120,12 +120,12 @@ function verifyAuth(envName) {
   }
 }
 
-// ─── 主流程 ──────────────────────────────────────────────
+// ─── Main flow ──────────────────────────────────────────
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2))
 
-  // 1. 校验始终必填的参数
+  // 1. Validate the always-required flags.
   for (const key of ALWAYS_REQUIRED) {
     if (!opts[key] || opts[key] === true) {
       fatal(`Missing required --${key}\nUsage: node setup-env.mjs --envName <name> [--envUrl <url>] --clientId <id> --clientSecret <secret> --username <user> [--datacenter <accountId>]\nNotes: --envUrl is required when the env does not exist yet; --datacenter is required only when multiple datacenters are available`)
@@ -135,7 +135,7 @@ async function main() {
   const { envName, envUrl, clientId, clientSecret, username } = opts
   const userDatacenter = (opts.datacenter && opts.datacenter !== true) ? opts.datacenter : null
 
-  // 2. 确定 envUrl（不管环境是否存在，要做数据中心探测都需要）
+  // 2. Determine envUrl (required for datacenter discovery whether or not the env exists).
   const existing = envExists(envName)
   let effectiveEnvUrl = (envUrl && envUrl !== true) ? envUrl : null
   if (!effectiveEnvUrl) {
@@ -150,7 +150,7 @@ async function main() {
     }
   }
 
-  // 3. 先拉取数据中心列表（无副作用探测，失败不会污染本地 ~/.kd/config.json）
+  // 3. Fetch the datacenter list first (side-effect-free probe — a failure here won't pollute local ~/.kd/config.json).
   let datacenters
   try {
     datacenters = await fetchDatacenters(effectiveEnvUrl, clientId)
@@ -158,7 +158,7 @@ async function main() {
     fatal(`Failed to fetch datacenters: ${err.message}`)
   }
 
-  // 4. 决定使用哪个 accountId（多个且未指定时直接 exit 2，不走后续副作用）
+  // 4. Decide which accountId to use (when multiple and unspecified, exit 2 immediately — skip downstream side effects).
   let datacenterId
   if (datacenters.length === 1) {
     datacenterId = datacenters[0].id
@@ -175,7 +175,7 @@ async function main() {
     datacenterId = matched.id
     console.error(`[setup-env] Using specified datacenter: ${matched.name} (accountId=${datacenterId})`)
   } else {
-    // 多个且未指定→ 打印候选 + 退出码 2（此时本地还没 createEnv，不会产生孤儿环境）
+    // Multiple datacenters and none specified → print candidates and exit 2 (createEnv hasn't run yet, so no orphan env is left behind).
     console.error('[setup-env] Multiple datacenters available. Re-run with --datacenter <accountId>:\n')
     for (const d of datacenters) {
       console.error(`  ${d.name}\t(accountId=${d.id})`)
@@ -188,7 +188,7 @@ async function main() {
     process.exit(EXIT_NEED_DATACENTER)
   }
 
-  // 5. 数据中心确认可用后，再创建本地 env（如果还不存在）
+  // 5. Once a datacenter is confirmed available, create the local env (if it doesn't exist yet).
   let created = false
   if (!existing) {
     createEnv(envName, effectiveEnvUrl)
@@ -197,14 +197,14 @@ async function main() {
     console.error(`[setup-env] Env "${envName}" already exists, skipping create.`)
   }
 
-  // 6. 调用 kd env auth openapi 完成认证
+  // 6. Invoke `kd env auth openapi` to complete authentication.
   try {
     await runAuth(envName, datacenterId, clientId, clientSecret, username)
   } catch (err) {
     fatal(err.message)
   }
 
-  // 6. 验证认证状态（从配置文件验证，而非仅检查环境列表）
+  // 7. Verify auth state from the config file (rather than just checking the env list).
   const authResult = verifyAuth(envName)
   if (!authResult.success) {
     fatal(`Auth not persisted: ${authResult.reason}\nRun manually: kd env auth openapi -e ${envName}`)
@@ -212,7 +212,7 @@ async function main() {
 
   console.error(`[setup-env] ✅ Auth verified. Env "${envName}" is ready.`)
 
-  // 输出结果
+  // Emit the result.
   const result = {
     success: true,
     envName,

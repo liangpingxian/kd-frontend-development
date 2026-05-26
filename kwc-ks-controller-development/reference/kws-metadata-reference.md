@@ -1,62 +1,62 @@
-# .kws 元数据配置参考
+# .kws Metadata Configuration Reference
 
-`.kws` 是 KWC 生态中 Controller 的元数据文件格式，与 `.js-meta.kwc`（组件元数据）、`.page-meta.kwp`（页面元数据）构成三元对称体系。
+`.kws` is the Controller metadata file format in the KWC ecosystem, forming a three-way symmetric system with `.js-meta.kwc` (component metadata) and `.page-meta.kwp` (page metadata).
 
-## 概述
+## Overview
 
-脚本控制器（Script Controller）是基于 KingScript 的 Web API 控制器，运行在 BOS 平台的 KWC 框架中。它允许开发者使用脚本语言快速创建 RESTful API，无需编译 Java 代码。
+A script controller (Script Controller) is a KingScript-based Web API controller running in the KWC framework on the BOS platform. It allows developers to create RESTful APIs quickly using a scripting language without compiling Java code.
 
-**核心特性：**
-- 🚀 **快速开发**：使用 KingScript 编写，即时生效
-- 🔧 **灵活配置**：通过 .kws 元数据配置 URL 路由和方法绑定
-- 🛡️ **权限控制**：内置权限验证机制
-- 🔄 **热部署**：支持运行时更新，无需重启服务
+**Core features:**
+- Rapid development: Written in KingScript, takes effect immediately
+- Flexible configuration: URL routing and method binding configured through .kws metadata
+- Permission control: Built-in permission validation mechanism
+- Hot deployment: Supports runtime updates without restarting the service
 
-每个脚本控制器由两个核心文件构成：`.kws` 元数据文件（定义路由、方法、权限）和 `.ts` 脚本文件（实现业务逻辑）。本文档仅涵盖 `.kws` 元数据配置部分。
+Each script controller consists of two core files: a `.kws` metadata file (defining routes, methods, and permissions) and a `.ts` script file (implementing business logic). This document only covers the `.kws` metadata configuration.
 
 ---
 
-## 控制器配置详解
+## Controller Configuration in Detail
 
-### 3.1 必填字段清单
+### 3.1 Required Fields
 
-控制器配置必须包含以下字段，否则部署会失败：
+The Controller configuration must include the following fields; otherwise deployment will fail:
 
-| 字段 | 说明 | 示例 | 是否必填 |
+| Field | Description | Example | Required |
 |------|------|------|---------|
-| `name` | 控制器名称（唯一标识） | `UserScriptController` | ✅ 必填 |
-| `isv` | 开发商编码 | `kingdee` 或自定义编码 | ✅ 必填 |
-| `app` | 业务应用编码 | `dev`、`bos` 等 | ✅ 必填 |
-| `version` | 版本号（正整数） | `1`、`2`、`3` | ✅ 必填 |
-| `url` | 控制器根 URL 地址 | `/kd/dev/sample/users` | ✅ 必填 |
-| `scriptFile` | 脚本文件名 | `UserScriptController.ts` | ✅ 必填 |
-| `methods` | 方法定义集合（至少 1 个） | 见 3.2 节 | ✅ 必填 |
+| `name` | Controller name (unique identifier) | `UserScriptController` | Yes |
+| `isv` | ISV (vendor) code | `kingdee` or a custom code | Yes |
+| `app` | Business application code | `dev`, `bos`, etc. | Yes |
+| `version` | Version number (positive integer) | `1`, `2`, `3` | Yes |
+| `url` | Controller root URL | `/kd/dev/sample/users` | Yes |
+| `scriptFile` | Script file name | `UserScriptController.ts` | Yes |
+| `methods` | Method definition set (at least 1) | See section 3.2 | Yes |
 
-### 3.2 .kws 元数据模板
+### 3.2 .kws Metadata Template
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <Controller>
-    <!-- 基础信息 -->
+    <!-- Basic information -->
     <name>UserScriptController</name>
     <isv>kingdee</isv>
     <app>dev</app>
     <version>1</version>
 
-    <!-- URL 地址 -->
+    <!-- URL -->
     <url>/kd/dev/sample/users</url>
 
-    <!-- 脚本文件绑定 -->
+    <!-- Script file binding -->
     <scriptFile>UserScriptController.ts</scriptFile>
 
-    <!-- 方法定义 -->
+    <!-- Method definitions -->
     <methods>
         <method>
             <name>getUser</name>
             <url>/{id}</url>
             <httpMethod>GET</httpMethod>
 
-            <!-- 权限配置（必填） -->
+            <!-- Permission configuration (required) -->
             <permission>
                 <permission>
                     <permitAll>false</permitAll>
@@ -86,56 +86,56 @@
 </Controller>
 ```
 
-### 3.3 URL 地址规则（重要）
+### 3.3 URL Rules (Important)
 
-#### 3.3.1 URL 格式要求
+#### 3.3.1 URL Format Requirements
 
 ```
-/{开发商}/{应用标识}[/自定义子目录]/{资源复数}
+/{vendor}/{app code}[/custom subdirectory]/{resource (plural)}
 ```
 
-**示例：**
-- ✅ `/kd/dev/sample/users` （推荐）
-- ✅ `/kd/bos/usercenter/users` （推荐）
-- ✅ `/myisv/myapp/orders` （自定义开发商）
-- ❌ `/kd/dev` （缺少资源路径，至少 3 级）
-- ❌ `/dev/sample/users` （缺少开发商前缀）
+**Examples:**
+- Good: `/kd/dev/sample/users` (recommended)
+- Good: `/kd/bos/usercenter/users` (recommended)
+- Good: `/myisv/myapp/orders` (custom vendor)
+- Bad: `/kd/dev` (missing resource path; at least 3 levels required)
+- Bad: `/dev/sample/users` (missing vendor prefix)
 
-#### 3.3.2 开发商前缀规则
+#### 3.3.2 Vendor Prefix Rules
 
-| isv 值 | URL 前缀 | 说明 |
+| isv value | URL prefix | Description |
 |--------|---------|------|
-| `kingdee` | `/kd/` | 金蝶原厂统一使用 `kd` |
-| 其他值 | `/{isv}/` | 二开厂商使用自己的编码 |
+| `kingdee` | `/kd/` | Kingdee in-house uniformly uses `kd` |
+| any other | `/{isv}/` | Secondary-development vendors use their own code |
 
-#### 3.3.3 完整 URL 拼接规则
+#### 3.3.3 Full URL Composition Rules
 
-最终访问 URL = **类 URL** + **方法 URL**
+Final access URL = **class URL** + **method URL**
 
-| 类 URL | 方法 URL | 最终访问 URL |
+| Class URL | Method URL | Final access URL |
 |--------|---------|-------------|
 | `/kd/dev/users` | `/{id}` | `/kd/dev/users/{id}` |
-| `/kd/dev/users` | `` (空) | `/kd/dev/users` |
+| `/kd/dev/users` | `` (empty) | `/kd/dev/users` |
 | `/kd/dev/users` | `/profile` | `/kd/dev/users/profile` |
 
-**注意事项：**
-- 方法 URL 为空时，直接使用类 URL
-- 方法 URL 不以 `/` 开头会自动添加
-- 类 URL 以 `/` 结尾会自动去重
+**Notes:**
+- When the method URL is empty, the class URL is used directly
+- A method URL that does not start with `/` will have one prepended automatically
+- A trailing `/` on the class URL will be deduplicated automatically
 
-### 3.4 方法配置（Method）
+### 3.4 Method Configuration
 
-#### 3.4.1 必填字段
+#### 3.4.1 Required Fields
 
-| 字段 | 说明 | 示例 | 是否必填 |
+| Field | Description | Example | Required |
 |------|------|------|---------|
-| `name` | 方法名（对应脚本中的方法） | `getUser`、`createUser` | ✅ 必填 |
-| `httpMethod` | HTTP 请求方法 | `GET`、`POST`、`PUT`、`DELETE` | ✅ 必填 |
-| `permission` | 权限配置对象 | 见 3.4.2 | ✅ 必填 |
+| `name` | Method name (corresponds to the method in the script) | `getUser`, `createUser` | Yes |
+| `httpMethod` | HTTP request method | `GET`, `POST`, `PUT`, `DELETE` | Yes |
+| `permission` | Permission configuration object | See 3.4.2 | Yes |
 
-#### 3.4.2 权限配置
+#### 3.4.2 Permission Configuration
 
-每个方法必须配置权限检查：
+Each method must have a permission check configured:
 
 ```xml
             <permission>
@@ -149,20 +149,20 @@
             </permission>
 ```
 
-**字段说明：**
+**Field descriptions:**
 
-| 字段 | 类型 | 默认值 | 说明 |
+| Field | Type | Default | Description |
 |------|------|--------|------|
-| `permitAll` | boolean | `false` | 是否不受权限控制。设为 `true` 则跳过统一的权限检查，由控制器方法自行处理权限逻辑 |
-| `anonymousUser` | boolean | `false` | 是否允许匿名用户访问。需同时将 `permitAll` 设为 `true`，匿名访问才会生效 |
-| `entityNumber` | string | — | 验权使用的业务实体编码（如 `bos_user`） |
-| `permItemId` | string | — | 验权使用的权限项 ID（在权限设计中定义） |
-| `checkRightApp` | string | — | 验权使用的业务应用编码（通常与 `app` 一致） |
+| `permitAll` | boolean | `false` | Whether to bypass permission control. When set to `true`, the unified permission check is skipped and the controller method handles permission logic itself |
+| `anonymousUser` | boolean | `false` | Whether to allow anonymous user access. `permitAll` must also be set to `true` for anonymous access to take effect |
+| `entityNumber` | string | — | Business entity code used for permission check (e.g. `bos_user`) |
+| `permItemId` | string | — | Permission item ID used for permission check (defined in permission design) |
+| `checkRightApp` | string | — | Business application code used for permission check (usually matches `app`) |
 
-**常见配置场景：**
+**Common configuration scenarios:**
 
 ```xml
-<!-- 场景 1：标准权限验证（推荐） -->
+<!-- Scenario 1: Standard permission check (recommended) -->
 <permission>
     <permission>
         <permitAll>false</permitAll>
@@ -172,14 +172,14 @@
     </permission>
 </permission>
 
-<!-- 场景 2：跳过统一权限检查，由控制器方法自行鉴权 -->
+<!-- Scenario 2: Skip the unified permission check; the controller method handles auth itself -->
 <permission>
     <permission>
         <permitAll>true</permitAll>
     </permission>
 </permission>
 
-<!-- 场景 3：允许匿名用户访问（需同时开启 permitAll） -->
+<!-- Scenario 3: Allow anonymous user access (permitAll must also be enabled) -->
 <permission>
     <permission>
         <permitAll>true</permitAll>
@@ -188,59 +188,59 @@
 </permission>
 ```
 
-### 3.5 版本管理规则
+### 3.5 Version Management Rules
 
-#### 3.5.1 版本号规则
+#### 3.5.1 Version Number Rules
 
-- 类型：**正整数**（1, 2, 3...）
-- 比较：新版本号必须 **大于** 已有版本号
-- 覆盖：不支持相同版本号覆盖
+- Type: **positive integer** (1, 2, 3...)
+- Comparison: the new version number must be **greater than** the existing one
+- Overwrite: overwriting the same version number is not supported
 
-#### 3.5.2 版本升级示例
+#### 3.5.2 Version Upgrade Example
 
 ```
-<!-- 首次部署 -->
+<!-- First deployment -->
 <version>1</version>
 
-<!-- 升级部署 -->
-<version>2</version>  <!-- ✅ 成功 -->
+<!-- Upgrade deployment -->
+<version>2</version>  <!-- Succeeds -->
 
-<!-- 错误示例 -->
-<version>2</version>  <!-- ❌ 失败：版本相同 -->
-<version>1</version>  <!-- ❌ 失败：版本更低 -->
+<!-- Error examples -->
+<version>2</version>  <!-- Fails: same version -->
+<version>1</version>  <!-- Fails: lower version -->
 ```
 
-### 3.6 部署验证流程
+### 3.6 Deployment Validation Flow
 
-部署时会按以下顺序验证：
+Deployment validates in the following order:
 
 ```
-1. 必填字段检查
-   ├─ name 是否为空
-   ├─ isv 是否为空
-   ├─ app 是否为空
-   ├─ url 是否为空
-   ├─ scriptFile 是否为空
-   └─ methods 是否为空
+1. Required field checks
+   ├─ name is empty?
+   ├─ isv is empty?
+   ├─ app is empty?
+   ├─ url is empty?
+   ├─ scriptFile is empty?
+   └─ methods is empty?
 
-2. URL 格式检查
-   ├─ 是否包含开发商前缀
-   ├─ 是否包含应用编码
-   └─ 是否超过 2 级路径（必须有资源路径）
+2. URL format checks
+   ├─ contains vendor prefix?
+   ├─ contains app code?
+   └─ more than 2 path levels (resource path required)?
 
-3. 方法配置检查
-   ├─ method.name 是否为空
-   ├─ method.httpMethod 是否为空
-   └─ method.permission 是否配置
+3. Method configuration checks
+   ├─ method.name is empty?
+   ├─ method.httpMethod is empty?
+   └─ method.permission configured?
 
-4. 版本号检查
-   └─ 新版本号 > 已有版本号
+4. Version number check
+   └─ new version > existing version?
 ```
 
 ---
 
-## 完整脚本开发 API
+## Full Script Development API
 
-本文档仅涵盖 `.kws` 元数据配置。完整的脚本开发 API（包括请求处理、响应处理等）请参考：
+This document only covers `.kws` metadata configuration. For the complete script development API (request handling, response handling, etc.), see:
 
-> `../kingscript-code-generator/references/docs/custom-development/脚本控制器开发指南.md`
+> `../kingscript-code-generator/references/docs/custom-development/script-controller-guide.md`

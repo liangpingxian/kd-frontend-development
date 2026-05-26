@@ -1,109 +1,109 @@
-# 完整工程流程编排
+# Complete Project Workflow Orchestration
 
-> 本文档从主 SKILL.md 中拆分而来，按需加载。触发条件：需求含后端数据交互 / 含 Controller / 含实体识别 / 前后端联合开发时必读。
+> This document was split from the main SKILL.md and is loaded on demand. Trigger condition: must read when the requirement involves backend data interaction / Controllers / entity identification / frontend-backend joint development.
 
-## 脚手架命令的推荐编排
+## Recommended Scaffold Command Orchestration
 
-### 需求前后端评估
+### Requirement Frontend-Backend Assessment
 
-面对完整业务需求时，按以下优先级判断是否需要 Controller：
+When facing a complete business requirement, determine whether a Controller is needed according to the following priorities:
 
-**强信号（命中任意一条即直接判定需要 Controller，无需询问用户）：**
-- 需求涉及列表/表格数据展示（如"XX列表"、"XX查询"、"XX监控"）
-- 需求涉及筛选/搜索/过滤条件
-- 需求涉及图表/报表/统计/仪表盘
-- 需求涉及数据的增删改操作（保存、提交、审核、删除等）
-- 需求涉及详情查看/编辑
-- 需求涉及业务实体名称（如物料、仓库、订单、客户、库存等）
+**Strong signals (hitting any one directly determines that a Controller is needed, no need to ask the user):**
+- The requirement involves list/table data display (e.g. "XX List", "XX Query", "XX Monitor")
+- The requirement involves filtering/search/filter conditions
+- The requirement involves charts/reports/statistics/dashboards
+- The requirement involves data CRUD operations (save, submit, approve, delete, etc.)
+- The requirement involves detail view/edit
+- The requirement involves business entity names (e.g. materials, warehouses, orders, customers, inventory, etc.)
 
-**弱信号（需要停下来向用户提问确认，提供"需要 Controller"和"纯前端即可"两个选项）：**
-- 需求仅描述了 UI 样式或布局，未提及数据来源
-- 需求可能通过本地 mock 数据或配置项完成
+**Weak signals (need to stop and ask the user for confirmation, providing "Need Controller" and "Frontend-only" as options):**
+- The requirement only describes UI style or layout without mentioning data sources
+- The requirement may be fulfilled with local mock data or configuration items
 
-**排除信号（不需要 Controller）：**
-- 页面仅展示静态内容、说明文档或本地计算结果
-- 纯展示型组件（如欢迎页、关于页）
+**Exclusion signals (no Controller needed):**
+- The page only displays static content, documentation, or local calculation results
+- Purely display-oriented components (e.g. welcome page, about page)
 
-默认倾向：当需求描述中出现任何业务数据相关的词汇时，优先判定需要 Controller，而非额外向用户提问确认。
+Default tendency: when any business-data-related term appears in the requirement description, prioritize judging that a Controller is needed, rather than asking the user for additional confirmation.
 
-### 实体识别与澄清
+### Entity Identification and Clarification
 
-判定需要 Controller 后，必须进一步识别需求涉及哪些业务实体，用于后续 `meta-query-api.mjs` 查询真实字段：
+After determining that a Controller is needed, you must further identify which business entities the requirement involves, for use in subsequent `meta-query-api.mjs` queries for real fields:
 
-1. **从需求中提取实体关键词**：分析用户需求描述，提取所有可能的业务实体名称（如"物料"、"仓库"、"库存"、"订单"等）
-2. **确认表单编码来源**：表单/实体编码**禁止猜测**，只能通过以下两种方式获取：
-   - **用户直接提供**：用户在需求中明确给出了表单编码（如 `bd_material`、`im_inventory`）
-   - **通过查询确认**：使用 `queryFormsByApp` 搜索表单，从返回结果中确认真实编码
-3. **向用户澄清实体**：若用户未提供表单编码，且实体名称可能存在歧义（如"库存"可能对应库存台账、库存余额、安全库存等不同表单），必须停下来向用户提问确认：
-   - 向用户提问："您提到的'库存'对应的是哪个业务表单？"，并将可能的候选表单作为选项供用户选择
-   - 若实体名称无歧义且用户也不确定编码，可先用 `queryFormsByApp` 按关键词搜索，将结果作为选项列表让用户选择
-4. **确认后再查询字段**：只有在明确了表单编码后，才执行 `getEntityFields` 查询字段结构
+1. **Extract entity keywords from the requirement**: Analyze the user's requirement description and extract all possible business entity names (e.g. "materials", "warehouse", "inventory", "orders", etc.)
+2. **Confirm the form code source**: Form/entity codes **must not be guessed**; they can only be obtained through one of the following two methods:
+   - **Directly provided by the user**: The user explicitly gives the form code in the requirement (e.g. `bd_material`, `im_inventory`)
+   - **Confirmed via query**: Use `queryFormsByApp` to search for forms and confirm the real code from the returned results
+3. **Clarify entities with the user**: If the user has not provided a form code and the entity name may be ambiguous (e.g. "inventory" could correspond to inventory ledger, inventory balance, safety stock, etc.), you must stop and ask the user for confirmation:
+   - Ask the user: "Which business form does the 'inventory' you mentioned correspond to?" and present possible candidate forms as options for the user to select
+   - If the entity name is unambiguous and the user is also unsure of the code, you can first use `queryFormsByApp` to search by keyword and present the results as an option list for the user to select
+4. **Only query fields after confirmation**: Only execute `getEntityFields` to query the field structure after the form code is confirmed
 
-### 前后端统一编排
+### Frontend-Backend Unified Orchestration
 
-当需求同时涉及前端组件和后端 Controller 时，按以下流程执行（元数据先于代码）：
+When the requirement involves both frontend components and a backend Controller, follow this flow (metadata before code):
 
-1. 若无工程，执行 project-init.mjs 脚本初始化（参数见主 SKILL.md「初始化工程」章节），初始化完成后提示用户手动执行 `cd <项目目录> && npm install --registry=https://registry.npmmirror.com`（国内镜像加速）
-2. 创建工程结构（本 Skill 职责）：
-   a. 使用 `kd project create <ComponentName> --type kwc` 创建前端组件（通常 1 个需求只需 1 个组件）
-   b. 使用 `kd project create <ControllerName> --type controller` 创建 Controller
-3. **查询业务实体字段**（当 Controller 涉及实体数据操作时）：
-   - 用户提供了表单名称/编码/实体相关信息时，使用 `meta-query-api.mjs` 查询真实字段
-   - 先 `queryFormsByApp` 搜索表单，再 `getEntityFields` 获取字段结构（见 `references/metadata-operations.md`「元数据查询」章节）
-   - 查询结果用于指导后续 Controller 元数据和代码编写，**禁止猜测字段名**
-4. 补全所有元数据（本 Skill 职责，元数据先行）：
-   a. 补全组件元数据 `.js-meta.kwc`
-   b. 补全 Controller 元数据 `.kws`（定义 URL、方法、权限配置）
-5. **实现前端组件代码**：写前必读 [`kwc-frontend-contract.md`](./kwc-frontend-contract.md)（KWC 框架契约）；UI 实现细节自由发挥
-6. **阅读 Controller 子技能文档并实现后端代码**：阅读 [kwc-ks-controller-development](../kwc-ks-controller-development/SKILL.md) 编写 Controller 脚本（*.ts）
-7. 回到脚手架工作流：创建页面元数据并补全 `<controls>`
-8. 构建前端：`npm run build:frontend`
-9. 确认或创建目标环境，完成认证
-10. 执行 `kd project deploy`
-11. **【立即】部署成功后，生成并发送页面访问链接**（`:::render:kdform ...:::`）——这是部署流程的完成标志，不可跳过或延迟（见 `references/deployment-guide.md`「页面访问链接」章节）
+1. If there is no project, execute the project-init.mjs script for initialization (parameters in the main SKILL.md "Initialize Project" section); after initialization, prompt the user to manually run `cd <project directory> && npm install --registry=https://registry.npmmirror.com` (China mirror for speed)
+2. Create the project structure (this Skill's responsibility):
+   a. Use `kd project create <ComponentName> --type kwc` to create the frontend component (usually 1 requirement = 1 component)
+   b. Use `kd project create <ControllerName> --type controller` to create the Controller
+3. **Query business entity fields** (when the Controller involves entity data operations):
+   - When the user provides form names/codes/entity-related information, use `meta-query-api.mjs` to query the real fields
+   - First `queryFormsByApp` to search forms, then `getEntityFields` to get the field structure (see `references/metadata-operations.md` "Metadata Query" section)
+   - Query results are used to guide subsequent Controller metadata and code writing; **guessing field names is forbidden**
+4. Complete all metadata (this Skill's responsibility, metadata first):
+   a. Complete the component metadata `.js-meta.kwc`
+   b. Complete the Controller metadata `.kws` (define URL, methods, permission configuration)
+5. **Implement the frontend component code**: Must read [`kwc-frontend-contract.md`](./kwc-frontend-contract.md) before writing (KWC framework contract); UI implementation details are free to decide
+6. **Read the Controller sub-skill documentation and implement the backend code**: Read [kwc-ks-controller-development](../kwc-ks-controller-development/SKILL.md) to write the Controller script (*.ts)
+7. Return to the scaffold workflow: create page metadata and complete `<controls>`
+8. Build the frontend: `npm run build:frontend`
+9. Confirm or create the target environment and complete authentication
+10. Execute `kd project deploy`
+11. **[Immediately]** After successful deployment, generate and emit the page access link (`:::render:kdform ...:::`) — this is the completion marker of the deployment flow and must not be skipped or delayed (see `references/deployment-guide.md` "Page Access Link" section)
 
-**关键原则**：
-- 步骤 4（元数据补全）中，组件元数据 `.kwc` + Controller 元数据 `.kws` 都由本 Skill 完成
-- 步骤 5（前端代码）严守 KWC 前端契约；步骤 6（Controller 代码）必须遵循 controller 子技能规范
-- 步骤 7 起回到脚手架工作流主导
+**Key Principles**:
+- In step 4 (metadata completion), both component metadata `.kwc` and Controller metadata `.kws` are completed by this Skill
+- In step 5 (frontend code), strictly follow the KWC frontend contract; in step 6 (Controller code), follow the controller sub-skill specifications
+- From step 7 onward, the scaffold workflow takes the lead again
 
-### 仅前端编排
+### Frontend-Only Orchestration
 
-若确认不涉及后端，仅前端开发时，优先按这条顺序执行：
+If it is confirmed that no backend is involved and only frontend development is needed, prefer this sequence:
 
-1. 若无工程，执行 project-init.mjs 脚本初始化（参数见主 SKILL.md「初始化工程」章节），初始化完成后提示用户手动执行 `cd <项目目录> && npm install --registry=https://registry.npmmirror.com`（国内镜像加速）
-2. 使用 `kd project create <ComponentName> --type kwc` 创建页面组件（通常 1 个需求只需 1 个组件，所有复杂布局在组件内部完成）
-3. **补全组件 `.js-meta.kwc`**（本 Skill 职责）
-4. **查询关联业务实体**（可选，当组件涉及表单数据绑定时）：使用 `meta-query-api.mjs` 查询关联表单的字段结构，辅助组件设计（见 `references/metadata-operations.md`「元数据查询」章节）
-5. **阅读 KWC 前端契约文档**：写组件代码前必读 [`kwc-frontend-contract.md`](./kwc-frontend-contract.md)（props 形状、adapterApi、config 字段等 KWC 框架特有约束）
-6. **实现组件代码**（*.tsx / *.vue / *.js）：UI 库选型、布局、CSS 等实现细节自由发挥，严守第 5 步的 KWC 契约
-7. 代码实现完成后，回到脚手架工作流：使用 `kd project create <page_name> --type page` 创建页面元数据（参数见主 SKILL.md「创建页面元数据」章节）
-8. 补全页面 `app/pages/<page-name>.page-meta.kwp`
-9. 构建前端：`npm run build:frontend`
-10. **自动部署**：先执行 `kd env list` 检查已有环境。若有已认证环境，直接执行 `kd project deploy -e <环境名>`（无需询问用户）；若无环境，先收集环境信息并配置，再部署。详见 `references/deployment-guide.md`「部署决策（默认自动部署）」章节
-11. **【立即】当次任务所有部署完成后，生成并发送页面访问链接**（`:::render:kdform ...:::`）——这是部署流程的完成标志，不可跳过或延迟（见 `references/deployment-guide.md`「页面访问链接」章节）
-12. [可选] 若用户明确要求查看效果时执行 `kd open`，明确要求本地联调时执行 `kd debug`（须后台模式）
+1. If there is no project, execute the project-init.mjs script for initialization (parameters in the main SKILL.md "Initialize Project" section); after initialization, prompt the user to manually run `cd <project directory> && npm install --registry=https://registry.npmmirror.com` (China mirror for speed)
+2. Use `kd project create <ComponentName> --type kwc` to create the page component (usually 1 requirement = 1 component; all complex layouts are implemented inside the component)
+3. **Complete the component `.js-meta.kwc`** (this Skill's responsibility)
+4. **Query associated business entities** (optional, when the component involves form data binding): Use `meta-query-api.mjs` to query the associated form's field structure to assist with component design (see `references/metadata-operations.md` "Metadata Query" section)
+5. **Read the KWC frontend contract document**: Must read [`kwc-frontend-contract.md`](./kwc-frontend-contract.md) before writing component code (props shape, adapterApi, config fields, and other KWC framework-specific constraints)
+6. **Implement the component code** (*.tsx / *.vue / *.js): UI library selection, layout, CSS, and other implementation details are free to decide; strictly follow the KWC contract from step 5
+7. After the code implementation is complete, return to the scaffold workflow: use `kd project create <page_name> --type page` to create page metadata (parameters in the main SKILL.md "Create Component / Controller / Page" section)
+8. Complete the page `app/pages/<page-name>.page-meta.kwp`
+9. Build the frontend: `npm run build:frontend`
+10. **Auto-deploy**: First run `kd env list` to check existing environments. If an authenticated environment exists, run `kd project deploy -e <env name>` directly (no need to ask the user); if no environment exists, collect environment info and configure first, then deploy. See `references/deployment-guide.md` "Deployment Decision (Auto-Deploy by Default)" section
+11. **[Immediately]** After all deployments for the current task are complete, generate and emit the page access link (`:::render:kdform ...:::`) — this is the completion marker of the deployment flow and must not be skipped or delayed (see `references/deployment-guide.md` "Page Access Link" section)
+12. [Optional] Run `kd open` only when the user explicitly asks to view the result, and `kd debug` only when the user explicitly asks for local integration testing (must use background mode)
 
-**关键原则**：
-- 步骤 3（元数据补全）必须由脚手架工作流完成
-- 步骤 5-6（代码实现）严守 [`kwc-frontend-contract.md`](./kwc-frontend-contract.md) 中的 KWC 框架契约；UI 实现自由发挥
-- 步骤 7 起（页面创建及后续）回到脚手架工作流主导
+**Key Principles**:
+- Step 3 (metadata completion) must be done by the scaffold workflow
+- Steps 5–6 (code implementation) strictly follow the KWC framework contract in [`kwc-frontend-contract.md`](./kwc-frontend-contract.md); UI implementation is free
+- From step 7 onward (page creation and beyond), the scaffold workflow takes the lead again
 
-如果是修改已有页面：
+If modifying an existing page:
 
-1. 先识别是改组件实现、改组件元数据、改页面元数据，还是三者都改
-2. **若涉及组件代码修改**：仍须遵循 [`kwc-frontend-contract.md`](./kwc-frontend-contract.md) 中的 KWC 框架契约
-3. **自动部署**：先执行 `kd env list` 检查已有环境，若有已认证环境直接 `kd project deploy` 部署变更（无需询问用户）；仅当用户明确表示不需要部署时才跳过
+1. First identify whether you are modifying the component implementation, component metadata, page metadata, or all three
+2. **If component code changes are involved**: You must still follow the KWC framework contract in [`kwc-frontend-contract.md`](./kwc-frontend-contract.md)
+3. **Auto-deploy**: First run `kd env list` to check existing environments; if an authenticated environment exists, run `kd project deploy` directly to deploy the changes (no need to ask the user); only skip deployment when the user explicitly says they don't want to deploy
 
-### 仅后端 Controller 编排
+### Backend Controller-Only Orchestration
 
-若确认仅涉及后端，不需要新增前端组件时：
+If it is confirmed that only the backend is involved and no new frontend component is needed:
 
-1. 若无工程，执行 project-init.mjs 脚本初始化（参数见主 SKILL.md「初始化工程」章节），初始化完成后提示用户手动执行 `cd <项目目录> && npm install --registry=https://registry.npmmirror.com`（国内镜像加速）
-2. 使用 `kd project create <ControllerName> --type controller` 创建 Controller
-3. **查询业务实体字段**（当 Controller 涉及实体数据操作时）：使用 `meta-query-api.mjs` 先搜索表单再获取字段结构（见 `references/metadata-operations.md`「元数据查询」章节），**禁止猜测字段名**
-4. **补全 Controller 元数据 `.kws`**（本 Skill 职责）
-5. **阅读 Controller 子技能文档并实现代码**：**必须**阅读 [kwc-ks-controller-development](../kwc-ks-controller-development/SKILL.md) 并遵循其规范
-6. **Controller 子技能规范下编写脚本代码**（*.ts）
-7. 代码实现完成后，回到脚手架工作流：先执行 `kd env list` 检查已有环境，若有已认证环境直接执行 `kd project deploy` 部署到目标环境（无需询问用户，Controller 无需预先 build）；若无环境，先收集环境信息并配置，再部署
-8. **【立即】当次任务所有部署完成后，生成并发送页面访问链接**（`:::render:kdform ...:::`）——这是部署流程的完成标志，不可跳过或延迟（见 `references/deployment-guide.md`「页面访问链接」章节）
+1. If there is no project, execute the project-init.mjs script for initialization (parameters in the main SKILL.md "Initialize Project" section); after initialization, prompt the user to manually run `cd <project directory> && npm install --registry=https://registry.npmmirror.com` (China mirror for speed)
+2. Use `kd project create <ControllerName> --type controller` to create the Controller
+3. **Query business entity fields** (when the Controller involves entity data operations): Use `meta-query-api.mjs` to first search for forms then get the field structure (see `references/metadata-operations.md` "Metadata Query" section); **guessing field names is forbidden**
+4. **Complete the Controller metadata `.kws`** (this Skill's responsibility)
+5. **Read the Controller sub-skill documentation and implement the code**: **Must** read [kwc-ks-controller-development](../kwc-ks-controller-development/SKILL.md) and follow its specifications
+6. **Write the script code under the Controller sub-skill specifications** (*.ts)
+7. After the code implementation is complete, return to the scaffold workflow: first run `kd env list` to check existing environments; if an authenticated environment exists, run `kd project deploy` directly to deploy to the target environment (no need to ask the user; Controllers do not need to be pre-built); if no environment exists, collect environment info and configure first, then deploy
+8. **[Immediately]** After all deployments for the current task are complete, generate and emit the page access link (`:::render:kdform ...:::`) — this is the completion marker of the deployment flow and must not be skipped or delayed (see `references/deployment-guide.md` "Page Access Link" section)

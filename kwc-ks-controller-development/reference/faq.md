@@ -1,93 +1,93 @@
-# Controller 开发常见问题 FAQ
+# Controller Development FAQ
 
-本文档收录 Controller 开发和前后端联调过程中的常见问题及解决方案。
+This document collects common problems and solutions encountered during Controller development and frontend-backend integration debugging.
 
 ---
 
-## ⚠️ 改完 Controller 后接口仍返回旧数据/旧逻辑
+## ⚠️ Interface Still Returns Old Data/Logic After Modifying Controller
 
-**原因**：只执行了 `kd project build --type controller`（本地编译）但没有执行 `kd project deploy`（上传到环境）。
+**Cause**: Only `kd project build --type controller` (local compilation) was executed, but `kd project deploy` (upload to environment) was not.
 
-`build` 输出 "Success" 具有误导性——它只是本地编译成功，服务端代码根本没变。
+The `build` output "Success" is misleading — it only means local compilation succeeded; the server-side code has not changed at all.
 
-**解决**：
+**Solution**:
 ```bash
-kd project deploy    # 会一并上传 controller + kwc + page
+kd project deploy    # Uploads controller + kwc + page together
 ```
 
-**规则**：每次修改 Controller 代码（.ts）或 .kws 元数据后，必须执行 `kd project deploy`。`build` 在开发阶段不需要单独执行。
+**Rule**: After every modification to Controller code (.ts) or .kws metadata, you must execute `kd project deploy`. `build` does not need to be run separately during development.
 
 ---
 
-## HTTP 500 + 空 body = 脚本装载期失败
+## HTTP 500 + Empty Body = Script Loading-Phase Failure
 
-**原因**：Controller 脚本在**装载期**（import 解析 / 顶层代码执行）就报错了，根本没进入任何方法体。此时：
-- HTTP 状态码 = 500
-- 响应 body 为空（不是 JSON 错误，是完全空）
-- try/catch 和 response.throwException() 都捕获不到
+**Cause**: The Controller script failed during the **loading phase** (import resolution / top-level code execution), never entering any method body. In this case:
+- HTTP status code = 500
+- Response body is empty (not a JSON error, completely empty)
+- try/catch and response.throwException() cannot catch it
 
-**常见装载期错误**：
-- import 路径错误（模块不存在）
-- 使用了运行时不支持的顶层语法
-- Date 构造方式不兼容
-- 顶层变量初始化抛异常
+**Common loading-phase errors**:
+- Import path error (module does not exist)
+- Using top-level syntax not supported at runtime
+- Incompatible Date constructor usage
+- Top-level variable initialization throws an exception
 
-**排查法**（二分法）：
-1. 将 Controller 方法体简化为 `this.response.write(JSON.stringify({ ok: true }))`
-2. 部署后测试 → 如果 200 → 说明是方法体内的逻辑问题
-3. 如果仍然 500 空 body → 问题在顶层/import
-4. 逐步注释掉 import 和顶层代码，每次部署测试，定位第一个导致 500 的行
+**Troubleshooting method** (binary search):
+1. Simplify the Controller method body to `this.response.write(JSON.stringify({ ok: true }))`
+2. Deploy and test → if 200 → the problem is in the method body logic
+3. If still 500 with empty body → the problem is in top-level/import code
+4. Gradually comment out imports and top-level code, deploy and test each time, locating the first line that causes 500
 
-**重要**：遇到 500 + 空 body 时，**第一条诊断假设就是装载期失败**，不要在方法体内加 try/catch 浪费时间。
+**Important**: When encountering 500 + empty body, **your first diagnostic hypothesis should be loading-phase failure** — do not waste time adding try/catch inside method bodies.
 
 ---
 
-## Q1: endpointConfig.source 字段如何填写？
+## Q1: How to Fill in the endpointConfig.source Field?
 
-**问题**：前端 `adapterApi` 的 `endpointConfig.source` 应该填什么值？如何与后端 Controller URL 对应？
+**Question**: What value should be filled in for the frontend `adapterApi`'s `endpointConfig.source`? How does it correspond to the backend Controller URL?
 
-**回答**：`source` 对应后端 Controller 的完整 URL 路径，**去掉 `/{isv}/{app}/` 前缀**，路径参数替换为实际值。
+**Answer**: `source` corresponds to the complete URL path of the backend Controller, **with the `/{isv}/{app}/` prefix removed**, and path parameters replaced with actual values.
 
 ```
 Controller .kws url:  /<isv>/<app>/sample/users
-方法 url:            /{id}
-完整路径:            /<isv>/<app>/sample/users/{id}
+Method url:           /{id}
+Full path:            /<isv>/<app>/sample/users/{id}
 
-source 值:           sample/users/123
-                     ↑ 去掉前缀        ↑ 路径参数替换为实际值
+source value:         sample/users/123
+                      ↑ Remove prefix    ↑ Path parameters replaced with actual values
 ```
 
-**更多示例**：
+**More examples**:
 
-| Controller `<url>` | 方法 `<url>` | source 值 |
+| Controller `<url>` | Method `<url>` | source value |
 |---------------------|-------------|-----------|
 | `/kd/dev/sample/hello` | `/{name}` | `sample/hello/World` |
-| `/kd/dev/sample/users` | （空） | `sample/users` |
+| `/kd/dev/sample/users` | (empty) | `sample/users` |
 | `/kd/dev/sample/orders` | `/{id}/process` | `sample/orders/1001/process` |
 
 ---
 
-## Q2: 部署时提示 version 版本号重复怎么办？
+## Q2: What to Do When Deploy Prompts Duplicate Version Number?
 
-**问题**：执行 `kd project deploy` 时提示版本号重复或版本号过低。
+**Question**: Executing `kd project deploy` prompts that the version number is duplicated or too low.
 
-**回答**：Controller 的版本号（`<version>`）必须是递增的正整数，**不支持相同版本号覆盖部署**。
+**Answer**: The Controller version number (`<version>`) must be an incrementing positive integer; **deploying with the same version number is not supported**.
 
-**解决步骤**：
+**Solution steps**:
 
-1. 打开 Controller 的 .kws 元数据文件
-2. 找到 `<version>` 标签
-3. 将版本号加 1
+1. Open the Controller's .kws metadata file
+2. Find the `<version>` tag
+3. Increment the version number by 1
 
 ```xml
-<!-- 原来 -->
+<!-- Before -->
 <version>3</version>
 
-<!-- 修改为 -->
+<!-- After -->
 <version>4</version>
 ```
 
-4. 重新构建并部署：
+4. Rebuild and deploy:
 
 ```bash
 npm run build:controller
@@ -96,22 +96,22 @@ kd project deploy
 
 ---
 
-## Q3: 如何在 Controller 中调用 KS SDK？
+## Q3: How to Call KS SDK in a Controller?
 
-**问题**：Controller 脚本中如何使用 KingScript SDK 提供的能力？
+**Question**: How to use the capabilities provided by the KingScript SDK in a Controller script?
 
-**回答**：Controller 的 TypeScript 脚本运行在 KingScript 引擎中，可以调用平台提供的 SDK。SDK 的可用性取决于部署环境，使用前建议确认 SDK 是否存在。
+**Answer**: The Controller's TypeScript script runs in the KingScript engine and can call platform-provided SDKs. SDK availability depends on the deployment environment; it is recommended to confirm the SDK exists before using it.
 
 ```typescript
 class MyController {
   doSomething(request: any, response: any) {
     try {
-      // 调用 SDK 能力（具体 API 参考 kingscript-code-generator 技能包文档）
+      // Call SDK capability (refer to the kingscript-code-generator skill package documentation for specific APIs)
       const result = this.callSdk();
       response.ok(result);
     } catch (e: any) {
       response.throwException(
-        e.message || 'SDK 调用失败',
+        e.message || 'SDK call failed',
         500,
         'SDK_ERROR'
       );
@@ -119,8 +119,8 @@ class MyController {
   }
 
   private callSdk() {
-    // SDK 调用逻辑
-    // 具体 API 参考 kingscript-code-generator 技能包的 references/sdk/ 目录
+    // SDK call logic
+    // For specific APIs, refer to the references/sdk/ directory in the kingscript-code-generator skill package
     return { success: true };
   }
 }
@@ -129,19 +129,19 @@ let kwcController = new MyController();
 export { kwcController };
 ```
 
-> 📌 SDK 的详细 API 文档和示例请参考 `kingscript-code-generator` 技能包中的 `references/sdk/` 目录。
+> 📌 For detailed SDK API documentation and examples, please refer to the `references/sdk/` directory in the `kingscript-code-generator` skill package.
 
 ---
 
-## Q4: 权限配置中 entityNumber 和 permItemId 从何处获取？
+## Q4: Where to Get entityNumber and permItemId for Permission Configuration?
 
-**问题**：.kws 元数据配置中 `<entityNumber>` 和 `<permItemId>` 的值从哪里来？
+**Question**: Where do the values for `<entityNumber>` and `<permItemId>` in the .kws metadata configuration come from?
 
-**回答**：这两个字段用于标准权限验证：
+**Answer**: These two fields are used for standard permission verification:
 
-- **entityNumber**：业务实体编码，在业务系统的实体管理中定义，如 `bos_user`
-- **permItemId**：权限项 ID，在权限管理中配置的权限项标识，如 `47150e89000000ac`
-- **checkRightApp**：验权应用编码，通常与 Controller 所属的 app 一致
+- **entityNumber**: Business entity code, defined in the business system's entity management, e.g., `bos_user`
+- **permItemId**: Permission item ID, the identifier configured in permission management, e.g., `47150e89000000ac`
+- **checkRightApp**: Permission-check app code, usually the same as the app the Controller belongs to
 
 ```xml
 <permission>
@@ -154,7 +154,7 @@ export { kwcController };
 </permission>
 ```
 
-如果暂时不需要权限控制（如开发调试阶段），可以设置为跳过权限检查：
+If permission control is temporarily not needed (e.g., during development and debugging), you can set it to skip permission checks:
 
 ```xml
 <permission>
@@ -166,234 +166,234 @@ export { kwcController };
 
 ---
 
-## Q5: 错误响应时如何设置正确的状态码？
+## Q5: How to Set the Correct Status Code for Error Responses?
 
-**问题**：Controller 中如何返回带有特定 HTTP 状态码的错误响应？
+**Question**: How to return an error response with a specific HTTP status code from a Controller?
 
-**回答**：使用 `response.throwException(message, httpCode, bizCode)` 方法：
+**Answer**: Use the `response.throwException(message, httpCode, bizCode)` method:
 
 ```typescript
-// 参数：错误消息、HTTP 状态码、业务错误码
-response.throwException('用户不存在', 404, 'USER_NOT_FOUND');
-response.throwException('参数不合法', 400, 'INVALID_PARAMS');
-response.throwException('无权操作', 403, 'FORBIDDEN');
-response.throwException('服务内部错误', 500, 'INTERNAL_ERROR');
+// Parameters: error message, HTTP status code, business error code
+response.throwException('User not found', 404, 'USER_NOT_FOUND');
+response.throwException('Invalid parameters', 400, 'INVALID_PARAMS');
+response.throwException('Forbidden', 403, 'FORBIDDEN');
+response.throwException('Internal server error', 500, 'INTERNAL_ERROR');
 ```
 
-**常用状态码对照**：
+**Common status code reference**:
 
-| 状态码 | 含义 | 使用场景 |
+| Status Code | Meaning | Usage Scenarios |
 |--------|------|---------|
-| 400 | 参数错误 | 必填字段缺失、格式校验失败 |
-| 401 | 未授权 | 未登录或 token 失效 |
-| 403 | 禁止访问 | 用户无权限执行此操作 |
-| 404 | 不存在 | 请求的资源不存在 |
-| 500 | 内部错误 | 服务端未预期的异常 |
+| 400 | Bad request | Required field missing, format validation failed |
+| 401 | Unauthorized | Not logged in or token expired |
+| 403 | Forbidden | User lacks permission to perform this operation |
+| 404 | Not found | Requested resource does not exist |
+| 500 | Internal error | Unexpected server-side exception |
 
-**注意**：调用 `throwException` 后建议立即 `return`，避免后续代码继续执行：
+**Note**: After calling `throwException`, it is recommended to `return` immediately to prevent subsequent code from continuing to execute:
 
 ```typescript
 if (!body['name']) {
-  response.throwException('用户名不能为空', 400, 'MISSING_NAME');
-  return;  // ← 必须 return
+  response.throwException('Username cannot be empty', 400, 'MISSING_NAME');
+  return;  // ← Must return
 }
 ```
 
 ---
 
-## Q6: 如何处理路径参数类型？
+## Q6: How to Handle Path Parameter Types?
 
-**问题**：`getPathVariable` 和 `getLongPathVariable` 有什么区别？该用哪个？
+**Question**: What is the difference between `getPathVariable` and `getLongPathVariable`? Which one should I use?
 
-**回答**：
+**Answer**:
 
-| 方法 | 返回类型 | 使用场景 |
+| Method | Return Type | Usage Scenarios |
 |------|---------|---------|
-| `getPathVariable(name)` | string | 路径参数为字符串（如名称、编码） |
-| `getLongPathVariable(name)` | long | 路径参数为数字 ID |
+| `getPathVariable(name)` | string | Path parameter is a string (e.g., name, code) |
+| `getLongPathVariable(name)` | long | Path parameter is a numeric ID |
 
 ```typescript
-// 字符串路径参数 — GET /users/{username}
+// String path parameter — GET /users/{username}
 const username = request.getPathVariable('username');  // → 'zhangsan'
 
-// 数字 ID 路径参数 — GET /users/{id}
+// Numeric ID path parameter — GET /users/{id}
 const userId = request.getLongPathVariable('id');       // → 12345
 ```
 
-**选用原则**：如果路径参数是数字 ID，使用 `getLongPathVariable`；如果是字符串（名称、编码等），使用 `getPathVariable`。
+**Selection principle**: If the path parameter is a numeric ID, use `getLongPathVariable`; if it is a string (name, code, etc.), use `getPathVariable`.
 
 ---
 
-## Q7: 前端调用后端 API 返回 404 怎么排查？
+## Q7: How to Troubleshoot Frontend 404 When Calling Backend API?
 
-**问题**：前端通过 `adapterApi` 调用后端接口，返回 404 错误。
+**Question**: Frontend calls backend API via `adapterApi` and gets a 404 error.
 
-**排查清单**：
+**Troubleshooting checklist**:
 
-1. **检查 source 路径**
-   - 确认 `endpointConfig.source` 是否正确去掉了 `/{isv}/{app}/` 前缀
-   - 路径参数是否替换为实际值（如 `{id}` → `123`）
+1. **Check source path**
+   - Confirm `endpointConfig.source` correctly removes the `/{isv}/{app}/` prefix
+   - Path parameters are replaced with actual values (e.g., `{id}` → `123`)
 
-2. **检查 version**
-   - `endpointConfig.version` 应为 `'v1'`
+2. **Check version**
+   - `endpointConfig.version` should be `'v1'`
 
-3. **检查部署状态**
-   - Controller 是否已执行 `npm run build:controller` + `kd project deploy`
-   - .kws 元数据中的 version 是否已递增
+3. **Check deployment status**
+   - Has the Controller been built with `npm run build:controller` + `kd project deploy`
+   - Has the version in the .kws metadata been incremented
 
-4. **检查 HTTP 方法**
-   - `doGet` / `doPost` 是否与 Controller .kws 元数据中的 `<httpMethod>` 一致
+4. **Check HTTP method**
+   - Does `doGet` / `doPost` match the `<httpMethod>` in the Controller .kws metadata
 
-5. **检查 isv 和 app**
-   - `endpointConfig.isv` 和 `endpointConfig.app` 是否与部署环境一致
+5. **Check isv and app**
+   - Do `endpointConfig.isv` and `endpointConfig.app` match the deployment environment
 
 ---
 
-## Q8: 修改 Controller 代码后如何生效？
+## Q8: How to Make Controller Code Changes Take Effect?
 
-**问题**：修改了 Controller 的 .kws 元数据或 TypeScript 代码，但调用接口仍返回旧结果。
+**Question**: Modified the Controller's .kws metadata or TypeScript code, but the API still returns old results.
 
-**回答**：每次修改 Controller 后，必须执行以下步骤：
+**Answer**: After every Controller modification, you must execute the following steps:
 
 ```bash
-# 步骤 1: 递增 .kws 元数据中的 version
+# Step 1: Increment the version in .kws metadata
 #   <version>1</version>  →  <version>2</version>
 
-# 步骤 2: 部署（会自动构建并上传）
+# Step 2: Deploy (automatically builds and uploads)
 kd project deploy
 ```
 
-> ⚠️ `npm run build:controller` 只做本地编译，不会上传。`kd project deploy` 会一并完成构建 + 上传，开发阶段无需单独执行 build。
+> ⚠️ `npm run build:controller` only does local compilation and does not upload. `kd project deploy` handles both build + upload; there is no need to run build separately during development.
 
-**重要**：版本号必须递增，否则部署会失败。不支持相同版本号覆盖。
+**Important**: The version number must be incremented, otherwise deployment will fail. Overwriting with the same version number is not supported.
 
 ---
 
-## Q9: 前端如何处理后端返回的错误？
+## Q9: How Should the Frontend Handle Backend Errors?
 
-**问题**：后端 Controller 通过 `throwException` 返回了错误，前端如何获取错误信息？
+**Question**: The backend Controller returns an error via `throwException`; how does the frontend get the error information?
 
-**回答**：在 `adapterApi` 的回调函数中，通过 `error` 参数获取错误信息：
+**Answer**: In the `adapterApi` callback function, obtain the error information via the `error` parameter:
 
 ```typescript
 const adapter = adapterApi.doGet(({ data, error }) => {
   if (error) {
-    // error.message 包含后端 throwException 的第一个参数
-    console.error('请求失败:', error.message);
+    // error.message contains the first parameter of backend throwException
+    console.error('Request failed:', error.message);
     
-    // 根据错误信息进行 UI 提示
+    // Display error message in UI
     setErrorMessage(error.message);
     return;
   }
   
-  // 正常处理数据
+  // Process data normally
   setData(data);
 });
 ```
 
-**后端 throwException 与前端 error 的对应关系**：
+**Correspondence between backend throwException and frontend error**:
 
 ```typescript
-// 后端
-response.throwException('用户不存在', 404, 'USER_NOT_FOUND');
+// Backend
+response.throwException('User not found', 404, 'USER_NOT_FOUND');
 
-// 前端回调
+// Frontend callback
 ({ data, error }) => {
-  // error.message === '用户不存在'
+  // error.message === 'User not found'
 }
 ```
 
 ---
 
-## Q10: kd debug 联调时有什么注意事项？
+## Q10: What to Note When Using kd debug for Integration?
 
-**问题**：使用 `kd debug` 进行前后端联调时需要注意什么？
+**Question**: What should I pay attention to when using `kd debug` for frontend-backend integration debugging?
 
-**回答**：
+**Answer**:
 
-### 必须使用后台模式
+### Must Use Background Mode
 
-在 AI 编程工具中执行 `kd debug` 时，**必须设置 `is_background: true`**，否则前台模式会因 90 秒超时被强制终止，导致本地服务被 kill。
+When executing `kd debug` in an AI programming tool, **you must set `is_background: true`**; otherwise, the foreground mode will be forcefully terminated after a 90-second timeout, killing the local service.
 
-### 等待服务就绪
+### Wait for Service to Be Ready
 
-`kd debug` 启动后会立即打开浏览器，但本地服务可能尚未就绪。需要：
-1. 通过 `get_terminal_output` 查看进程启动状态
-2. 等待服务启动完成后再刷新页面
+After `kd debug` starts, it immediately opens the browser, but the local service may not be ready yet. You need to:
+1. Check the process startup status via `get_terminal_output`
+2. Wait for the service to finish starting before refreshing the page
 
-### 联调检查清单
+### Integration Debugging Checklist
 
-1. **后端**：确保 Controller 已部署到目标环境（version 递增 → build → deploy）
-2. **前端**：确保组件中 `adapterApi` 的 `endpointConfig` 配置正确
-3. **启动**：执行 `kd debug`（后台模式）启动本地调试
-4. **验证**：在浏览器中访问对应页面，打开开发者工具 Network 面板确认请求/响应
+1. **Backend**: Ensure the Controller has been deployed to the target environment (increment version → build → deploy)
+2. **Frontend**: Ensure the component's `adapterApi` `endpointConfig` is correctly configured
+3. **Startup**: Execute `kd debug` (background mode) to start local debugging
+4. **Verification**: Access the corresponding page in the browser, open the developer tools Network panel to confirm request/response
 
- 📌 本地调试的更多细节请参考脚手架工作流的脚手架说明文档。
+ 📌 For more details on local debugging, refer to the scaffold description document in the scaffold workflow.
 
 ---
 
-## QueryServiceHelper.query topN 参数陷阱
+## QueryServiceHelper.query topN Parameter Trap
 
-**问题**：`QueryServiceHelper.query(entity, fields, filters, orderBy, topN)` 的 5 参重载中，`topN=0` 会被苍穹运行时解释为 `LIMIT 0`（即不返回任何记录），而不是"不限制"。
+**Question**: In the 5-argument overload of `QueryServiceHelper.query(entity, fields, filters, orderBy, topN)`, `topN=0` is interpreted by the Cosmic runtime as `LIMIT 0` (i.e., returns no records), not "no limit".
 
-**正确用法**：
-- 查全量：使用 3 参重载 `QueryServiceHelper.query(entity, fields, filters)` — 不传 orderBy 和 topN
-- 限制条数：topN 必须 > 0（如 `topN=100`）
-- **禁止** `topN=0`
+**Correct usage**:
+- Query all records: Use the 3-argument overload `QueryServiceHelper.query(entity, fields, filters)` — do not pass orderBy and topN
+- Limit the number of records: topN must be > 0 (e.g., `topN=100`)
+- **Do not use** `topN=0`
 
-**错误示例**：
+**Incorrect examples**:
 ```typescript
-// ❌ topN=0 = LIMIT 0，返回空结果
+// ❌ topN=0 = LIMIT 0, returns empty result
 const rows = QueryServiceHelper.query('kdtest_feiyongbaoxiao', 'id,billno', '', 'createTime desc', 0);
 
-// ✅ 不限条数 — 用 3 参重载
+// ✅ No limit — use 3-argument overload
 const rows = QueryServiceHelper.query('kdtest_feiyongbaoxiao', 'id,billno', '');
 
-// ✅ 限制 100 条
+// ✅ Limit to 100 records
 const rows = QueryServiceHelper.query('kdtest_feiyongbaoxiao', 'id,billno', '', 'createTime desc', 100);
 ```
 
 ---
 
-## 数据查询结果为空时的诊断模式
+## Diagnostic Pattern for Empty Query Results
 
-当 Controller 测试通过（HTTP 200）但 `--assert-not-empty data` 失败时，不能简单判定"没有数据"。应按以下流程诊断：
+When the Controller test passes (HTTP 200) but `--assert-not-empty data` fails, you cannot simply conclude "there is no data." Follow this diagnostic flow:
 
-### 诊断步骤
+### Diagnostic Steps
 
-1. **先用 meta-query-api.mjs 确认实体存在且有数据**：
+1. **First use meta-query-api.mjs to confirm the entity exists and has data**:
    ```bash
-   node $SKILL_DIR/scripts/meta-query-api.mjs queryFormsByApp --env vb --appNumber <app> --keyword <关键词>
+   node $SKILL_DIR/scripts/meta-query-api.mjs queryFormsByApp --env vb --appNumber <app> --keyword <keyword>
    ```
 
-2. **编写诊断方法，并行用多种方式查询同一实体**：
+2. **Write a diagnostic method that queries the same entity in parallel using multiple approaches**:
    ```typescript
-   // 在 Controller 中临时加一个 diagnose 方法
+   // Add a temporary diagnose method in the Controller
    @url('/diagnose')
    @httpMethod('GET')
    diagnose(): void {
      const entity = 'your_entity_number';
      const results: any = { entity };
      
-     // 方式1: 3参查询（最稳妥）
+     // Method 1: 3-argument query (most reliable)
      try {
        const rows = QueryServiceHelper.query(entity, 'id,billno', '');
        results.m1_query3 = { count: rows.length, ok: rows.length > 0 };
      } catch(e) { results.m1_query3 = { error: e.message }; }
      
-     // 方式2: queryPrimaryKeys
+     // Method 2: queryPrimaryKeys
      try {
        const ids = QueryServiceHelper.queryPrimaryKeys(entity, '', 10);
        results.m2_primaryKeys = { count: ids.length, ok: ids.length > 0 };
      } catch(e) { results.m2_primaryKeys = { error: e.message }; }
      
-     // 方式3: queryOne
+     // Method 3: queryOne
      try {
        const row = QueryServiceHelper.queryOne(entity, 'id,billno', '');
        results.m3_queryOne = { hasRow: row != null, ok: row != null };
      } catch(e) { results.m3_queryOne = { error: e.message }; }
      
-     // 方式4: exists
+     // Method 4: exists
      try {
        const ex = QueryServiceHelper.exists(entity, '');
        results.m4_exists = { exists: ex, ok: ex };
@@ -403,9 +403,9 @@ const rows = QueryServiceHelper.query('kdtest_feiyongbaoxiao', 'id,billno', '', 
    }
    ```
 
-3. **根据诊断结果判断**：
-   - 多种方式都有数据 → 原查询代码写法有问题（如 topN=0、filter 条件错误）
-   - 所有方式都无数据 → 实体确实没有数据，需确认实体编码和环境
-   - 部分有部分无 → filter 或 orderBy 有问题
+3. **Judge based on diagnostic results**:
+   - Multiple methods all return data → Original query code has issues (e.g., topN=0, incorrect filter conditions)
+   - All methods return no data → The entity genuinely has no data; confirm the entity code and environment
+   - Some return data, some don't → filter or orderBy has issues
 
-4. **修复后删除 diagnose 方法**（可选保留用于后续调试）
+4. **Remove the diagnose method after fixing** (optional: keep for future debugging)

@@ -1,42 +1,42 @@
 # Env Setup
 
-按需读取本文件，用于在目标环境不存在或尚未认证时，指导用户补齐环境绑定信息。
+Read this file on demand. Used to guide users in completing environment binding information when the target environment does not exist or is not yet authenticated.
 
-## 环境存在性检查
+## Environment Existence Check
 
-当用户提供了具体的环境名称或别名（如 `dev`、`sit`、`uat` 等）时，应先检查该环境是否已存在：
+When the user provides a specific environment name or alias (e.g. `dev`, `sit`, `uat`), first check whether that environment already exists:
 
 ```bash
 kd env list
 ```
 
-### 环境已存在的处理流程
+### Processing Flow When the Environment Already Exists
 
-若目标环境已在列表中：
+If the target environment is already in the list:
 
-1. 不需要再向用户收集 URL、Client ID/Secret 等环境信息
-2. 使用 `kd env list` 确认环境认证状态
-3. 若该环境不是当前默认环境，通过 `kd env set target-env <name>` 切换
-4. 直接使用该环境进行后续操作（deploy、debug 等）
+1. No need to collect URL, Client ID/Secret, or other environment info from the user
+2. Use `kd env list` to confirm the environment's authentication status
+3. If the environment is not the current default, switch with `kd env set target-env <name>`
+4. Use that environment directly for subsequent operations (deploy, debug, etc.)
 
-### 环境不存在的处理流程
+### Processing Flow When the Environment Does Not Exist
 
-若目标环境不在列表中，才进入完整的环境创建和认证流程（见下文）。
+Only when the environment is not in the list do you enter the full environment creation and authentication flow (see below).
 
-## 什么时候必须先收集环境信息
+## When You Must Collect Environment Info First
 
-出现下面任一情况时，不要直接 `deploy`：
+Do not run `deploy` directly if any of the following conditions apply:
 
-1. `kd env list` 中没有目标环境
-2. 目标环境存在，但没有认证信息
-3. 用户说“帮我绑定一个新环境”
-4. 用户只给了环境别名，且该环境在 `kd env list` 中不存在，同时没有提供 URL 或 OpenAPI 参数
+1. The target environment is not in `kd env list`
+2. The target environment exists but has no authentication info
+3. The user says "help me bind a new environment"
+4. The user only provided an environment alias, and that environment does not exist in `kd env list`, and no URL or OpenAPI parameters were provided
 
-注意：若用户提供的环境别名已存在于 `kd env list`，则无需收集环境信息，直接使用即可。
+Note: If the environment alias provided by the user already exists in `kd env list`, there is no need to collect environment info; use it directly.
 
-## 必须由用户手工提供的字段
+## Fields That Must Be Provided by the User Manually
 
-这些值不能猜，也不能从别的环境自动套用：
+These values cannot be guessed or automatically copied from another environment:
 
 - `env name`
 - `env url`
@@ -44,61 +44,61 @@ kd env list
 - `client secret`
 - `username`
 
-其中 `data center` 不在这批自由文本里。
-正确流程是先创建环境，再进入 `kd env auth openapi`，由脚手架读取该环境的数据中心列表，然后让用户选择。
+`data center` is not among these free-text fields.
+The correct flow is to first create the environment, then enter `kd env auth openapi`, where the scaffold reads the data center list for that environment and lets the user select.
 
-## 推荐交互方式
+## Recommended Interaction Method
 
-当前最稳妥的方式不是依赖弹窗，而是一次性向用户索要完整字段块：
+The most reliable approach right now is not to rely on pop-ups, but to ask the user for the complete set of fields in one go:
 
 ```text
-请补充以下环境信息：
+Please provide the following environment info:
 1. env name:
 2. env url:
 3. client id:
 4. client secret:
 5. username:
 
-说明：data center 不需要先手填，后续由脚手架读取候选项供选择。
+Notes: data center does not need to be filled in advance; the scaffold will read the candidates for you to select later.
 ```
 
-原因：
+Reasons:
 
-- `client secret`、`username` 这类通常是自由文本
-- `data center` 属于从目标环境读取出的候选项，更适合做选择而不是自由填写
-- 即使某些运行环境支持结构化选择，也不适合承载一整套敏感凭据填写
+- `client secret`, `username`, and similar are typically free-text values
+- `data center` is a candidate list read from the target environment, better suited for selection than free-text entry
+- Even if some runtime environments support structured selection, they are not suitable for carrying an entire set of sensitive credential entries
 
-## 收到字段后的命令顺序
+## Command Sequence After Receiving the Fields
 
-1. 创建环境：
+1. Create the environment:
 
 ```bash
 kd env create <env-name> --url <url>
 ```
 
-2. 认证环境：
+2. Authenticate the environment:
 
 ```bash
 kd env auth openapi -e <env-name>
 ```
 
-此时应让用户从脚手架提供的数据中心列表中选择，而不是要求用户手动输入数据中心编码。
+At this point, let the user select from the data center list provided by the scaffold, rather than requiring the user to manually enter a data center code.
 
-3. 必要时设置默认环境：
+3. Set the default environment if needed:
 
 ```bash
 kd env set target-env <env-name>
 ```
 
-4. 复核环境状态：
+4. Double-check the environment status:
 
 ```bash
 kd env info
 ```
 
-## 注意事项
+## Notes
 
-- 在受限环境里，`kd env create` 可能显示成功但没有真正写入，必须复核
-- 若用户没有给全字段，就不要继续执行认证
-- 不要把旧项目里保存过的 `client id` / `client secret` 当成新环境默认值
-- 不要把 `data center` 当成自由文本字段预先索要
+- In restricted environments, `kd env create` may display success without actually writing; you must double-check
+- If the user has not provided all fields, do not proceed with authentication
+- Do not use `client id` / `client secret` saved from old projects as defaults for a new environment
+- Do not treat `data center` as a free-text field to collect in advance

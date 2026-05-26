@@ -1,50 +1,50 @@
 # QueryServiceHelper
 
-## 基本信息
+## Basic Information
 
-- 名称：`QueryServiceHelper`
-- Java 类名：`kd.bos.servicehelper.QueryServiceHelper`
-- TS 导出名：`QueryServiceHelper`
-- 所属模块：`@cosmic/bos-core`
-- 所属包：`kd/bos`
-- 命名空间：`kd.bos.servicehelper`
-- 类型：查询服务助手类
-- 来源：
-  - TS 声明：`@cosmic/bos-core/kd/bos/servicehelper.d.ts`
-  - Javadoc：待补充
+- Name: `QueryServiceHelper`
+- Java class: `kd.bos.servicehelper.QueryServiceHelper`
+- TS export name: `QueryServiceHelper`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos`
+- Namespace: `kd.bos.servicehelper`
+- Type: Query service helper class
+- Source:
+  - TS declaration: `@cosmic/bos-core/kd/bos/servicehelper.d.ts`
+  - Javadoc: TBD
 
-## 用途概述
+## Overview
 
-用于执行查询类操作，常见于查询单值、单条记录、多条记录或配合业务逻辑做只读判断。
+Used to perform query operations, commonly for fetching a single value, a single record, multiple records, or for read-only checks in business logic.
 
-## 典型场景
+## Typical Scenarios
 
-- 根据主键查询单条记录
-- 查询供应商、用户、状态等基础信息
-- 在单据打开、字段联动、保存前校验中做只读查询
+- Query a single record by primary key
+- Query basic information such as suppliers, users, status
+- Read-only queries when opening a bill, in field linkage, or in pre-save validation
 
-## 用户常见问法
+## Common User Phrasings
 
-- 怎么查一条数据
-- `queryOne` 怎么用
-- 为什么查出来是空
-- 查询辅助类和业务数据助手有什么区别
+- How do I query one record
+- How do I use `queryOne`
+- Why is the query result empty
+- What is the difference between the query helper and the business data helper
 
-## 常见搭配
+## Common Combinations
 
 - `QFilter`
 - `QCP`
 - `DynamicObject`
 
-## 高价值规则
+## High-Value Rules
 
-- 查询前先明确是“只读查询”还是“业务对象加载”
-- 先把字段清单和过滤条件缩小到最小可验证集
-- 查询结果为空时，优先回头检查上下文和过滤条件
+- Before querying, decide whether it is a "read-only query" or a "business object load"
+- Narrow the field list and filter conditions to the minimum verifiable set first
+- When the result is empty, check the context and filter conditions first
 
-## 示例代码
+## Example Code
 
-### 场景 1：查询一条用户数据
+### Scenario 1: Query a user record
 
 ```kingscript
 let user = QueryServiceHelper.queryOne(
@@ -54,7 +54,7 @@ let user = QueryServiceHelper.queryOne(
 );
 ```
 
-### 场景 2：在单据加载后查询供应商信用状态
+### Scenario 2: Query supplier credit status after a bill is loaded
 
 ```kingscript
 let creditObj = QueryServiceHelper.queryOne(
@@ -64,35 +64,35 @@ let creditObj = QueryServiceHelper.queryOne(
 );
 ```
 
-## 运行时注意事项
+## Runtime Notes
 
-- 查询服务适合做读取，不适合把它理解成任意对象操作入口
-- 查询结果对象通常仍然带有平台对象语义
-- 如果字段精度、日期、集合类型参与后续处理，要继续按 Kingscript 运行时规则处理
+- The query service is suitable for reads; do not treat it as a general-purpose object operation entry
+- Query result objects usually still carry platform object semantics
+- If field precision, dates, or collection types are involved in subsequent processing, continue to follow Kingscript runtime rules
 
-## 常见错误
+## Common Errors
 
-### 1. 查询为空
+### 1. Query result is empty
 
-高概率原因：
-- 过滤条件不匹配
-- 查询字段名写错
-- 组织、租户、账套、上下文影响结果
+Likely causes:
+- Filter conditions do not match
+- Query field names are misspelled
+- Organization, tenant, account set, or context affects the result
 
-### 2. 查询后继续处理时报类型异常
+### 2. Type exception in subsequent processing after query
 
-高概率原因：
-- 把返回对象当作原生 JS 对象使用
-- 与 `BigInt`、`Date`、序列化相关类型混用
+Likely causes:
+- Treating the returned object as a native JS object
+- Mixing with types related to `BigInt`, `Date`, or serialization
 
-## 相关文档
+## Related Documents
 
 - [QFilter.md](QFilter.md)
 - [BusinessDataServiceHelper.md](BusinessDataServiceHelper.md)
 - troubleshooting.md
 
-## 关键词
+## Keywords
 
-- 中文关键词：查询服务、查一条、查单值、只读查询
-- 英文关键词：`QueryServiceHelper`、`queryOne`
-- 常见报错词：查不到、空对象、过滤条件错误
+- Chinese keywords: query service, query one, query single value, read-only query
+- English keywords: `QueryServiceHelper`, `queryOne`
+- Common error terms: not found, empty object, wrong filter condition

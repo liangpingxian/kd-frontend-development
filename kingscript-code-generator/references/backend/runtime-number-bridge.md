@@ -1,28 +1,28 @@
-# 数值类型运行时处理约定（BigDecimal / Long / BigInt）
+# Numeric Type Runtime Conventions (BigDecimal / Long / BigInt)
 
-Java 端返回的数值对象（`BigDecimal` / `Long` / `BigInteger`）在 KingScript 运行时不是原生 JS `number`。直接按 JS 数值处理会出现两类问题：
+Numeric objects returned by the Java side (`BigDecimal` / `Long` / `BigInteger`) are not native JS `number` values in the KingScript runtime. Treating them as JS numbers causes two classes of problems:
 
-- 金额/BigDecimal：类型判断、格式化、算术行为与原生 `number` 不一致
-- 大整数 ID/Long：JS `number` 基于 IEEE 754 双精度浮点，安全整数范围 ±2⁵³-1（±9007199254740991），超出即丢精度
+- Amount / BigDecimal: type checks, formatting, and arithmetic behave differently from native `number`
+- Large integer IDs / Long: JS `number` is IEEE 754 double-precision; the safe integer range is ±2⁵³−1 (±9007199254740991), and values beyond that lose precision
 
-本文档分两节给出各自的禁止写法与推荐写法。
+This document covers each case with its forbidden and recommended patterns.
 
 ---
 
-## 一、BigDecimal / 金额字段
+## 1. BigDecimal / Amount Fields
 
-### 风险
+### Risk
 
-`QueryServiceHelper.query` 或 `DynamicObject.get` 返回的金额、数值字段常见为 Java `BigDecimal`，不是 JS `number`。
+Amount and numeric fields returned by `QueryServiceHelper.query` or `DynamicObject.get` are commonly Java `BigDecimal`, not JS `number`.
 
-### 禁止写法
+### Forbidden Patterns
 
 - `Number(value)`
 - `Number.isFinite(value)`
 - `value.toFixed(...)`
-- `value + 1` 这类隐式数值运算
+- Implicit arithmetic like `value + 1`
 
-### 推荐写法
+### Recommended Pattern
 
 ```ts
 function toSafeNumber(value: any): number {
@@ -35,85 +35,85 @@ function toSafeNumber(value: any): number {
 }
 ```
 
-### 适用场景
+### Applicable Scenarios
 
-- 汇总金额、图表金额、统计卡片金额
-- 任何非大整数范围的 BigDecimal 字段
+- Aggregated amounts, chart amounts, summary-card amounts
+- Any BigDecimal field outside the large-integer range
 
-### 自检
+### Self-Check
 
-- 是否对 BigDecimal 直接做了 `Number()` / `toFixed()` / `Number.isFinite()`？
-- 是否先字符串化、再 `parseFloat`、再 `isNaN` 兜底？
+- Was `Number()` / `toFixed()` / `Number.isFinite()` applied directly to a BigDecimal?
+- Is the value stringified first, then `parseFloat`, then guarded with `isNaN`?
 
 ---
 
-## 二、Long / BigInteger / 大整数 ID
+## 2. Long / BigInteger / Large Integer IDs
 
-### 风险
+### Risk
 
-Java 端返回的 `Long` / `BigInteger` 类型 ID（主键 `id`、`PkValue` 等），超出 JS 安全整数范围后，赋值、运算、转字符串都会丢失精度。
+`Long` / `BigInteger` IDs returned by the Java side (primary key `id`, `PkValue`, etc.) lose precision on assignment, arithmetic, or stringification once they exceed the JS safe-integer range.
 
-### 精度丢失示例
+### Precision Loss Examples
 
 ```ts
-// 直接赋值：超出安全整数范围，末位被截断
-let wrong = 1637034321724565504;       // 末位可能偏离原始值
+// Direct assignment: outside the safe integer range, low digits get truncated
+let wrong = 1637034321724565504;       // low digit may drift from the original value
 
-// 直接运算：JS number 精度不足
-let wrongSum = 1637034321724565504 + 1; // 结果可能不等于 1637034321724565505
+// Direct arithmetic: JS number has insufficient precision
+let wrongSum = 1637034321724565504 + 1; // result may not equal 1637034321724565505
 ```
 
-### 禁止写法
+### Forbidden Patterns
 
-- 将 Java 返回的 Long/BigInt ID 直接赋值给 JS `number` 变量
-- 对超出安全整数范围的值做 `Number()` 转换
-- 对超出安全整数范围的值做 `parseFloat()` / `parseInt()` 转换
-- 用 `` `${bigintValue}` `` 或 `String(bigintValue)` 对**未包装**的值转字符串（精度已丢失，字符串也是错的）
-- `BigInt` 与 `number` 混合运算（如 `bigIntVar + 1`，会报 TypeError）
+- Assigning a Long/BigInt ID returned from Java directly to a JS `number` variable
+- Calling `Number()` on a value outside the safe integer range
+- Calling `parseFloat()` / `parseInt()` on a value outside the safe integer range
+- Stringifying an **unwrapped** value with `` `${bigintValue}` `` or `String(bigintValue)` (precision is already lost — the string is also wrong)
+- Mixing `BigInt` with `number` in arithmetic (e.g., `bigIntVar + 1` throws TypeError)
 
-### BigInt 声明
+### BigInt Declaration
 
 ```ts
-// 方式一：字面量后缀 n（适合已知精确值的字面量）
+// Option 1: literal suffix n (for known exact literal values)
 let id1 = 1637034321724565504n;
 
-// 方式二：BigInt(数字)（传入数字本身不能超出安全整数范围）
+// Option 2: BigInt(number) (the input number itself must not exceed the safe integer range)
 let id2 = BigInt(1637034321724565505);
 
-// 方式三：BigInt("字符串")（推荐，适合外部大整数字符串）
+// Option 3: BigInt("string") (recommended for external large-integer strings)
 let id3 = BigInt("1637034321724565506");
 ```
 
-> **推荐方式三**：从 Java 端获取的大整数 ID，先转字符串再 `BigInt("...")`，避免中间步骤精度丢失。
+> **Recommended: option 3.** For large-integer IDs from the Java side, convert to string first and then `BigInt("...")` to avoid losing precision in an intermediate step.
 
-### BigInt 运算规则
+### BigInt Arithmetic Rules
 
 ```ts
 let id1 = 1637034321724565504n;
 let id2 = BigInt(1637034321724565505);
 let id3 = BigInt("1637034321724565506");
 
-// 加法
+// Addition
 let v1 = id1 + id2 + id3;               // 4911102965173696515n
 
-// 乘法：乘数也必须是 BigInt，加 n 后缀
+// Multiplication: the multiplier must also be BigInt, with the n suffix
 let v2 = id1 * 2n;                      // 3274068643449131008n
 
-// 除法：除数必须是 BigInt，结果截断为整数
+// Division: the divisor must be BigInt; the result is truncated to an integer
 let v3 = id3 / 3n;                      // 545678107241521835n
 ```
 
-**运算规则：BigInt 只能与 BigInt 运算，不能与 number 混合。**
+**Rule: BigInt can only operate with BigInt, never with number.**
 
-### QFilter 查询中使用 BigInt
+### Using BigInt in QFilter Queries
 
-Java 主键字段（`id`、`PkValue`）在 QFilter 查询中必须以 `BigInt` 形式传入，否则精度丢失查不到数据：
+Java primary key fields (`id`, `PkValue`) must be passed as `BigInt` in QFilter queries; otherwise precision is lost and no rows match:
 
 ```ts
 import { BusinessDataServiceHelper } from '@cosmic/bos-core/kd/bos/servicehelper'
 import { QFilter } from '@cosmic/bos-core/kd/bos/orm/query'
 
-// 正确：用 BigInt 包装后作为 QFilter 值
+// Correct: wrap with BigInt and pass as the QFilter value
 let id = BigInt("1637034321724565504");
 let data = BusinessDataServiceHelper.loadSingle(
   "bos_user",
@@ -121,34 +121,34 @@ let data = BusinessDataServiceHelper.loadSingle(
   [new QFilter("id", "=", id)]
 );
 
-// 读取返回值的主键，也必须用 BigInt 包装
+// When reading the primary key from the return value, wrap with BigInt too
 let pk = BigInt(data.getPkValue());
 ```
 
-### 从 DynamicObject 读取大整数 ID
+### Reading Large Integer IDs from DynamicObject
 
 ```ts
-// 禁止：直接转 number
+// Forbidden: direct conversion to number
 // let id = Number(row.get('id'));
 
-// 正确：先转字符串，再 BigInt 包装
+// Correct: convert to string first, then wrap with BigInt
 const rawId = row.get('id');
 const idStr = rawId === null || rawId === undefined ? '' : `${rawId}`;
 const id = idStr !== '' ? BigInt(idStr) : 0n;
 ```
 
-> `` `${rawId}` `` 在此处安全，是因为 `rawId` 来自 Java 端，运行时 `toString()` 结果精确。如果你从 JS 字面量赋值就已经丢了精度，转字符串也救不回来。
+> `` `${rawId}` `` is safe here because `rawId` comes from the Java side and its runtime `toString()` is exact. If you assigned from a JS literal that already lost precision, stringifying cannot recover it.
 
-### 适用场景
+### Applicable Scenarios
 
-- 主键 ID 的查询、比较、存储
-- Long 类型字段的读取与运算
-- 任何超过 JS 安全整数范围（±9007199254740991）的整数值
+- Querying, comparing, and storing primary key IDs
+- Reading and computing on Long-typed fields
+- Any integer value exceeding the JS safe integer range (±9007199254740991)
 
-### 自检
+### Self-Check
 
-- 是否将 Java 返回的 Long/BigInt ID 直接赋值给了 JS `number` 变量？
-- 是否用 `Number()` / `parseFloat()` / `parseInt()` 转换了大整数值？
-- QFilter 查询中的 ID 值是否已用 `BigInt()` 包装？
-- `DynamicObject.getPkValue()` / `row.get('id')` 返回值是否已用 `BigInt()` 包装？
-- BigInt 运算中是否混用了 `number` 类型？（应全部用 `BigInt` + `n` 后缀）
+- Was a Long/BigInt ID returned from Java assigned directly to a JS `number` variable?
+- Was a large integer converted via `Number()` / `parseFloat()` / `parseInt()`?
+- Are the ID values in QFilter queries wrapped with `BigInt()`?
+- Are `DynamicObject.getPkValue()` / `row.get('id')` return values wrapped with `BigInt()`?
+- Is `number` mixed into BigInt arithmetic? (Use `BigInt` + the `n` suffix throughout.)

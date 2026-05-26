@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * KWC 应用菜单管理 REST API 封装脚本
- * 支持命令: queryTree, getMenu, addMenu, updateMenu, deleteMenu, moveMenu
- * 零外部依赖，仅使用 Node.js 内置模块
- * 公共基础设施函数来自 ./_shared.mjs
+ * KWC App Menu Management REST API Wrapper Script
+ * Supported commands: queryTree, getMenu, addMenu, updateMenu, deleteMenu, moveMenu
+ * Zero external dependencies, uses only Node.js built-in modules
+ * Common infrastructure functions from ./_shared.mjs
  */
 
 import {
@@ -19,7 +19,7 @@ import {
 
 const fatal = createFatal('menu-api')
 
-// ─── 命令实现 ────────────────────────────────────────────
+// ─── Command Implementation ────────────────────────────────
 
 const commands = {
   queryTree: {
@@ -83,7 +83,7 @@ const commands = {
   },
 }
 
-// ─── 主流程 ──────────────────────────────────────────────
+// ─── Main Flow ─────────────────────────────────────────────
 
 async function main() {
   const [command, ...rest] = process.argv.slice(2)
@@ -100,18 +100,18 @@ async function main() {
   const cmd = commands[command]
   const opts = parseArgs(rest)
 
-  // 校验必填参数
+  // Validate required parameters
   for (const key of cmd.required) {
     if (!opts[key]) {
       fatal(`Missing required --${key}\nUsage: ${cmd.usage}`)
     }
   }
 
-  // 加载环境配置并获取 token
+  // Load environment config and get token
   const env = loadEnvConfig(opts.env)
   const token = await resolveToken(env)
 
-  // 执行命令并输出结果
+  // Execute command and output result
   const result = await cmd.run(opts, env, token)
   console.log(JSON.stringify(result, null, 2))
 }

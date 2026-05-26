@@ -1,38 +1,38 @@
 # KDException
 
-## 基本信息
+## Basic Information
 
-- 名称: `KDException`
-- Java 类名: `kd.bos.exception.KDException`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/exception`
-- 类型: 平台运行时异常
+- Name: `KDException`
+- Java class: `kd.bos.exception.KDException`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/exception`
+- Type: Platform runtime exception
 
-## 用途概览
+## Overview
 
-`KDException` 是平台常见的运行时异常基类。很多服务端错误最终都会以它或它的子类形式抛出。
+`KDException` is the common runtime exception base class on the platform. Many server-side errors are ultimately thrown as it or its subclasses.
 
-## 高频用法
+## Common Methods
 
-| 方法 | 作用 |
+| Method | Purpose |
 |------|------|
-| `getMessage()` | 取异常消息 |
-| `getErrorCode()` | 取错误码 |
-| `getStackTraceMessage()` | 取堆栈文本 |
-| `getArgs()` | 取错误码参数 |
+| `getMessage()` | Get exception message |
+| `getErrorCode()` | Get error code |
+| `getStackTraceMessage()` | Get stack trace text |
+| `getArgs()` | Get error code arguments |
 
-## 运行时注意事项
+## Runtime Notes
 
-- 给用户提示时不要直接把完整堆栈原样透出。
-- 如果只是业务校验失败，优先考虑 `ValidateResult` / `OperationResult`，不要动不动就抛异常。
-- 真正排障时要同时看 error code、message 和 stack trace。
+- When providing user prompts, do not expose the full stack trace verbatim.
+- If it is only a business validation failure, prioritize using `ValidateResult` / `OperationResult`，instead of throwing exceptions readily.
+- For actual troubleshooting, look at error code, message, and stack trace together.
 
-## 常见搭配
+## Common Pairings
 
-- 报错索引: [../indexes/error-index.md](../indexes/error-index.md)
-- 操作结果: [OperationResult.md](OperationResult.md)
+- Error index: [../indexes/error-index.md](../indexes/error-index.md)
+- Operation result: [OperationResult.md](OperationResult.md)
 
-## 关键词
+## Keywords
 
-- 中文: 平台异常, 运行时异常, 错误码
-- 英文: `KDException`
+- Chinese: platform exception, runtime exception, error code
+- English: `KDException`

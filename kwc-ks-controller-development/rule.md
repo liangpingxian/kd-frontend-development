@@ -1,180 +1,180 @@
-# KWC KS Controller 开发硬性约束 (Hard Rules)
+# KWC KS Controller Development Hard Rules
 
-所有 KWC KingScript Controller 开发工作必须严格遵守以下约束。违反这些规则的代码将无法部署或无法正常运行。
+All KWC KingScript Controller development work must strictly comply with the following constraints. Code that violates these rules cannot be deployed or will not run correctly.
 
-## 1. Controller 类结构约束
+## 1. Controller Class Structure Constraints
 
-### 1.1 类命名规范
+### 1.1 Class Naming Conventions
 
-- **类名**：使用 PascalCase（大驼峰），建议以 `Controller` 后缀结尾
-  - ✅ `UserController`、`OrderController`、`ProductController`
-  - ❌ `userController`、`user_controller`、`UserCtrl`
-- **文件名**：与类名一致
-  - ✅ `UserController.ts`
-  - ❌ `user-controller.ts`、`UserCtrl.ts`
+- **Class name**: Use PascalCase, preferably with a `Controller` suffix
+  - Good: `UserController`, `OrderController`, `ProductController`
+  - Bad: `userController`, `user_controller`, `UserCtrl`
+- **File name**: Must match the class name
+  - Good: `UserController.ts`
+  - Bad: `user-controller.ts`, `UserCtrl.ts`
 
-### 1.2 类导出规范
+### 1.2 Class Export Convention
 
-必须创建类实例并导出为 `kwcController`：
+You must create a class instance and export it as `kwcController`:
 
 ```typescript
 class UserController {
-  // 方法定义
+  // method definitions
 }
 
-// 必须导出实例，名称固定为 kwcController
+// Must export the instance with the fixed name kwcController
 let kwcController = new UserController();
 export { kwcController };
 ```
 
-**禁止**：
-- ❌ 直接导出类：`export { UserController };`
-- ❌ 使用其他实例名：`export { controller };`
-- ❌ 使用默认导出：`export default new UserController();`
+**Forbidden**:
+- Exporting the class directly: `export { UserController };`
+- Using a different instance name: `export { controller };`
+- Using a default export: `export default new UserController();`
 
-### 1.3 方法签名规范
+### 1.3 Method Signature Convention
 
-- **方法名**：使用 camelCase（小驼峰）
-  - ✅ `getUser`、`createOrder`、`updateProduct`、`deleteItem`
-- **方法参数**：统一为 `(request: any, response: any)`
-- **示例**：
+- **Method name**: Use camelCase
+  - Good: `getUser`, `createOrder`, `updateProduct`, `deleteItem`
+- **Method parameters**: Always `(request: any, response: any)`
+- **Example**:
   ```typescript
   class UserController {
     getUser(request: any, response: any) {
-      // 实现逻辑
+      // implementation
     }
 
     createUser(request: any, response: any) {
-      // 实现逻辑
+      // implementation
     }
   }
   ```
 
-## 2. Controller 元数据 (.kws) 约束
+## 2. Controller Metadata (.kws) Constraints
 
-> .kws 文件使用 XML 格式编写，但后缀为 `.kws`，是 KWC 生态中 Controller 的元数据文件格式（类似组件元数据 `.kwc`、页面元数据 `.kwp`）。
+> The .kws file uses XML format but has the `.kws` extension. It is the metadata file format for Controllers in the KWC ecosystem (similar to component metadata `.kwc` and page metadata `.kwp`).
 
-### 2.1 必填字段
+### 2.1 Required Fields
 
-以下字段缺一不可，否则部署会失败：
+The following fields are all required; missing any of them will cause deployment to fail:
 
-| 字段 | 说明 | 示例 |
+| Field | Description | Example |
 |------|------|------|
-| `name` | 控制器名称（全局唯一） | `UserScriptController` |
-| `isv` | 开发商编码 | `kingdee` 或自定义编码 |
-| `app` | 业务应用编码 | `dev`、`bos`、`hr` |
-| `version` | 版本号（正整数） | `1`、`2`、`3` |
-| `url` | 控制器根 URL | `/kd/dev/sample/users` |
-| `scriptFile` | 脚本文件名 | `UserController.ts` |
-| `methods` | 方法定义集合（至少 1 个） | 见下方说明 |
+| `name` | Controller name (globally unique) | `UserScriptController` |
+| `isv` | ISV (vendor) code | `kingdee` or a custom code |
+| `app` | Business application code | `dev`, `bos`, `hr` |
+| `version` | Version number (positive integer) | `1`, `2`, `3` |
+| `url` | Controller root URL | `/kd/dev/sample/users` |
+| `scriptFile` | Script file name | `UserController.ts` |
+| `methods` | Method definition set (at least 1) | See below |
 
-### 2.2 isv 规则
+### 2.2 isv Rules
 
-- 金蝶原厂使用 `kingdee`
-- 二开厂商使用自己的编码（如 `myisv`、`partner001`）
-- **必须从 `.kd/config.json` 的 `isv` 字段读取，禁止猜测或硬编码**
+- Kingdee in-house uses `kingdee`
+- Third-party (secondary development) vendors use their own code (e.g. `myisv`, `partner001`)
+- **Must be read from the `isv` field in `.kd/config.json`; guessing or hard-coding is forbidden**
 
-### 2.3 app 规则
+### 2.3 app Rules
 
-- 必须与当前工程 `.kd/config.json` 中的 `app` 一致
-- **必须从 `.kd/config.json` 读取，禁止猜测或硬编码**
-- 常见值：`dev`、`bos`、`hr`、`fi` 等（原厂），二开场景可能是任意自定义值
+- Must match the `app` field in the current project's `.kd/config.json`
+- **Must be read from `.kd/config.json`; guessing or hard-coding is forbidden**
+- Common values: `dev`, `bos`, `hr`, `fi`, etc. (in-house); secondary-development scenarios may use any custom value
 
-### 2.4 url 规则（强制）
+### 2.4 url Rules (Mandatory)
 
-`<url>` 的拼装必须基于 `.kd/config.json` 中读取的真实 `isv` 和 `app` 值：
+The construction of `<url>` must be based on the real `isv` and `app` values read from `.kd/config.json`:
 
 ```
-// .kd/config.json 示例
+// .kd/config.json example
 { "isv": "kdtest", "app": "kdtest_react", ... }
 
-// 拼装规则：读取 isv → 开发商前缀 → 拼装 URL
+// Construction rule: read isv → derive vendor prefix → build URL
 <isv>kdtest</isv>
 <app>kdtest_react</app>
 <url>/kdtest/kdtest_react/api/sliconstest</url>
 ```
 
-**执行步骤：**
-1. 读取 `.kd/config.json` 获取 `isv` 和 `app` 的真实值
-2. 若 `isv === 'kingdee'`，则 URL 前缀为 `/kd/{app}/`
-3. 若 `isv` 为其他值，则 URL 前缀为 `/{isv}/{app}/`
-4. 在前缀后拼接自定义子目录和资源名称
+**Steps:**
+1. Read `.kd/config.json` to get the real values of `isv` and `app`
+2. If `isv === 'kingdee'`, the URL prefix is `/kd/{app}/`
+3. If `isv` is any other value, the URL prefix is `/{isv}/{app}/`
+4. After the prefix, append the custom subdirectory and resource name
 
-### 2.5 version 规则
+### 2.5 version Rules
 
-- 类型：正整数（1, 2, 3...）
-- 每次部署必须递增
-- **不支持**相同版本号覆盖
-- 新 Controller 首次部署 version 设为 `1`
+- Type: positive integer (1, 2, 3...)
+- Must be incremented on every deployment
+- Overwriting the same version number is **not supported**
+- For a new Controller's first deployment, set version to `1`
 
-### 2.6 scriptFile 规则
+### 2.6 scriptFile Rules
 
-- 必须与实际脚本文件名一致
-- 包含文件扩展名（`.ts`）
+- Must match the actual script file name
+- Must include the file extension (`.ts`)
 
-## 3. URL 路径约束
+## 3. URL Path Constraints
 
-### 3.1 URL 格式要求
+### 3.1 URL Format Requirements
 
 ```
-/{开发商前缀}/{应用标识}[/自定义子目录]/{资源复数}
+/{vendor prefix}/{app code}[/custom subdirectory]/{resource (plural)}
 ```
 
-**至少 3 级路径**：
-- ✅ `/kd/dev/sample/users`（原厂示例）
-- ✅ `/kd/bos/usercenter/users`（原厂示例）
-- ✅ `/kdtest/kdtest_react/api/sliconstest`（二开示例：isv=kdtest, app=kdtest_react）
-- ✅ `/myisv/myapp/orders`（二开示例：isv=myisv, app=myapp）
-- ❌ `/api/sliconstest`（缺少开发商前缀和应用标识）
-- ❌ `/kd/dev`（缺少资源路径）
-- ❌ `/dev/sample/users`（缺少开发商前缀）
+**At least 3 levels of path**:
+- Good: `/kd/dev/sample/users` (in-house example)
+- Good: `/kd/bos/usercenter/users` (in-house example)
+- Good: `/kdtest/kdtest_react/api/sliconstest` (secondary-development example: isv=kdtest, app=kdtest_react)
+- Good: `/myisv/myapp/orders` (secondary-development example: isv=myisv, app=myapp)
+- Bad: `/api/sliconstest` (missing vendor prefix and app code)
+- Bad: `/kd/dev` (missing resource path)
+- Bad: `/dev/sample/users` (missing vendor prefix)
 
-> **关键**：URL 的前两级必须与 .kws 中的 `<isv>` 和 `.kd/config.json` 中的 `app` 严格对应，不能自行编造前缀。
+> **Key point**: The first two levels of the URL must strictly correspond to `<isv>` in the .kws file and `app` in `.kd/config.json`. You may not fabricate prefixes.
 
-### 3.2 开发商前缀规则
+### 3.2 Vendor Prefix Rules
 
-| isv 值 | URL 前缀 | 说明 |
+| isv value | URL prefix | Description |
 |--------|---------|------|
-| `kingdee` | `/kd/` | 金蝶原厂统一使用 `kd` |
-| 其他值 | `/{isv}/` | 二开厂商使用自己的编码 |
+| `kingdee` | `/kd/` | Kingdee in-house uniformly uses `kd` |
+| any other | `/{isv}/` | Secondary-development vendors use their own code |
 
-### 3.3 完整 URL 拼接规则
+### 3.3 Full URL Composition Rules
 
-最终访问 URL = **类 URL** + **方法 URL**
+Final access URL = **class URL** + **method URL**
 
-| 场景 | 类 URL | 方法 URL | 最终访问 URL |
+| Scenario | Class URL | Method URL | Final access URL |
 |------|--------|---------|-------------|
-| 原厂 | `/kd/dev/users` | `/{id}` | `/kd/dev/users/{id}` |
-| 原厂 | `/kd/dev/users` | `` (空) | `/kd/dev/users` |
-| 原厂 | `/kd/dev/users` | `/profile` | `/kd/dev/users/profile` |
-| 二开 | `/kdtest/kdtest_react/api/icons` | `/{id}` | `/kdtest/kdtest_react/api/icons/{id}` |
-| 二开 | `/kdtest/kdtest_react/api/icons` | `` (空) | `/kdtest/kdtest_react/api/icons` |
+| In-house | `/kd/dev/users` | `/{id}` | `/kd/dev/users/{id}` |
+| In-house | `/kd/dev/users` | `` (empty) | `/kd/dev/users` |
+| In-house | `/kd/dev/users` | `/profile` | `/kd/dev/users/profile` |
+| Secondary dev | `/kdtest/kdtest_react/api/icons` | `/{id}` | `/kdtest/kdtest_react/api/icons/{id}` |
+| Secondary dev | `/kdtest/kdtest_react/api/icons` | `` (empty) | `/kdtest/kdtest_react/api/icons` |
 
-## 4. Method 配置约束
+## 4. Method Configuration Constraints
 
-### 4.1 必填字段
+### 4.1 Required Fields
 
-每个 method 必须包含：
+Every method must include:
 
-| 字段 | 说明 | 允许值 |
+| Field | Description | Allowed values |
 |------|------|--------|
-| `name` | 方法名（对应脚本中的方法） | camelCase 字符串 |
-| `httpMethod` | HTTP 请求方法 | `GET`、`POST`、`PUT`、`DELETE` |
-| `permission` | 权限配置 | 见下方说明 |
+| `name` | Method name (corresponds to the method in the script) | camelCase string |
+| `httpMethod` | HTTP request method | `GET`, `POST`, `PUT`, `DELETE` |
+| `permission` | Permission configuration | See below |
 
-### 4.2 httpMethod 限制
+### 4.2 httpMethod Restrictions
 
-仅允许以下值（大写）：
-- `GET` - 查询
-- `POST` - 创建
-- `PUT` - 更新
-- `DELETE` - 删除
+Only the following values (uppercase) are allowed:
+- `GET` — query
+- `POST` — create
+- `PUT` — update
+- `DELETE` — delete
 
-## 5. 权限配置约束
+## 5. Permission Configuration Constraints
 
-每个 method **必须**有 `<permission>` 配置。
+Every method **must** have a `<permission>` configuration.
 
-### 5.1 标准权限验证（推荐）
+### 5.1 Standard Permission Check (Recommended)
 
 ```xml
 <permission>
@@ -187,9 +187,9 @@ export { kwcController };
 </permission>
 ```
 
-### 5.2 跳过统一权限检查
+### 5.2 Skip the Unified Permission Check
 
-由 Controller 方法自行处理权限逻辑：
+The Controller method handles permission logic itself:
 
 ```xml
 <permission>
@@ -199,9 +199,9 @@ export { kwcController };
 </permission>
 ```
 
-### 5.3 允许匿名访问
+### 5.3 Allow Anonymous Access
 
-需同时开启 `permitAll` 和 `anonymousUser`：
+Both `permitAll` and `anonymousUser` must be enabled simultaneously:
 
 ```xml
 <permission>
@@ -212,52 +212,52 @@ export { kwcController };
 </permission>
 ```
 
-## 6. 请求处理约束
+## 6. Request Handling Constraints
 
-> `request` 和 `response` 是 KingScript 运行时的专有对象，完整 API 参见 `kingscript-code-generator` 技能包中的《脚本控制器开发指南》第五章（请求处理 API）和第六章（响应处理 API）。
+> `request` and `response` are proprietary objects of the KingScript runtime. For the full API, see Chapter 5 (Request Handling API) and Chapter 6 (Response Handling API) of the Script Controller Development Guide in the `kingscript-code-generator` skill package.
 >
-> **禁止使用 Servlet / Express 风格 API**：`request.getParameter()` / `.getAttribute()` / `.getSession()` / `.getCookies()`（Servlet）；`request.body` / `.params` / `.query`（Express）；`response.send()` / `.json()` / `.status()` / `.setHeader()`（Express/Node.js）等方法在 KingScript 运行时**不存在**。
+> **Servlet / Express style APIs are forbidden**: `request.getParameter()` / `.getAttribute()` / `.getSession()` / `.getCookies()` (Servlet); `request.body` / `.params` / `.query` (Express); `response.send()` / `.json()` / `.status()` / `.setHeader()` (Express/Node.js), etc., **do not exist** in the KingScript runtime.
 
-## 7. 响应处理约束
+## 7. Response Handling Constraints
 
-### 7.0 ⚠️ 响应数据类型约束（P0 高频问题）
+### 7.0 Response Data Type Constraint (P0 high-frequency issue)
 
-**已知平台限制**：KS 运行时在序列化 `response.ok(data)` 时，**可能将 JavaScript 原生数组 `[]` 转换为空对象 `{}`**，导致前端收到的数据类型与后端代码中定义的不一致。
+**Known platform limitation**: When the KS runtime serializes `response.ok(data)`, it **may convert a native JavaScript array `[]` into an empty object `{}`**, causing the data type received by the frontend to differ from what the backend code defines.
 
-**典型故障链路**：
+**Typical failure chain**:
 ```
-后端代码写了 items: ['a', 'b', 'c']
-↓ KS 运行时序列化
-前端实际收到 items: {}
-↓ 前端按 string[] 调用 .map()
-↓ 运行时异常 → 白屏
+Backend code writes items: ['a', 'b', 'c']
+↓ KS runtime serialization
+Frontend actually receives items: {}
+↓ Frontend calls .map() expecting string[]
+↓ Runtime exception → blank screen
 ```
 
-**硬性约束 — 复杂类型必须使用 Java 映射集合**：
+**Hard rule — complex types must use Java mapping collections**:
 
-当 `response.ok()` 返回的数据包含**数组或对象结构**时，**必须**使用 Java 映射类型 `ArrayList` 和 `HashMap`，**禁止**使用 JavaScript 原生 `[]` 和 `{}`。
+When the data returned by `response.ok()` contains **array or object structures**, you **must** use the Java mapping types `ArrayList` and `HashMap`. Using JavaScript native `[]` and `{}` is **forbidden**.
 
 ```typescript
 import { ArrayList, HashMap } from '@cosmic/bos-script/java/util';
 ```
 
-> 当返回值仅为简单类型（字符串、数字、布尔值等）时，可以直接传入 `response.ok()`，无需包装。
+> When the return value is only a simple type (string, number, boolean, etc.), it may be passed directly into `response.ok()` without wrapping.
 
-**示例对比**：
+**Comparison example**:
 
 ```typescript
 import { ArrayList, HashMap } from '@cosmic/bos-script/java/util';
 
-// ❌ 禁止：直接使用 JS 原生对象和数组
+// Bad: directly using JS native objects and arrays
 response.ok({
-  title: '标题',
+  title: 'Title',
   items: [
-    { id: 1, name: '张三' },
-    { id: 2, name: '李四' }
+    { id: 1, name: 'Alice' },
+    { id: 2, name: 'Bob' }
   ]
 });
 
-// ✅ 正确：使用 HashMap 构造对象，ArrayList 构造列表
+// Good: use HashMap to construct objects, ArrayList to construct lists
 const list = new ArrayList();
 for (const row of dataRows) {
   const item = new HashMap();
@@ -267,156 +267,156 @@ for (const row of dataRows) {
 }
 
 const result = new HashMap();
-result.put('title', '标题');       // 简单类型直接 put
-result.put('items', list);          // 列表使用 ArrayList
-result.put('total', list.size());   // 数字直接 put
+result.put('title', 'Title');       // simple types: put directly
+result.put('items', list);          // lists: use ArrayList
+result.put('total', list.size());   // numbers: put directly
 response.ok(result);
 
-// ✅ 简单类型可直接返回
-response.ok('操作成功');            // 字符串
-response.ok(42);                    // 数字
+// Good: simple types can be returned directly
+response.ok('Operation succeeded');  // string
+response.ok(42);                     // number
 ```
 
-**备选方案 — JSON.stringify（仅在无法使用 ArrayList/HashMap 时）**：
+**Fallback — JSON.stringify (only when ArrayList/HashMap cannot be used)**:
 
 ```typescript
-// ⚠️ 备选：将数组 JSON 序列化为字符串，前端再 JSON.parse
+// Fallback: JSON-serialize the array to a string, then the frontend calls JSON.parse
 response.ok({
-  title: '标题',
+  title: 'Title',
   items: JSON.stringify(['a', 'b', 'c'])
 });
 ```
 
-### 7.1 成功响应
+### 7.1 Success Response
 
 ```typescript
-// 标准成功响应（HTTP 200）
+// Standard success response (HTTP 200)
 response.ok(data);
 
-// 指定状态码
-response.of(201, { message: '创建成功', id: 123 });
+// Specify status code
+response.of(201, { message: 'Created successfully', id: 123 });
 ```
 
-### 7.2 错误响应
+### 7.2 Error Response
 
-使用 `throwException` 方法：
+Use the `throwException` method:
 
 ```typescript
 response.throwException(message, httpStatusCode, businessErrorCode);
 ```
 
-**参数说明**：
-- `message`: 异常提示消息
-- `httpStatusCode`: HTTP 状态码
-- `businessErrorCode`: 业务异常码
+**Parameters**:
+- `message`: Exception message
+- `httpStatusCode`: HTTP status code
+- `businessErrorCode`: Business error code
 
-### 7.3 常用状态码
+### 7.3 Common Status Codes
 
-| 状态码 | 含义 | 使用场景 |
+| Status | Meaning | Use case |
 |--------|------|---------|
-| 200 | 成功 | 查询、更新成功 |
-| 201 | 创建成功 | POST 创建资源成功 |
-| 400 | 参数错误 | 请求参数校验失败 |
-| 401 | 未授权 | 未登录或登录过期 |
-| 404 | 不存在 | 资源不存在 |
-| 500 | 内部错误 | 服务器异常 |
+| 200 | Success | Query or update succeeded |
+| 201 | Created | POST resource creation succeeded |
+| 400 | Bad request | Request parameter validation failed |
+| 401 | Unauthorized | Not logged in or session expired |
+| 404 | Not found | Resource does not exist |
+| 500 | Internal error | Server exception |
 
-### 7.4 禁止忽略错误处理
+### 7.4 Do Not Ignore Error Handling
 
-所有异常路径必须有明确的错误响应：
+All exception paths must have an explicit error response:
 
 ```typescript
-// ✅ 正确：有错误处理
+// Good: error handling present
 if (!body['username']) {
-  response.throwException('用户名不能为空', 400, 'MISSING_USERNAME');
+  response.throwException('Username cannot be empty', 400, 'MISSING_USERNAME');
   return;
 }
 
-// ❌ 错误：忽略异常
+// Bad: exception swallowed
 try {
-  // 业务逻辑
+  // business logic
 } catch (e) {
-  // 没有错误处理
+  // no error handling
 }
 ```
 
-## 8. SDK 使用约束
+## 8. SDK Usage Constraints
 
-### 8.1 调用前确认
+### 8.1 Confirm Before Calling
 
-调用任何 SDK 类/方法前，**必须**先在 kingscript-code-generator 技能包的索引中确认其存在：
-- 类查询：`../kingscript-code-generator/references/sdk/indexes/class-index.md`
-- 方法查询：`../kingscript-code-generator/references/sdk/indexes/method-index.md`
-- 场景查询：`../kingscript-code-generator/references/sdk/indexes/scenario-index.md`
+Before calling any SDK class/method, you **must** first confirm its existence in the kingscript-code-generator skill package indexes:
+- Class lookup: `../kingscript-code-generator/references/sdk/indexes/class-index.md`
+- Method lookup: `../kingscript-code-generator/references/sdk/indexes/method-index.md`
+- Scenario lookup: `../kingscript-code-generator/references/sdk/indexes/scenario-index.md`
 
-### 8.2 类型注意事项
+### 8.2 Type Caveats
 
-- Long 类型注意精度问题
-- 金额计算**必须**使用 BigDecimal
-- 不默认假设 Java 开放能力一定可用
+- Watch out for precision issues with the Long type
+- Monetary calculations **must** use BigDecimal
+- Do not assume any given Java open capability is available
 
-## 9. 禁止事项
+## 9. Prohibitions
 
-以下操作**绝对禁止**：
+The following operations are **absolutely forbidden**:
 
-1. **禁止编造 KingScript API**
-   - 不编造不存在的 API、事件名或上下文对象
-   - 所有 SDK 调用必须在索引中确认存在
+1. **Do not fabricate KingScript APIs**
+   - Do not invent non-existent APIs, event names, or context objects
+   - All SDK calls must be confirmed to exist in the indexes
 
-2. **禁止运行构建或部署命令**
-   - ❌ `npm run build:controller`
-   - ❌ `kd project build --type controller`
-   - ❌ `kd project deploy`
-   - 构建和部署交由脚手架工作流处理
-   - ✅ **但允许运行 `../scripts/test-controller.mjs`**：该脚本只负责「登录 + Cookie + 调已部署的 /kwc/v1 接口」，不修改工程、不部署任何物件，是 Controller 编写完成后的必要自检不属于禁止范围
+2. **Do not run build or deploy commands**
+   - Bad: `npm run build:controller`
+   - Bad: `kd project build --type controller`
+   - Bad: `kd project deploy`
+   - Build and deployment are handled by the scaffold workflow
+   - Good: **However, running `../scripts/test-controller.mjs` is allowed**: this script only handles "login + Cookie + calling already-deployed /kwc/v1 interfaces", does not modify the project, and does not deploy any artifacts. It is a required self-check after the Controller is written, and does not fall under the prohibition.
 
-3. **禁止修改前端组件代码**
-   - ❌ 修改 `*.tsx` / `*.vue` / `*.js` 前端组件文件
-   - ❌ 修改 `*.module.scss` / `*.css` 样式文件
+3. **Do not modify frontend component code**
+   - Bad: modifying `*.tsx` / `*.vue` / `*.js` frontend component files
+   - Bad: modifying `*.module.scss` / `*.css` style files
 
-4. **禁止修改元数据文件**
-   - ❌ 修改 `.js-meta.kwc` 组件元数据
-   - ❌ 修改 `.page-meta.kwp` 页面元数据
+4. **Do not modify metadata files**
+   - Bad: modifying `.js-meta.kwc` component metadata
+   - Bad: modifying `.page-meta.kwp` page metadata
 
-5. **禁止运行代码格式化命令**
-   - ❌ `eslint --fix`
-   - ❌ `prettier --write`
+5. **Do not run code formatting commands**
+   - Bad: `eslint --fix`
+   - Bad: `prettier --write`
 
-## 10. 强制自检清单
+## 10. Mandatory Self-Check Checklist
 
-1. [ ] **类导出**：是否正确导出了 `kwcController` 实例？
-2. [ ] **方法签名**：是否使用了 `(request: any, response: any)` 参数？
-3. [ ] **.kws 元数据必填**：name/isv/app/version/url/scriptFile/methods 是否完整？
-4. [ ] **isv/app 来源**：isv 和 app 是否从 `.kd/config.json` 读取的真实值（而非猜测或硬编码）？
-5. [ ] **URL 路径**：URL 前缀是否与 isv/app 严格对应？是否至少 3 级路径？
-6. [ ] **权限配置**：每个 method 是否都有 permission？
-7. [ ] **参数获取**：是否使用了正确的类型方法（如 `getLongPathVariable`）？
-8. [ ] **错误处理**：是否所有异常路径都有 `throwException` 处理？
-9. [ ] **SDK 确认**：调用的 SDK 方法是否在索引中已确认存在？
-10. [ ] **响应数据类型**：返回复杂类型（数组/对象）时是否使用了 `ArrayList`/`HashMap`？简单类型可直接返回。
-11. [ ] **禁止事项**：是否未运行任何构建/部署/格式化命令？
-12. [ ] **端到端自检**：部署后是否已运行 `../scripts/test-controller.mjs` 对每个方法跑过「正常值 + 边界值 + 期望错误值」三类用例？所有错误是否已解决？"自检未全部通过 → 不得进入前端对接"。
-13. [ ] **重试上限**：自检失败的「修改 → 部署 → 测试」循环是否已超过 3 次？若超过 3 次，是否已转入 Mock 数据模式（前端用硬编码假数据，注释保留 adapterApi 调用）而非继续循环修复？
+1. [ ] **Class export**: Is the `kwcController` instance correctly exported?
+2. [ ] **Method signature**: Are the parameters `(request: any, response: any)` used?
+3. [ ] **.kws metadata required fields**: Are name/isv/app/version/url/scriptFile/methods all present?
+4. [ ] **isv/app source**: Are isv and app real values read from `.kd/config.json` (rather than guessed or hard-coded)?
+5. [ ] **URL path**: Does the URL prefix strictly correspond to isv/app? Are there at least 3 path levels?
+6. [ ] **Permission configuration**: Does every method have a permission block?
+7. [ ] **Parameter retrieval**: Are the correct typed methods used (e.g. `getLongPathVariable`)?
+8. [ ] **Error handling**: Do all exception paths have `throwException` handling?
+9. [ ] **SDK confirmation**: Have the SDK methods called been confirmed to exist in the indexes?
+10. [ ] **Response data type**: When returning complex types (arrays/objects), are `ArrayList`/`HashMap` used? Simple types may be returned directly.
+11. [ ] **Prohibitions**: Have you avoided running any build/deploy/formatting commands?
+12. [ ] **End-to-end self-check**: After deployment, have you run `../scripts/test-controller.mjs` against each method covering "normal value + boundary value + expected error value" — three categories of cases? Have all errors been resolved? "If the self-check has not fully passed → frontend integration is not allowed."
+13. [ ] **Retry limit**: Has the "modify → deploy → test" loop after self-check failures exceeded 3 iterations? If more than 3 iterations, have you switched to Mock data mode (frontend uses hard-coded fake data, with the adapterApi call kept in comments) rather than continuing the fix loop?
 
-## 11. 最佳实践
+## 11. Best Practices
 
-### 11.1 错误处理最佳实践
+### 11.1 Error Handling Best Practices
 
-- 为所有可能失败的操作提供 try-catch
-- 使用明确的业务错误码（如 `MISSING_PARAM`、`USER_NOT_FOUND`）
-- 提供有意义的错误消息，便于前端展示和调试
-- 区分客户端错误（4xx）和服务端错误（5xx）
+- Provide try-catch around all operations that may fail
+- Use explicit business error codes (e.g. `MISSING_PARAM`, `USER_NOT_FOUND`)
+- Provide meaningful error messages that aid frontend display and debugging
+- Distinguish client errors (4xx) from server errors (5xx)
 
-### 11.2 数据验证最佳实践
+### 11.2 Data Validation Best Practices
 
-- 在方法入口第一时间校验必填参数
-- 优先使用强类型方法（如 `getLongPathVariable` 而非 `getPathVariable`）
-- 对 null 和 undefined 进行防御性检查
-- 校验字符串长度、数值范围等边界条件
+- Validate required parameters as the first thing in the method
+- Prefer strongly typed methods (e.g. `getLongPathVariable` over `getPathVariable`)
+- Apply defensive checks for null and undefined
+- Validate boundary conditions like string length and numeric range
 
-### 11.3 SDK 使用最佳实践
+### 11.3 SDK Usage Best Practices
 
-- 调用 SDK 前先确认目标类/方法在 SDK 索引中存在
-- 使用 BigDecimal 处理金额计算，避免浮点精度问题
-- 查询数据时注意分页，避免一次性加载全量数据
-- 理解长事务和查询缓存机制对性能的影响
+- Before calling an SDK, confirm the target class/method exists in the SDK indexes
+- Use BigDecimal for monetary calculations to avoid floating-point precision issues
+- Mind pagination when querying data; avoid loading the entire dataset at once
+- Understand the performance implications of long transactions and query caching

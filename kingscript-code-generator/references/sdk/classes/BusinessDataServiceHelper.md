@@ -1,54 +1,54 @@
 # BusinessDataServiceHelper
 
-## 基本信息
+## Basic Information
 
-- 名称：`BusinessDataServiceHelper`
-- Java 类名：`kd.bos.servicehelper.BusinessDataServiceHelper`
-- TS 导出名：`BusinessDataServiceHelper`
-- 所属模块：`@cosmic/bos-core`
-- 所属包：`kd/bos`
-- 命名空间：`kd.bos.servicehelper`
-- 类型：业务数据服务助手类
-- 来源：
-  - TS 声明：`@cosmic/bos-core/kd/bos/servicehelper.d.ts`
-  - Javadoc：待补充
+- Name: `BusinessDataServiceHelper`
+- Java class: `kd.bos.servicehelper.BusinessDataServiceHelper`
+- TS export name: `BusinessDataServiceHelper`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos`
+- Namespace: `kd.bos.servicehelper`
+- Type: Business data service helper
+- Sources:
+  - TS declaration: `@cosmic/bos-core/kd/bos/servicehelper.d.ts`
+  - Javadoc: TBD
 
-## 用途概述
+## Overview
 
-用于按实体、字段和过滤条件加载业务对象，是 Kingscript 二开中最常见的数据加载入口之一。
+Used to load business objects by entity, fields, and filter conditions. It is one of the most common data loading entry points in Kingscript secondary development.
 
-## 典型场景
+## Typical Scenarios
 
-- 按单据主键或编码加载单据
-- 在联动逻辑中查询基础资料
-- 在按钮、表单、单据插件中按条件取业务数据
-- 配合 `QFilter` 执行精确查询或范围查询
+- Loading documents by primary key or code
+- Querying base data in linkage logic
+- Retrieving business data by condition in button, form, and document plugins
+- Using `QFilter` to execute exact or range queries
 
-## 用户常见问法
+## Common User Phrasings
 
-- 怎么查单据
-- 怎么按条件加载业务对象
-- `load` 和 `loadSingle` 怎么用
-- 查询为什么查不到数据
+- How to query documents
+- How to load business objects by condition
+- How to use `load` and `loadSingle`
+- Why does the query return no data
 
-## 常见搭配
+## Common Pairings
 
 - `QFilter`
-  - 用于构造过滤条件
+  - Used to construct filter conditions
 - `QCP`
-  - 用于表示比较操作符
+  - Used to represent comparison operators
 - `DynamicObject`
-  - 用于承载返回的业务对象
+  - Used to carry returned business objects
 
-## 高价值规则
+## High-Value Rules
 
-- 先确认实体标识、字段名、过滤条件三者是否一致
-- 先在最小查询场景里验证一条条件，再叠加复杂条件
-- 加载到的数据通常是运行时业务对象，不要把它当成普通 JS 对象使用
+- First confirm that the entity identifier, field name, and filter condition are all consistent
+- First validate a single condition in a minimal query scenario, then add complex conditions
+- Loaded data is typically a runtime business object; do not treat it as a plain JS object
 
-## 示例代码
+## Example Code
 
-### 场景 1：按条件加载单条数据
+### Scenario 1: Loading a single record by condition
 
 ```kingscript
 let filters = [];
@@ -56,7 +56,7 @@ filters.push(new QFilter("id", "=", 10001));
 let data = BusinessDataServiceHelper.loadSingle("bos_user", "id,name", filters);
 ```
 
-### 场景 2：按条件加载多条数据
+### Scenario 2: Loading multiple records by condition
 
 ```kingscript
 let filters = [];
@@ -64,36 +64,36 @@ filters.push(new QFilter("number", "=", "CNY"));
 let datas = BusinessDataServiceHelper.load("bd_currency", "id,name,number", filters);
 ```
 
-## 运行时注意事项
+## Runtime Notes
 
-- 返回对象、过滤参数和值类型都带有明显的 Java 运行时语义
-- 如果查不到数据，不一定是服务有问题，也可能是实体名、字段名、过滤值或上下文不对
-- 如果使用长整型主键，要特别关注 `BigInt` 和数值精度问题
+- Returned objects, filter parameters, and value types all carry distinct Java runtime semantics
+- If no data is found, it may not be a service issue; the entity name, field name, filter value, or context may be incorrect
+- When using long integer primary keys, pay special attention to `BigInt` and numeric precision issues
 
-## 常见错误
+## Common Errors
 
-### 1. 查询条件可写但运行时报错
+### 1. Query conditions compile but throw runtime errors
 
-高概率原因：
-- `QFilter` 参数类型不对
-- `in` 条件值集合类型错误
-- 过滤字段名和实体字段不匹配
+High-probability causes:
+- `QFilter` parameter type is incorrect
+- `in` condition value collection type is wrong
+- Filter field name does not match the entity field
 
-### 2. 明明有数据却查不到
+### 2. Data exists but query returns nothing
 
-高概率原因：
-- 过滤值类型和真实字段类型不一致
-- 上下文、组织、租户或业务场景导致结果被隔离
+High-probability causes:
+- Filter value type does not match the actual field type
+- Context, organization, tenant, or business scenario causes result isolation
 
-## 相关文档
+## Related Documents
 
 - [QFilter.md](QFilter.md)
 - [QueryServiceHelper.md](QueryServiceHelper.md)
-- 4.4.4长整型精度丢失.md
-- 4.4.9QFilter类型转换错误.md
+- 4.4.4 Long Integer Precision Loss
+- 4.4.9 QFilter Type Conversion Error
 
-## 关键词
+## Keywords
 
-- 中文关键词：查单据、查资料、加载业务对象、按条件查询
-- 英文关键词：`BusinessDataServiceHelper`、`load`、`loadSingle`
-- 常见报错词：查询不到、类型转换错误、主键精度异常
+- Chinese keywords: query document, query base data, load business object, query by condition
+- English keywords: `BusinessDataServiceHelper`, `load`, `loadSingle`
+- Common error terms: no query result, type conversion error, primary key precision anomaly

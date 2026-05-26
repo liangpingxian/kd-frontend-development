@@ -1,17 +1,17 @@
-# SDK 微服务索引
+# SDK Microservice Index
 
-用于回答"某个能力是否属于微服务入口""先按微服务定位，下一步去哪"。
+Used to answer "is a given capability a microservice entry point" and "after locating it by microservice, where to go next".
 
-## 当前状态
+## Current status
 
-本 skill 聚焦 KWC 脚本控制器后端 API + 数据 CRUD，尚未沉淀微服务调用知识卡。本文件先作为检索路由保留。
+This skill focuses on KWC script controller backend APIs + data CRUD, and has not yet accumulated microservice-invocation knowledge cards. This file is kept as a lookup router for now.
 
-## 推荐检索顺序
+## Recommended lookup order
 
-1. 先看 [module-index.md](module-index.md) 缩小产品域。
-2. 再看 [keyword-index.md](keyword-index.md) · [scenario-index.md](scenario-index.md) 或 `../classes/<ClassName>.md` 找具体类和方法。
-3. 仍未命中时，回退到本地 `.d.ts` 声明和在线 Javadoc。
+1. Check [module-index.md](module-index.md) first to narrow the product domain.
+2. Then check [keyword-index.md](keyword-index.md) · [scenario-index.md](scenario-index.md) or `../classes/<ClassName>.md` to find the specific class and method.
+3. If still no match, fall back to local `.d.ts` declarations and online Javadoc.
 
-## 条目建议格式
+## Suggested entry format
 
-补条目时建议包含：服务职责、典型调用场景、模块和包的对应关系、常见边界和调用限制。
+When adding entries, include: service responsibility, typical invocation scenarios, mapping between modules and packages, and common boundaries and invocation limits.

@@ -1,36 +1,36 @@
 # EntityMetadataCache
 
-## 基本信息
+## Basic Information
 
-- 名称: `EntityMetadataCache`
-- Java 类名: `kd.bos.entity.EntityMetadataCache`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/entity`
-- 类型: 实体元数据缓存入口
+- Name: `EntityMetadataCache`
+- Java class: `kd.bos.entity.EntityMetadataCache`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/entity`
+- Type: Entity metadata cache entry point
 
-## 用途概览
+## Overview
 
-`EntityMetadataCache` 用来按实体标识读取和复用元数据，减少重复加载和重复解析。它更适合做元数据级工具、调试辅助、通用框架代码，不适合直接当业务事件入口。
+`EntityMetadataCache` is used to read and reuse metadata by entity identifier, reducing repeated loading and parsing. It is more suitable as a metadata-level tool, debugging aid, or generic framework code, not as a direct business event entry point.
 
-## 什么时候会用到
+## When to Use
 
-- 需要按实体编码加载 `MainEntityType` / `EntityType`
-- 写通用查询、导入、转换工具
-- 做“字段是否存在 / 字段类型是什么”的统一判断
+- Need to load by entity code `MainEntityType` / `EntityType`
+- Writing generic query, import, or conversion tools
+- Making unified judgments such as whether a field exists or what its type is
 
-## 高价值规则
+## High-Value Rules
 
-- 它是缓存入口，不是业务数据入口。
-- 用它拿到的依然是元数据对象，后续通常还要配合 `DynamicObject` 或模型层 API。
-- 二开问“某实体有哪些字段、哪些是分录、哪些是基础资料”时，这类缓存入口比页面事件更可靠。
+- It is a cache entry point, not a business data entry point.
+- What you get from it is still a metadata object; subsequent use typically requires cooperation with `DynamicObject` or model-layer API.
+- When secondary developers ask what fields an entity has, which are entries, which are base data, this cache entry point is more reliable than page events.
 
-## 常见搭配
+## Common Pairings
 
-- 主实体类型: [MainEntityType.md](MainEntityType.md)
-- 元数据基类: [EntityType.md](EntityType.md)
-- 动态对象: [DynamicObject.md](DynamicObject.md)
+- Main entity type: [MainEntityType.md](MainEntityType.md)
+- Metadata base class: [EntityType.md](EntityType.md)
+- Dynamic object: [DynamicObject.md](DynamicObject.md)
 
-## 关键词
+## Keywords
 
-- 中文: 元数据缓存, 实体缓存, 实体定义缓存
-- 英文: `EntityMetadataCache`
+- Chinese: metadata cache, entity cache, entity definition cache
+- English: `EntityMetadataCache`

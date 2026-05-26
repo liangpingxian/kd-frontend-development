@@ -1,72 +1,72 @@
-# KWC 核心概念
+# KWC Core Concepts
 
-> 主 SKILL.md 已收敛为执行手册。涉及"为什么"和心智模型的内容统一放本文档。**首次接触 KWC 工程时读一次即可**，后续可直接执行。
+> The main SKILL.md has been consolidated into an execution manual. Content about "why" and mental models is unified in this document. **Read once on first encounter with a KWC project**; afterwards you can execute directly.
 
-## 1. 组件与页面的关系约束
+## 1. Component-Page Relationship Constraints
 
-- 页面内组件只能从上到下垂直排列，不支持自由布局
-- 一般情况下，1 个需求 = 1 个组件 + 1 个页面（页面仅包含这 1 个组件）
-- 所有复杂布局（栅格、卡片、多区域等）在组件内部实现，不要拆成多个组件
-- 禁止将一个页面的不同区域（如统计卡片区、图表区、列表区）拆分为独立组件
+- Components within a page can only be arranged vertically from top to bottom; free layout is not supported
+- In general, 1 requirement = 1 component + 1 page (the page contains only this 1 component)
+- All complex layouts (grids, cards, multi-region, etc.) are implemented inside the component; do not split them into multiple components
+- Splitting different areas of a page (e.g. statistics card area, chart area, list area) into independent components is forbidden
 
-## 2. 正确认知交付对象
+## 2. Correct Understanding of Deliverables
 
-不要把 KWC 工作流理解成"本地把一个组件渲染出来"。
-KWC 的核心交付对象是：
+Do not think of the KWC workflow as "rendering a component locally."
+The core deliverables of KWC are:
 
-1. 组件工程本身（前端代码 + 组件元数据 `.js-meta.kwc`）
-2. 页面元数据 `*.page-meta.kwp`
-3. KS Controller 元数据 `*.kws` 和脚本代码（当功能涉及后端数据交互时）
-4. 目标环境配置与认证
-5. 通过 `kd project deploy` 上传后的环境渲染结果
+1. The component project itself (frontend code + component metadata `.js-meta.kwc`)
+2. Page metadata `*.page-meta.kwp`
+3. KS Controller metadata `*.kws` and script code (when the functionality involves backend data interaction)
+4. Target environment configuration and authentication
+5. The environment rendering result after uploading via `kd project deploy`
 
-页面最终展示依赖页面元数据中的 `<controls>` 和组件类型映射，而不是本地 `main.tsx` 是否挂载了某个组件。`main.tsx` 和 `npm run dev` 只用于本地辅助预览，**不是最终交付路径**。
+The final page display depends on the `<controls>` in the page metadata and the component type mapping, not on whether `main.tsx` has mounted a certain component. `main.tsx` and `npm run dev` are only for local auxiliary preview and **are not the final delivery path**.
 
-KWC 不仅是前端开发框架。当页面需要读取或操作业务数据时，KS Controller 提供后端 REST API 能力，通过 KingScript 脚本访问苍穹平台的数据查询、业务操作等服务。一个完整的业务功能通常包含前端组件（展示与交互）和后端 Controller（数据获取与业务逻辑）两部分。
+KWC is not just a frontend development framework. When a page needs to read or manipulate business data, KS Controllers provide backend REST API capabilities, accessing the Cosmic platform's data query, business operations, and other services through KingScript scripts. A complete business function typically includes both a frontend component (display and interaction) and a backend Controller (data retrieval and business logic).
 
-Controller 也遵循"元数据 + 代码"的二元模型：
-- Controller 元数据（.kws）：定义路由 URL、HTTP 方法、权限策略等声明式配置
-- Controller 脚本代码（.ts）：实现具体的业务逻辑
+Controllers also follow the "metadata + code" dual model:
+- Controller metadata (.kws): defines declarative configuration such as route URLs, HTTP methods, and permission policies
+- Controller script code (.ts): implements the specific business logic
 
-这与前端的"组件元数据 .kwc + 组件代码"模式完全对称。
+This is completely symmetrical to the frontend's "component metadata .kwc + component code" pattern.
 
-## 3. 元数据驱动的全栈开发模型
+## 3. Metadata-Driven Full-Stack Development Model
 
-一个完整的 KWC 功能最多涵盖以下层次：
+A complete KWC feature covers up to the following layers:
 
-**前端（展示与交互）：**
-1. 组件代码（*.tsx / *.vue / *.js）：负责渲染和交互逻辑
-2. 组件元数据 `.js-meta.kwc`：声明"这个组件可以被页面如何引用、可以暴露哪些可配置属性"
-3. 页面元数据 `.page-meta.kwp`：声明"这个页面由哪些组件实例组成，并给每个实例传什么属性值"
+**Frontend (Display & Interaction):**
+1. Component code (*.tsx / *.vue / *.js): responsible for rendering and interaction logic
+2. Component metadata `.js-meta.kwc`: declares "how this component can be referenced by pages, and which configurable properties it can expose"
+3. Page metadata `.page-meta.kwp`: declares "which component instances this page consists of, and what property values are passed to each instance"
 
-**后端（数据与业务逻辑）：**
-4. Controller 元数据 `.kws`：声明"这个 Controller 暴露哪些 API 端点、使用什么 HTTP 方法、需要什么权限"
-5. Controller 脚本代码（*.ts）：实现具体的数据查询、业务操作等后端逻辑
+**Backend (Data & Business Logic):**
+4. Controller metadata `.kws`: declares "which API endpoints this Controller exposes, what HTTP methods it uses, and what permissions are required"
+5. Controller script code (*.ts): implements specific data queries, business operations, and other backend logic
 
-前后端都遵循"元数据先行、代码实现跟进"的模式——先声明结构和契约，再填充实现。
+Both frontend and backend follow the "metadata first, code implementation follows" pattern — first declare the structure and contract, then fill in the implementation.
 
-面对需求时不要只问"要写几个组件"，还要继续判断：
+When facing a requirement, do not just ask "how many components to write"; also continue to determine:
 
-- 哪些参数是写死在组件代码里的
-- 哪些参数需要暴露给页面配置者，通过组件元数据定义为 `<property>`
-- 哪些组件实例会出现在页面元数据的 `<controls>` 中
-- 组件是否需要调用后端 API 获取数据或提交操作
-- 若需要，Controller 元数据（.kws）需要定义哪些 API 端点（URL、HTTP 方法、权限）
-- Controller 脚本需要调用哪些 SDK 能力（数据查询、业务操作等）
+- Which parameters are hard-coded in the component code
+- Which parameters need to be exposed to the page configurator and defined as `<property>` in the component metadata
+- Which component instances will appear in the page metadata's `<controls>`
+- Whether the component needs to call a backend API to fetch data or submit operations
+- If needed, what API endpoints the Controller metadata (.kws) should define (URL, HTTP method, permissions)
+- Which SDK capabilities the Controller script needs to call (data queries, business operations, etc.)
 
-默认原则：
+Default principles:
 
-- 能固定在组件内部的实现细节，不要暴露到元数据
-- 只有需要被页面装配、复用、配置的参数，才进入组件元数据和页面元数据
+- Implementation details that can be fixed inside the component should not be exposed to metadata
+- Only parameters that need to be assembled, reused, and configured by pages enter the component metadata and page metadata
 
-## 4. 把需求翻译成工程目标
+## 4. Translating Requirements into Engineering Targets
 
-面对"帮我开发一个 KWC 页面/功能"的请求时，先把需求翻译成下面几项：
+When facing a request like "help me develop a KWC page/feature", first translate the requirement into the following items:
 
-1. 是否需要新建工程，还是在已有工程里继续开发
-2. 是否需要组件（通常 1 个需求 = 1 个组件），组件承担什么职责
-3. 组件是否需要后端数据支持？若需要，规划对应的 KS Controller 和 API 方法
-4. 需要几个页面元数据文件（通常 1 个页面包含 1 个组件）
-5. 最终部署到哪个环境（若已有默认环境则直接使用，无需确认）
+1. Whether a new project is needed, or whether to continue development in an existing project
+2. Whether a component is needed (usually 1 requirement = 1 component), and what responsibilities the component should assume
+3. Whether the component needs backend data support; if so, plan the corresponding KS Controller and API methods
+4. How many page metadata files are needed (usually 1 page contains 1 component)
+5. Which environment to deploy to in the end (if a default environment exists, use it directly without confirmation)
 
-只有把这几项补齐，脚手架命令才有明确目标。
+Only after these items are filled in will the scaffold commands have clear targets.

@@ -1,12 +1,12 @@
-# Controller 常见模式和代码示例
+# Controller Common Patterns and Code Examples
 
-本文档提供脚本控制器的常见开发模式和完整代码示例，可作为快速参考。
+This document provides common development patterns and complete code examples for script controllers, which can be used as a quick reference.
 
-## 1. 最简 GET 示例
+## 1. Simplest GET Example
 
-一个最简单的单方法 Controller，用于获取单个资源。
+The simplest single-method Controller for retrieving a single resource.
 
-### 1.1 .kws 元数据配置
+### 1.1 .kws Metadata Configuration
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -32,15 +32,15 @@
 </Controller>
 ```
 
-### 1.2 TypeScript 代码
+### 1.2 TypeScript Code
 
 ```typescript
 class HelloController {
   sayHello(request: any, response: any) {
-    // 获取路径参数
+    // Get path parameter
     const name = request.getPathVariable('name');
     
-    // 返回响应
+    // Return response
     response.ok({
       message: `Hello, ${name}!`,
       timestamp: new Date().toISOString()
@@ -52,7 +52,7 @@ let kwcController = new HelloController();
 export { kwcController };
 ```
 
-### 1.3 访问示例
+### 1.3 Access Example
 
 ```
 GET ../kwc/v1/kd/dev/sample/hello/World
@@ -64,11 +64,11 @@ Response (200):
 }
 ```
 
-## 2. 完整 CRUD 示例
+## 2. Complete CRUD Example
 
-一个包含增删改查四个方法的完整 Controller。
+A complete Controller with four CRUD methods.
 
-### 2.1 .kws 元数据配置
+### 2.1 .kws Metadata Configuration
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -80,7 +80,7 @@ Response (200):
     <url>/kd/dev/sample/users</url>
     <scriptFile>UserController.ts</scriptFile>
     <methods>
-        <!-- 查询单个用户 -->
+        <!-- Query a single user -->
         <method>
             <name>getUser</name>
             <url>/{id}</url>
@@ -95,7 +95,7 @@ Response (200):
             </permission>
         </method>
         
-        <!-- 创建用户 -->
+        <!-- Create user -->
         <method>
             <name>createUser</name>
             <url></url>
@@ -110,7 +110,7 @@ Response (200):
             </permission>
         </method>
         
-        <!-- 更新用户 -->
+        <!-- Update user -->
         <method>
             <name>updateUser</name>
             <url>/{id}</url>
@@ -125,7 +125,7 @@ Response (200):
             </permission>
         </method>
         
-        <!-- 删除用户 -->
+        <!-- Delete user -->
         <method>
             <name>deleteUser</name>
             <url>/{id}</url>
@@ -143,7 +143,7 @@ Response (200):
 </Controller>
 ```
 
-### 2.2 TypeScript 代码
+### 2.2 TypeScript Code
 
 ```typescript
 import { ArrayList, HashMap } from '@cosmic/bos-script/java/util';
@@ -153,12 +153,12 @@ class UserController {
   getUser(request: any, response: any) {
     const userId = request.getLongPathVariable('id');
     
-    // 使用 HashMap 构造返回对象
+    // Build return object using HashMap
     const user = new HashMap();
     user.put('id', userId);
-    user.put('name', '张三');
+    user.put('name', 'Zhang San');
     user.put('email', 'zhangsan@example.com');
-    user.put('department', '研发部');
+    user.put('department', 'R&D');
     
     response.ok(user);
   }
@@ -167,23 +167,23 @@ class UserController {
   createUser(request: any, response: any) {
     const body = request.getMapBody();
     
-    // 参数验证
+    // Parameter validation
     if (!body['name']) {
-      response.throwException('用户名不能为空', 400, 'MISSING_NAME');
+      response.throwException('Username cannot be empty', 400, 'MISSING_NAME');
       return;
     }
     
     if (!body['email']) {
-      response.throwException('邮箱不能为空', 400, 'MISSING_EMAIL');
+      response.throwException('Email cannot be empty', 400, 'MISSING_EMAIL');
       return;
     }
     
-    // 使用 HashMap 构造返回对象
+    // Build return object using HashMap
     const newUser = new HashMap();
     newUser.put('id', Date.now());
     newUser.put('name', body['name']);
     newUser.put('email', body['email']);
-    newUser.put('department', body['department'] || '默认部门');
+    newUser.put('department', body['department'] || 'Default Department');
     
     response.of(201, newUser);
   }
@@ -193,7 +193,7 @@ class UserController {
     const userId = request.getLongPathVariable('id');
     const body = request.getMapBody();
     
-    // 使用 HashMap 构造返回对象
+    // Build return object using HashMap
     const updatedUser = new HashMap();
     updatedUser.put('id', userId);
     updatedUser.put('name', body['name']);
@@ -208,9 +208,9 @@ class UserController {
   deleteUser(request: any, response: any) {
     const userId = request.getLongPathVariable('id');
     
-    // 简单类型可直接返回；包含多字段时仍使用 HashMap
+    // Simple types can be returned directly; use HashMap for multi-field objects
     const result = new HashMap();
-    result.put('message', '删除成功');
+    result.put('message', 'Deleted successfully');
     result.put('deletedId', userId);
     response.ok(result);
   }
@@ -220,37 +220,37 @@ let kwcController = new UserController();
 export { kwcController };
 ```
 
-## 3. 错误处理模式
+## 3. Error Handling Patterns
 
-### 3.1 参数验证失败
+### 3.1 Parameter Validation Failure
 
 ```typescript
 class ValidationController {
   createOrder(request: any, response: any) {
     const body = request.getMapBody();
     
-    // 必填字段验证
+    // Required field validation
     if (!body['productId']) {
-      response.throwException('商品ID不能为空', 400, 'MISSING_PRODUCT_ID');
+      response.throwException('Product ID cannot be empty', 400, 'MISSING_PRODUCT_ID');
       return;
     }
     
-    // 数值范围验证
+    // Numeric range validation
     const quantity = body['quantity'];
     if (!quantity || quantity <= 0) {
-      response.throwException('数量必须大于0', 400, 'INVALID_QUANTITY');
+      response.throwException('Quantity must be greater than 0', 400, 'INVALID_QUANTITY');
       return;
     }
     
-    // 格式验证
+    // Format validation
     const email = body['email'];
     if (email && !email.includes('@')) {
-      response.throwException('邮箱格式不正确', 400, 'INVALID_EMAIL');
+      response.throwException('Invalid email format', 400, 'INVALID_EMAIL');
       return;
     }
     
-    // 验证通过，继续处理
-    response.ok({ message: '订单创建成功' });
+    // Validation passed, continue processing
+    response.ok({ message: 'Order created successfully' });
   }
 }
 
@@ -258,44 +258,44 @@ let kwcController = new ValidationController();
 export { kwcController };
 ```
 
-### 3.2 业务异常处理
+### 3.2 Business Exception Handling
 
 ```typescript
 class BusinessController {
   processOrder(request: any, response: any) {
     const orderId = request.getLongPathVariable('id');
     
-    // 模拟查询订单
+    // Simulate querying an order
     const order = this.findOrder(orderId);
     
-    // 资源不存在
+    // Resource not found
     if (!order) {
-      response.throwException('订单不存在', 404, 'ORDER_NOT_FOUND');
+      response.throwException('Order not found', 404, 'ORDER_NOT_FOUND');
       return;
     }
     
-    // 状态不允许操作
+    // Status does not allow operation
     if (order.status === 'COMPLETED') {
-      response.throwException('已完成的订单不能修改', 400, 'ORDER_COMPLETED');
+      response.throwException('Completed orders cannot be modified', 400, 'ORDER_COMPLETED');
       return;
     }
     
-    // 权限不足
+    // Insufficient permissions
     if (!this.hasPermission(order)) {
-      response.throwException('无权操作此订单', 403, 'FORBIDDEN');
+      response.throwException('No permission to operate this order', 403, 'FORBIDDEN');
       return;
     }
     
-    response.ok({ message: '处理成功' });
+    response.ok({ message: 'Processed successfully' });
   }
   
   private findOrder(id: number) {
-    // 模拟查询
+    // Simulate query
     return { id: id, status: 'PENDING' };
   }
   
   private hasPermission(order: any) {
-    // 模拟权限检查
+    // Simulate permission check
     return true;
   }
 }
@@ -304,19 +304,19 @@ let kwcController = new BusinessController();
 export { kwcController };
 ```
 
-### 3.3 try-catch 异常捕获
+### 3.3 try-catch Exception Catching
 
 ```typescript
 class SafeController {
   riskyOperation(request: any, response: any) {
     try {
-      // 可能抛出异常的操作
+      // Operation that may throw an exception
       const result = this.doSomethingRisky();
       response.ok(result);
     } catch (e: any) {
-      // 捕获异常并返回错误响应
+      // Catch exception and return error response
       response.throwException(
-        e.message || '操作失败',
+        e.message || 'Operation failed',
         500,
         'OPERATION_FAILED'
       );
@@ -324,8 +324,8 @@ class SafeController {
   }
   
   private doSomethingRisky() {
-    // 模拟可能失败的操作
-    throw new Error('模拟异常');
+    // Simulate an operation that may fail
+    throw new Error('Simulated exception');
   }
 }
 
@@ -333,11 +333,11 @@ let kwcController = new SafeController();
 export { kwcController };
 ```
 
-## 4. 综合示例
+## 4. Comprehensive Example
 
-同时使用路径参数、查询参数、请求头、请求体的完整示例。
+A complete example using path parameters, query parameters, request headers, and request body together.
 
-### 4.1 .kws 元数据配置
+### 4.1 .kws Metadata Configuration
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -349,7 +349,7 @@ export { kwcController };
     <url>/kd/dev/sample/orders</url>
     <scriptFile>OrderController.ts</scriptFile>
     <methods>
-        <!-- 查询订单列表（分页 + 过滤） -->
+        <!-- Query order list (pagination + filtering) -->
         <method>
             <name>listOrders</name>
             <url></url>
@@ -364,7 +364,7 @@ export { kwcController };
             </permission>
         </method>
         
-        <!-- 处理订单 -->
+        <!-- Process order -->
         <method>
             <name>processOrder</name>
             <url>/{id}/process</url>
@@ -382,7 +382,7 @@ export { kwcController };
 </Controller>
 ```
 
-### 4.2 TypeScript 代码
+### 4.2 TypeScript Code
 
 ```typescript
 import { ArrayList, HashMap } from '@cosmic/bos-script/java/util';
@@ -390,17 +390,17 @@ import { ArrayList, HashMap } from '@cosmic/bos-script/java/util';
 class OrderController {
   // GET /kd/dev/sample/orders?page=1&size=10&status=PENDING
   listOrders(request: any, response: any) {
-    // 获取查询参数
+    // Get query parameters
     const page = request.getIntQueryParam('page') || 1;
     const size = request.getIntQueryParam('size') || 10;
     const status = request.getStringQueryParam('status');
     const startDate = request.getDateQueryParam('startDate');
     const endDate = request.getDateQueryParam('endDate');
     
-    // 获取请求头
+    // Get request headers
     const clientVersion = request.getHeader('X-Client-Version');
     
-    // 使用 ArrayList + HashMap 构造列表数据
+    // Build list data using ArrayList + HashMap
     const orders = new ArrayList();
     const order1 = new HashMap();
     order1.put('id', 1001);
@@ -414,19 +414,19 @@ class OrderController {
     order2.put('amount', 200.00);
     orders.add(order2);
     
-    // 构造分页信息
+    // Build pagination info
     const pagination = new HashMap();
     pagination.put('page', page);
     pagination.put('size', size);
     pagination.put('total', 100);
 
-    // 构造过滤条件
+    // Build filter conditions
     const filters = new HashMap();
     filters.put('status', status);
     filters.put('startDate', startDate);
     filters.put('endDate', endDate);
 
-    // 组装最终结果
+    // Assemble final result
     const result = new HashMap();
     result.put('data', orders);
     result.put('pagination', pagination);
@@ -437,33 +437,33 @@ class OrderController {
   
   // POST /kd/dev/sample/orders/{id}/process
   processOrder(request: any, response: any) {
-    // 获取路径参数
+    // Get path parameter
     const orderId = request.getLongPathVariable('id');
     
-    // 获取请求体
+    // Get request body
     const body = request.getMapBody();
     const action = body['action'];      // 'approve' | 'reject'
     const remark = body['remark'];
     
-    // 获取请求头
+    // Get request header
     const operatorId = request.getHeader('X-Operator-Id');
     
-    // 参数验证
+    // Parameter validation
     if (!action) {
-      response.throwException('操作类型不能为空', 400, 'MISSING_ACTION');
+      response.throwException('Action type cannot be empty', 400, 'MISSING_ACTION');
       return;
     }
     
     if (action !== 'approve' && action !== 'reject') {
-      response.throwException('操作类型无效，仅支持 approve 或 reject', 400, 'INVALID_ACTION');
+      response.throwException('Invalid action type, only approve or reject is supported', 400, 'INVALID_ACTION');
       return;
     }
     
-    // 使用 HashMap 构造返回对象
+    // Build return object using HashMap
     const result = new HashMap();
     result.put('orderId', orderId);
     result.put('status', action === 'approve' ? 'APPROVED' : 'REJECTED');
-    result.put('message', action === 'approve' ? '订单已审批通过' : '订单已驳回');
+    result.put('message', action === 'approve' ? 'Order approved' : 'Order rejected');
     result.put('operator', operatorId);
     result.put('remark', remark);
     result.put('processedAt', new Date().toISOString());
@@ -475,13 +475,13 @@ let kwcController = new OrderController();
 export { kwcController };
 ```
 
-## 5. SDK 集成示例（查询 + 保存）
+## 5. SDK Integration Examples (Query + Save)
 
-> SDK 的完整文档由 `kingscript-code-generator` 技能包提供，这里仅展示 Controller 中的典型集成用法。
+> Complete SDK documentation is provided by the `kingscript-code-generator` skill package; this section only shows typical integration patterns in Controllers.
 
-### 5.1 数据库查询（QueryServiceHelper）
+### 5.1 Database Queries (QueryServiceHelper)
 
-#### 查询单条记录
+#### Query a Single Record
 
 ```typescript
 import { QueryServiceHelper } from '@cosmic/bos-core/kd/bos/servicehelper';
@@ -493,7 +493,7 @@ class UserController {
     const userId = request.getLongPathVariable('id');
 
     try {
-      // 根据 ID 查询单条记录
+      // Query a single record by ID
       const result = QueryServiceHelper.queryDataSet(
         'bos_user',
         'id, name, email, department',
@@ -501,12 +501,12 @@ class UserController {
       );
 
       if (!result || result.size() === 0) {
-        response.throwException('用户不存在', 404, 'USER_NOT_FOUND');
+        response.throwException('User not found', 404, 'USER_NOT_FOUND');
         return;
       }
 
       result.first();
-      // 使用 HashMap 构造返回对象
+      // Build return object using HashMap
       const user = new HashMap();
       user.put('id', result.getLong('id'));
       user.put('name', result.getString('name'));
@@ -515,7 +515,7 @@ class UserController {
 
       response.ok(user);
     } catch (e: any) {
-      response.throwException(e.message || '查询失败', 500, 'QUERY_FAILED');
+      response.throwException(e.message || 'Query failed', 500, 'QUERY_FAILED');
     }
   }
 }
@@ -524,27 +524,27 @@ let kwcController = new UserController();
 export { kwcController };
 ```
 
-#### 查询列表（带分页）
+#### Query a List (with Pagination)
 
 ```typescript
 import { QueryServiceHelper } from '@cosmic/bos-core/kd/bos/servicehelper';
 import { ArrayList, HashMap } from '@cosmic/bos-script/java/util';
 
 class UserListController {
-  // GET /kd/dev/sample/users?page=1&size=10&department=研发部
+  // GET /kd/dev/sample/users?page=1&size=10&department=R&D
   listUsers(request: any, response: any) {
     const page = request.getIntQueryParam('page') || 1;
     const size = request.getIntQueryParam('size') || 10;
     const department = request.getStringQueryParam('department');
 
     try {
-      // 构建过滤条件
+      // Build filter conditions
       const filters: any[] = [];
       if (department) {
         filters.push({ left: 'department', op: '=', right: department });
       }
 
-      // 分页查询
+      // Paginated query
       const result = QueryServiceHelper.queryDataSet(
         'bos_user',
         'id, name, email, department',
@@ -554,7 +554,7 @@ class UserListController {
         size
       );
 
-      // 使用 ArrayList + HashMap 构造列表
+      // Build list using ArrayList + HashMap
       const users = new ArrayList();
       while (result.next()) {
         const item = new HashMap();
@@ -575,7 +575,7 @@ class UserListController {
       data.put('pagination', pagination);
       response.ok(data);
     } catch (e: any) {
-      response.throwException(e.message || '查询失败', 500, 'QUERY_FAILED');
+      response.throwException(e.message || 'Query failed', 500, 'QUERY_FAILED');
     }
   }
 }
@@ -584,7 +584,7 @@ let kwcController = new UserListController();
 export { kwcController };
 ```
 
-### 5.2 业务数据保存（BusinessDataServiceHelper）
+### 5.2 Business Data Save (BusinessDataServiceHelper)
 
 ```typescript
 import { BusinessDataServiceHelper } from '@cosmic/bos-core/kd/bos/servicehelper';
@@ -596,30 +596,30 @@ class UserCreateController {
   createUser(request: any, response: any) {
     const body = request.getMapBody();
 
-    // 参数校验
+    // Parameter validation
     if (!body['name']) {
-      response.throwException('用户名不能为空', 400, 'MISSING_NAME');
+      response.throwException('Username cannot be empty', 400, 'MISSING_NAME');
       return;
     }
 
     try {
-      // 创建数据对象
+      // Create data object
       const userObj = new DynamicObject();
       userObj.set('name', body['name']);
       userObj.set('email', body['email']);
-      userObj.set('department', body['department'] || '默认部门');
+      userObj.set('department', body['department'] || 'Default Department');
 
-      // 保存实体
+      // Save entity
       const savedObj = BusinessDataServiceHelper.save('bos_user', userObj);
 
-      // 使用 HashMap 构造返回对象
+      // Build return object using HashMap
       const result = new HashMap();
       result.put('id', savedObj.getLong('id'));
       result.put('name', savedObj.getString('name'));
-      result.put('message', '创建成功');
+      result.put('message', 'Created successfully');
       response.of(201, result);
     } catch (e: any) {
-      response.throwException(e.message || '创建失败', 500, 'CREATE_FAILED');
+      response.throwException(e.message || 'Creation failed', 500, 'CREATE_FAILED');
     }
   }
 }
@@ -628,4 +628,4 @@ let kwcController = new UserCreateController();
 export { kwcController };
 ```
 
-> 更多 SDK 类和方法（DynamicObject、QueryServiceHelper、BusinessDataServiceHelper 等）的完整用法，请查阅 `kingscript-code-generator` 技能包的 SDK 索引。
+> For complete usage of more SDK classes and methods (DynamicObject, QueryServiceHelper, BusinessDataServiceHelper, etc.), please refer to the SDK indexes in the `kingscript-code-generator` skill package.

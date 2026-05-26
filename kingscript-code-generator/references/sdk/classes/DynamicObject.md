@@ -1,42 +1,42 @@
 # DynamicObject
 
-## 基本信息
+## Basic Information
 
-- 名称: `DynamicObject`
-- Java 类名: `kd.bos.dataentity.entity.DynamicObject`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/dataentity/entity`
-- 类型: 动态实体对象
+- Name: `DynamicObject`
+- Java class: `kd.bos.dataentity.entity.DynamicObject`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/dataentity/entity`
+- Type: Dynamic entity object
 
-## 用途概览
+## Overview
 
-`DynamicObject` 是 Kingscript 二开里最常见的数据载体。单据头、分录行、基础资料引用值、查询结果行，很多最终都会落到它或它的集合上。
+`DynamicObject` is the most common data carrier in Kingscript secondary development. Document headers, entry rows, base data reference values, and query result rows often ultimately land on it or its collections.
 
-## 高频用法
+## Common Methods
 
-| 方法 | 作用 | 典型场景 |
+| Method | Purpose | Typical Scenario |
 |------|------|------|
-| `get(propertyName)` | 按字段标识取值 | 读取头字段或引用字段 |
-| `set(propertyName, value)` | 按字段标识赋值 | 补默认值、改状态、写结果 |
-| `getDynamicObject(propertyName)` | 取引用字段实体 | 基础资料、组织、人员等 |
-| `getDynamicObjectCollection(propertyName)` | 取分录集合 | 遍历和维护分录行 |
-| `getPkValue()` | 取主键 | 回写、日志、关联判断 |
-| `getDataEntityType()` | 取实体类型 | 做元数据或泛型判断 |
+| `get(propertyName)` | Get value by field identifier | Reading header fields or reference fields |
+| `set(propertyName, value)` | Set value by field identifier | Filling defaults, changing status, writing results |
+| `getDynamicObject(propertyName)` | Get reference field entity | Base data, organization, personnel, etc. |
+| `getDynamicObjectCollection(propertyName)` | Get entry collection | Iterating and maintaining entry rows |
+| `getPkValue()` | Get primary key | Write-back, logging, association checks |
+| `getDataEntityType()` | Get entity type | Metadata or generic type determination |
 
-## 运行时注意事项
+## Runtime Notes
 
-- `get(...)` 返回的通常是 Java 对象，不要想当然当成原生 JS 对象处理。
-- `Long`、`BigDecimal`、`Date` 这类值要按 Java 对象方式用，尤其不要直接按 JS number 精度处理长整型。
-- 引用字段常常拿到的是子 `DynamicObject`，不是直接字符串。
-- 分录字段一般要先取 `DynamicObjectCollection`，再逐行读写。
+- `get(...)` typically returns Java objects; do not assume they are native JS objects.
+- Values like `Long`, `BigDecimal`, and `Date` must be handled as Java objects; do not process long integers directly with JS number precision.
+- Reference fields often yield a child `DynamicObject`, not a plain string.
+- Entry fields generally require getting `DynamicObjectCollection` first, then reading/writing row by row.
 
-## 常见搭配
+## Common Pairings
 
-- 分录遍历: [DynamicObjectCollection.md](DynamicObjectCollection.md)
-- 字段联动参数: [PropertyChangedArgs.md](PropertyChangedArgs.md)
-- 操作结果处理: [OperationResult.md](OperationResult.md)
+- Entry traversal: [DynamicObjectCollection.md](DynamicObjectCollection.md)
+- Field change args: [PropertyChangedArgs.md](PropertyChangedArgs.md)
+- Operation result handling: [OperationResult.md](OperationResult.md)
 
-## 关键词
+## Keywords
 
-- 中文: 动态实体, 数据包, 字段取值, 字段赋值, 分录遍历
-- 英文: `DynamicObject`
+- Chinese: dynamic entity, data package, field value retrieval, field value assignment, entry traversal
+- English: `DynamicObject`

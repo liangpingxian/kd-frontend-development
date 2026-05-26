@@ -1,176 +1,176 @@
 # Page Metadata
 
-按需读取本文件，用于从用户需求生成页面元数据 `.page-meta.kwp`。
+Read this file on demand. Used for generating page metadata `.page-meta.kwp` from user requirements.
 
-## 页面元数据的职责
+## Purpose of Page Metadata
 
-页面元数据决定环境最终如何装配页面。
+Page metadata determines how the environment ultimately assembles a page.
 
-它至少回答四个问题：
+It answers at least four questions:
 
-1. 这个页面叫什么
-2. 归属哪个应用和开发商
-3. 页面里有哪些组件实例
-4. 每个组件实例拿到什么配置值
+1. What is this page called
+2. Which application and ISV does it belong to
+3. What component instances are on the page
+4. What configuration values does each component instance receive
 
-所以页面元数据不是“补充信息”，而是最终渲染链路的核心描述。
+So page metadata is not "supplementary information" — it is the core description of the final rendering pipeline.
 
-## 顶层字段如何生成
+## How to Generate Top-Level Fields
 
-| 字段 | 生成原则 |
+| Field | Generation Principle |
 | --- | --- |
-| `name` | 页面唯一标识；全小写；字母开头；仅小写字母、数字、下划线；**长度不得超过 20 个字符**（系统会自动拼接 ISV 前缀如 `kdtest_`，总长度有限制）。创建时可填写业务标识（如 `demo_page`），deploy 时脚手架会自动拼接 isv 前缀并更新本地文件 |
-| `masterLabel` | 页面标题，给业务用户看的名称 |
-| `template` | 目前默认 `oneregion` |
-| `isv` | 开发商标识，开发阶段可留空，deploy 时自动从环境拉取并写入本地文件 |
-| `app` | 所属应用编码（必须由用户明确提供，详见 SKILL.md「需要用户提供或确认的输入」一节） |
-| `bizUnit` | 仅在用户明确要求放到某业务单元时填写 |
-| `version` | 新页面从 `1` 起；仅当该 `.page-meta.kwp` 文件内容变更并准备重新上传时递增 |
-| `enableExtend` | 仅在需求明确允许扩展时填写 |
-| `enablePermissionControl` | 仅在需求明确要求权限控制时填写 |
+| `name` | Page unique identifier; all lowercase; starts with a letter; only lowercase letters, digits, and underscores; **must not exceed 20 characters** (the system will automatically prepend the ISV prefix such as `kdtest_`, and the total length is limited). During creation, you can fill in a business identifier (e.g. `demo_page`); deploy will automatically prepend the isv prefix and update the local file |
+| `masterLabel` | Page title; the name displayed to business users |
+| `template` | Currently defaults to `oneregion` |
+| `isv` | ISV identifier; can be left empty during development; deploy automatically fetches from the environment and writes to the local file |
+| `app` | Business application code (must be explicitly provided by the user; see SKILL.md "Inputs the User Must Supply") |
+| `bizUnit` | Fill in only when the user explicitly requests placing it under a specific business unit |
+| `version` | New pages start at `1`; increment only when the `.page-meta.kwp` file content changes and is ready to be re-uploaded |
+| `enableExtend` | Fill in only when the requirement explicitly allows extension |
+| `enablePermissionControl` | Fill in only when the requirement explicitly requests permission control |
 
-推荐页面命名：
+Recommended page naming:
 
-- `[开发商_]{业务应用_}{页面标识}`
-- 尽量短，避免超过 30 字符
+- `[isv_]{business_app_}page_identifier`
+- Keep it as short as possible; avoid exceeding 30 characters
 
-## 从需求生成 `<controls>`
+## Generating `<controls>` from Requirements
 
-先把页面需求拆成“页面中实际出现的组件实例”。
+First break down the page requirements into "component instances that actually appear on the page."
 
-每个实例对应一个：
+Each instance corresponds to one:
 
 ```xml
 <control>
     <type>ComponentType</type>
     <name>instance_name</name>
-    <label>组件标题</label>
+    <label>Component Title</label>
     <propertys>...</propertys>
 </control>
 ```
 
-字段规则：
+Field rules:
 
-- `type`：组件类型名，必须与组件元数据中的组件 `name` 完全一致，包含大小写也必须一致
-- `name`：页面内唯一实例名；全小写；字母开头；仅小写字母、数字、下划线
-- `label`：当前实例的显示名称
-- `propertys`：只填写组件元数据里已经定义过的属性
+- `type`: Component type name; must exactly match the component `name` in the component metadata, including case sensitivity
+- `name`: Unique instance name within the page; all lowercase; starts with a letter; only lowercase letters, digits, and underscores
+- `label`: Display name for the current instance
+- `propertys`: Only fill in properties that have already been defined in the component metadata
 
-正反例：
+Correct and Incorrect Examples:
 
-假设组件元数据里写的是：
+Suppose the component metadata says:
 
 ```xml
 <name>OverviewCard</name>
 ```
 
-则页面元数据中：
+Then in the page metadata:
 
 ```xml
-<!-- 正确 -->
+<!-- Correct -->
 <type>OverviewCard</type>
 
-<!-- 错误：擅自加了目录前缀 -->
+<!-- Incorrect: arbitrarily added directory prefix -->
 <type>kwc_OverviewCard</type>
 
-<!-- 错误：大小写不一致 -->
+<!-- Incorrect: case mismatch -->
 <type>overviewcard</type>
 
-<!-- 错误：自作主张改了类型名 -->
+<!-- Incorrect: arbitrarily changed the type name -->
 <type>OverviewCardKwc</type>
 ```
 
-原则只有一条：`control.type` 直接抄组件元数据里的 `name`，不要自行加前缀、后缀或改写大小写。
+The principle is simple: `control.type` directly copies the `name` from the component metadata; do not add prefixes, suffixes, or change the case on your own.
 
-## 如何把用户需求映射到控制实例
+## How to Map User Requirements to Control Instances
 
-### 一个页面多个不同功能块
+### One Page with Multiple Different Functional Blocks
 
-若用户说：
+If the user says:
 
-- 顶部是筛选区
-- 中间是统计卡片
-- 底部是明细表格
+- Top area is a filter section
+- Middle area is a statistics card section
+- Bottom area is a detail table
 
-则应生成多个 `<control>`，而不是一个大而全组件。
+Then you should generate multiple `<control>` elements, not one monolithic component.
 
-### 同类组件多次复用
+### Reusing the Same Component Type Multiple Times
 
-若页面上要放两个相同组件实例：
+If the page needs two instances of the same component:
 
-- `type` 可以相同
-- `name` 必须不同
-- 每个实例的 `<propertys>` 可以不同
+- `type` can be the same
+- `name` must be different
+- Each instance's `<propertys>` can be different
 
-示例：
+Example:
 
 ```xml
 <control>
     <type>SummaryCard</type>
     <name>sales_summary</name>
-    <label>销售汇总</label>
+    <label>Sales Summary</label>
 </control>
 <control>
     <type>SummaryCard</type>
     <name>refund_summary</name>
-    <label>退款汇总</label>
+    <label>Refund Summary</label>
 </control>
 ```
 
-## 页面元数据与组件元数据的配合
+## Coordination Between Page Metadata and Component Metadata
 
-生成页面元数据前，先确认：
+Before generating page metadata, first confirm:
 
-1. 组件是否有对应 `.js-meta.kwc`
-2. `control.type` 是否与组件元数据 `name` 完全一致
-3. 页面里用到的属性名，组件元数据里是否已声明
+1. Does the component have a corresponding `.js-meta.kwc`
+2. Does `control.type` exactly match the component metadata `name`
+3. Are the property names used in the page already declared in the component metadata
 
-如果这三项不成立，页面部署后极可能无法正确装配。
+If any of these three conditions are not met, the page will very likely not assemble correctly after deployment.
 
-## 上传前检查
+## Pre-Upload Checks
 
-### 上传入口校验
+### Upload Entry Validation
 
-脚手架上传页面元数据（*.kwp）时执行的安全准入与基础合法性校验：
+Security access and basic legality checks performed by the scaffold when uploading page metadata (*.kwp):
 
-1. 生产环境严禁调用脚手架上传接口
-2. 操作账号必须具备开发平台使用授权
-3. 页面元数据 XML 内容不能为空
-4. XML 结构正确，必须能通过解析并成功获取 Page 对象
-5. `name` 属性为必填项
-6. `isv` 属性为必填项
-7. `isv` 标识必须与当前环境的开发商信息保持一致
-8. 若非金蝶原厂页面，`name` 属性的前缀必须强制包含 `isv` 标识（ISV 命名隔离）
+1. Production environments are strictly forbidden from calling the scaffold upload interface
+2. The operating account must have development platform usage authorization
+3. The page metadata XML content must not be empty
+4. The XML structure must be correct and parseable to successfully obtain a Page object
+5. The `name` attribute is required
+6. The `isv` attribute is required
+7. The `isv` identifier must be consistent with the current environment's ISV information
+8. If the page is not a Kingdee in-house page, the `name` attribute prefix must include the `isv` identifier (ISV naming isolation)
 
-### 内容检查
+### Content Validation
 
-页面元数据内部逻辑、业务规范及版本的一致性校验：
+Internal logic, business specification, and version consistency checks for page metadata:
 
-1. 系统需校验当前无其他用户同时上传或部署该相同页面元数据（并发检查）
-2. XML 文本内容禁止为空
-3. XML 必须能顺利反序列化，确保程序可读取 Page 结构
-4. `name` 属性不能为空
-5. `name` 字符长度不得超过 **30** 个字符（其中用户填写部分不得超过 **20** 个字符，因为系统会自动拼接 ISV 前缀如 `kdtest_`）
-6. `name` 必须以字母开头，且仅允许包含小写字母、数字和下划线
-7. `name` 命名规范：确保唯一，推荐格式：`[开发商_]{业务应用_}页面标识`。开发商可选，业务应用必选
-8. `masterLabel` 不能为空
-9. `app`（所属应用）不能为空
-10. `app` 必须是系统中真实存在的业务应用编码
-11. `app` 所属的开发商必须与页面的开发商信息一致
-12. `Page`、`Region`、`Control` 各层级的 `name` 属性均不能为空
-13. 各层级 `name` 必须符合标识规范（字母开头，仅含小写字母、数字、下划线）
-14. 若是对已有页面进行修改，当前上传的开发商必须与原页面开发商一致
-15. 当前上传的 `version` 版本号必须严格高于系统原有的页面版本
-16. 每个 `control.type` 都能在组件元数据中找到完全一致的 `name`
-17. 每个 `property` 名都在组件元数据中定义过
+1. The system must verify that no other user is simultaneously uploading or deploying the same page metadata (concurrency check)
+2. The XML text content must not be empty
+3. The XML must be successfully deserializable to ensure the program can read the Page structure
+4. The `name` attribute must not be empty
+5. The `name` character length must not exceed **30** characters (the user-filled portion must not exceed **20** characters, because the system will automatically prepend the ISV prefix such as `kdtest_`)
+6. `name` must start with a letter and only contain lowercase letters, digits, and underscores
+7. `name` naming convention: ensure uniqueness; recommended format: `[isv_]{business_app_}page_identifier`. ISV is optional; business app is required
+8. `masterLabel` must not be empty
+9. `app` (business application) must not be empty
+10. `app` must be a real business application code that exists in the system
+11. The ISV of the `app` must be consistent with the page's ISV information
+12. The `name` attribute at every level (`Page`, `Region`, `Control`) must not be empty
+13. The `name` at every level must conform to the identifier specification (starts with a letter, only lowercase letters, digits, and underscores)
+14. If modifying an existing page, the current uploader's ISV must be the same as the original page's ISV
+15. The current upload `version` number must be strictly greater than the system's existing page version
+16. Every `control.type` can be found with an exactly matching `name` in the component metadata
+17. Every `property` name has been defined in the component metadata
 
-## 常见失误
+## Common Mistakes
 
-- 页面 `name` 含大写或连字符
-- 页面标识超过 30 字符
-- `<controls>` 还是脚手架默认注释模板
-- `control.type` 写成实例名，而不是组件类型名
-- `control.type` 与组件元数据 `name` 只有语义接近，但字符串并不完全一致
-- 组件属性名和组件元数据定义不一致
-- 修改元数据后忘记递增 `version`
-- 只改了组件实现代码，却误以为页面 `version` 也要递增
+- Page `name` contains uppercase letters or hyphens
+- Page identifier exceeds 30 characters
+- `<controls>` is still the scaffold's default comment template
+- `control.type` is written as an instance name instead of a component type name
+- `control.type` is semantically similar to the component metadata `name` but the string is not exactly the same
+- Component property names are inconsistent with the component metadata definitions
+- Forgot to increment `version` after modifying metadata
+- Only changed the component implementation code but mistakenly thought the page `version` also needs to be incremented

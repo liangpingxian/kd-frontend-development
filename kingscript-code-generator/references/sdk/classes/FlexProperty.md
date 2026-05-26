@@ -1,29 +1,29 @@
 # FlexProperty
 
-## 基本信息
+## Basic Information
 
-- 名称: `FlexProperty`
-- Java 类名: `kd.bos.entity.flex.FlexProperty`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/entity/flex`
-- 类型: 弹性域维度属性
+- Name: `FlexProperty`
+- Java class: `kd.bos.entity.flex.FlexProperty`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/entity/flex`
+- Type: Flex dimension property
 
-## 用途概览
+## Overview
 
-`FlexProperty` 更偏弹性域内部维度级定义。它适合回答“某个弹性域里的某一段维度是什么、怎么显示、怎么取值”这类问题。
+`FlexProperty` is more oriented toward dimension-level definitions within a flex field. It is suitable for answering questions such as "what is a specific dimension within a flex field, how is it displayed, and how to retrieve its value".
 
-## 典型场景
+## Typical Scenarios
 
-- 弹性域维度遍历
-- 弹性域显示值拼接
-- 动态判断某个 flex 维度是否存在
+- Flex dimension traversal
+- Flex display value concatenation
+- Dynamically determine whether a specific flex dimension exists
 
-## 常见搭配
+## Common Pairings
 
-- 弹性域字段: [FlexProp.md](FlexProp.md)
-- 弹性域实体类型: [FlexEntityType.md](FlexEntityType.md)
+- Flex field: [FlexProp.md](FlexProp.md)
+- Flex entity type: [FlexEntityType.md](FlexEntityType.md)
 
-## 关键词
+## Keywords
 
-- 中文: 弹性域属性, Flex 维度
-- 英文: `FlexProperty`
+- Chinese: flex property, Flex dimension
+- English: `FlexProperty`

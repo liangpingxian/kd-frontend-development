@@ -1,152 +1,152 @@
 # Component Metadata
 
-按需读取本文件，用于从用户需求生成组件元数据 `.js-meta.kwc`。
+Read this file on demand. Used for generating component metadata `.js-meta.kwc` from user requirements.
 
-## 组件元数据的职责
+## Purpose of Component Metadata
 
-组件元数据不是组件代码的重复描述，而是告诉 KWC 环境：
+Component metadata is not a duplicate description of the component code; rather, it tells the KWC environment:
 
-- 这个组件是否应作为可部署组件存在
-- 这个组件在页面装配时显示什么名字
-- 这个组件支持什么页面类型
-- 页面可以给它传哪些配置项
+- Whether this component should exist as a deployable component
+- What name to display when the component is assembled on a page
+- What page types this component supports
+- What configuration items can be passed to it from a page
 
-如果一个组件只是内部逻辑封装，不需要在页面元数据中直接声明，可以删除对应 `.js-meta.kwc`，避免随 `deploy` 被当作可装配组件上传。
+If a component is only for internal logic encapsulation and does not need to be directly declared in the page metadata, the corresponding `.js-meta.kwc` can be deleted to avoid it being uploaded as an assembly component during `deploy`.
 
-## 脚手架生成后的处理原则
+## Post-Scaffold-Generation Processing Principles
 
-执行：
+Execute:
 
 ```bash
 kd project create DemoComponent1 --type kwc
 ```
 
-脚手架会生成：
+The scaffold will generate:
 
 - `app/kwc/DemoComponent1/DemoComponent1.tsx`
 - `app/kwc/DemoComponent1/DemoComponent1.module.scss`
 - `app/kwc/DemoComponent1/DemoComponent1.js-meta.kwc`
 
-其中 `.js-meta.kwc` 默认更像模板，不应直接当最终元数据使用。
+The `.js-meta.kwc` is more of a template by default and should not be used directly as the final metadata.
 
-Skill 需要检查并补齐：
+The Skill needs to check and fill in:
 
 - `version`
 - `name`
 - `masterLabel`
-- `isv`：开发商标识，开发阶段可留空，deploy 时自动从环境拉取写入
+- `isv`: ISV identifier; can be left empty during development; deploy automatically fetches from the environment and writes it
 - `app`
 - `framework`
 - `targets`
 - `targetConfigs`
 
-## 关键字段如何生成
+## How to Generate Key Fields
 
-### 顶层字段
+### Top-Level Fields
 
-| 字段 | 生成原则 |
+| Field | Generation Principle |
 | --- | --- |
-| `version` | 设为自然数，新增组件通常从 `1` 开始；仅当该 `.js-meta.kwc` 文件内容变更并准备重新上传时递增 |
-| `name` | 组件类型标识，通常直接使用组件名，如 `DemoComponent1`；页面元数据中的 `control.type` 必须与它完全一致 |
-| `masterLabel` | 给页面装配者看的中文名称 |
-| `isv` | 开发商标识，开发阶段可留空，deploy 时自动从环境拉取并写入元数据 |
-| `app` | 所属应用编码（必须由用户明确提供，详见 SKILL.md「需要用户提供或确认的输入」一节） |
-| `framework` | 当前工程框架，如 `react` |
-| `targets` | KWC 页面当前默认填 `KWCFormModel` |
+| `version` | Set to a natural number; new components typically start at `1`; increment only when the `.js-meta.kwc` file content changes and is ready to be re-uploaded |
+| `name` | Component type identifier; typically use the component name directly, e.g. `DemoComponent1`; `control.type` in the page metadata must exactly match this |
+| `masterLabel` | A human-readable name for the page assembler |
+| `isv` | ISV identifier; can be left empty during development; deploy automatically fetches from the environment and writes it into the metadata |
+| `app` | Business application code (must be explicitly provided by the user; see SKILL.md "Inputs the User Must Supply") |
+| `framework` | Current project framework, e.g. `react` |
+| `targets` | KWC page type; currently defaults to `KWCFormModel` |
 
-注意：
+Notes:
 
-- 页面元数据中的 `control.type` 必须与这里的 `name` 完全一致，包含大小写也必须一致
+- `control.type` in the page metadata must exactly match the `name` here, including case sensitivity
 
-例子：
+Example:
 
 ```xml
-<!-- 组件元数据 -->
+<!-- Component metadata -->
 <name>OverviewCard</name>
 
-<!-- 页面元数据中的正确写法 -->
+<!-- Correct usage in page metadata -->
 <type>OverviewCard</type>
 
-<!-- 页面元数据中的错误写法 -->
+<!-- Incorrect usage in page metadata -->
 <type>kwc_OverviewCard</type>
 ```
 
-不要把目录名 `kwc`、文件夹层级或你自己的命名偏好拼到 `type` 里；页面元数据只认这里声明的 `name`。
+Do not concatenate the directory name `kwc`, folder levels, or your own naming preferences into `type`; the page metadata only recognizes the `name` declared here.
 
-### 属性区 `targetConfigs`
+### Property Section `targetConfigs`
 
-只为“页面配置者需要调整的参数”生成 `<property>`。
-不要把内部状态、纯表现细节、临时变量暴露成元数据属性。
+Only generate `<property>` for "parameters that the page configurator needs to adjust."
+Do not expose internal state, pure presentation details, or temporary variables as metadata properties.
 
-## 属性设计方法
+## Property Design Method
 
-先把需求里的“可配置项”列出来，再做类型映射：
+First list the "configurable items" from the requirements, then do the type mapping:
 
-| 需求形态 | 元数据类型 |
+| Requirement Form | Metadata Type |
 | --- | --- |
-| 文本、标题、提示语、接口编码 | `String` |
-| 数量、行数、阈值 | `Integer` |
-| 开关、是否显示、是否禁用 | `Boolean` |
-| 固定选项集合 | `Combo` |
+| Text, titles, prompts, interface codes | `String` |
+| Quantities, row counts, thresholds | `Integer` |
+| Toggles, visibility flags, disable flags | `Boolean` |
+| Fixed option sets | `Combo` |
 
-### 推荐判断
+### Recommended Judgments
 
-- 若页面中同一个组件实例需要传不同文案或不同模式，做成 `<property>`
-- 若所有页面都固定一致，写在组件代码里，不做成 `<property>`
-- 若页面装配者需要在后台可视化选择枚举值，优先用 `Combo`
+- If different instances of the same component on a page need different copy or different modes, make it a `<property>`
+- If all pages are fixed and consistent, hard-code it in the component code; do not make it a `<property>`
+- If the page assembler needs to visually select enum values in the backend, prefer `Combo`
 
-## `<property>` 生成规则
+## `<property>` Generation Rules
 
-所有属性共通字段：
+Common fields for all properties:
 
-- `name`：代码引用名，必须稳定，且在同一个页面类型下唯一
-- `type`：`String` / `Integer` / `Boolean` / `Combo`
-- `caption`：给配置者看的字段标题
-- `description`：解释这个配置项做什么
-- `default`：存在合理默认值时填写
+- `name`: Code reference name; must be stable and unique within the same page type
+- `type`: `String` / `Integer` / `Boolean` / `Combo`
+- `caption`: Field title displayed to the configurator
+- `description`: Explains what this configuration item does
+- `default`: Fill in when a reasonable default value exists
 
-类型补充：
+Type-specific supplements:
 
-- `String`：可加 `length`
-- `Integer`：可加 `min` / `max`
-- `Boolean`：通常只需 `default`
-- `Combo`：必须补 `items`
+- `String`: can add `length`
+- `Integer`: can add `min` / `max`
+- `Boolean`: usually only needs `default`
+- `Combo`: must add `items`
 
-## 页面元数据如何引用组件属性
+## How Page Metadata References Component Properties
 
-组件元数据里定义了：
+If the component metadata defines:
 
 ```xml
 <property
     name="StringValue"
     type="String"
-    caption="标题"
-    description="用于展示标题"
-    default="默认标题"
+    caption="Title"
+    description="Used to display the title"
+    default="Default Title"
 />
 ```
 
-则页面元数据中才能这样写：
+Then the page metadata can write:
 
 ```xml
 <propertys>
     <property>
         <name>StringValue</name>
-        <value>首页标题</value>
+        <value>Home Page Title</value>
     </property>
 </propertys>
 ```
 
-也就是说：
+In other words:
 
-- 组件元数据定义“可配什么”
-- 页面元数据填写“当前实例用什么值”
+- Component metadata defines "what can be configured"
+- Page metadata fills in "what value the current instance uses"
 
-## 常见失误
+## Common Mistakes
 
-- 保留了 `.js-meta.kwc`，但组件其实不需要作为页面组件暴露
-- 页面里写了 `<property>`，组件元数据里却没有对应定义
-- `version` 留空
-- 只改了组件实现代码，却误以为组件元数据 `version` 也要递增
-- `masterLabel` 仍是脚手架默认英文名，没有改成可读名称
-- `isv` 由 deploy 自动写入，一般无需关注
+- Kept `.js-meta.kwc` but the component doesn't actually need to be exposed as a page component
+- Wrote `<property>` in the page but no corresponding definition exists in the component metadata
+- `version` left empty
+- Only changed the component implementation code but mistakenly thought the component metadata `version` also needs to be incremented
+- `masterLabel` is still the scaffold's default English name instead of a readable name
+- `isv` is automatically written by deploy; generally no need to worry about it

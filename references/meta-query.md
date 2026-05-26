@@ -1,134 +1,134 @@
 # Meta Query
 
-按需读取本文件，用于查询苍穹环境中的表单元数据和实体字段结构。所有操作通过 `meta-query-api.mjs` 脚本完成。
+Read this file on demand. Used for querying form metadata and entity field structures in the Cosmic environment. All operations are performed via the `meta-query-api.mjs` script.
 
-## 脚本位置
+## Script Location
 
-`meta-query-api.mjs` 位于 Skill 根目录的 `scripts/` 子目录下（即 `SKILL.md` 同级 `scripts/meta-query-api.mjs`）。AI 加载本 Skill 时已知 SKILL.md 路径，直接拼接调用即可，无需运行时探测。
+`meta-query-api.mjs` is located in the `scripts/` subdirectory under the Skill root (i.e. `scripts/meta-query-api.mjs` next to `SKILL.md`). The AI knows the SKILL.md path when this Skill is loaded; join the path directly to call it, no runtime probing needed.
 
-## 命令速查表
+## Command Cheat Sheet
 
-### queryFormsByApp — 按应用搜索表单
+### queryFormsByApp — Search Forms by Application
 
 ```bash
 node "{meta_query_api}" queryFormsByApp --appNumber {appNumber} [--keyword <keyword>] [--env {envName}]
 ```
 
-| 参数 | 必填 | 说明 |
+| Parameter | Required | Description |
 | --- | --- | --- |
-| `--appNumber` | 是 | 应用编码，对应 `.kd/config.json` 的 `app` 字段 |
-| `--keyword` | 否 | 附加关键词，对名称/编码做模糊过滤 |
-| `--env` | 否 | 目标环境名，不传则使用默认环境 |
+| `--appNumber` | Yes | Application code, corresponding to the `app` field in `.kd/config.json` |
+| `--keyword` | No | Additional keyword for fuzzy filtering by name/code |
+| `--env` | No | Target environment name; omit to use the default environment |
 
-日常使用的主要命令，KWC 工程始终有 appNumber 上下文。
+The primary command for daily use; KWC projects always have an appNumber context.
 
-示例：
+Example:
 
 ```bash
-# 列出当前应用下所有表单
+# List all forms under the current application
 node "/path/to/meta-query-api.mjs" queryFormsByApp --appNumber kdec_contract
 
-# 在应用内按关键词过滤
-node "/path/to/meta-query-api.mjs" queryFormsByApp --appNumber kdec_contract --keyword 报销
+# Filter by keyword within the application
+node "/path/to/meta-query-api.mjs" queryFormsByApp --appNumber kdec_contract --keyword expense
 ```
 
-### getEntityFields — 获取表单实体字段
+### getEntityFields — Get Form Entity Fields
 
 ```bash
 node "{meta_query_api}" getEntityFields --formNumber <formNumber> [--env {envName}]
 ```
 
-| 参数 | 必填 | 说明 |
+| Parameter | Required | Description |
 | --- | --- | --- |
-| `--formNumber` | 是 | 表单编码（如 sal_order） |
-| `--env` | 否 | 目标环境名 |
+| `--formNumber` | Yes | Form code (e.g. sal_order) |
+| `--env` | No | Target environment name |
 
-根据表单编码查询其关联的实体字段，按单头和单据体分组返回。
+Queries the entity fields associated with a form by its code, returning results grouped by header and entry.
 
-示例：
+Example:
 
 ```bash
 node "/path/to/meta-query-api.mjs" getEntityFields --formNumber sal_order
 ```
 
-## 响应格式说明
+## Response Format
 
-### queryFormsByApp 响应
+### queryFormsByApp Response
 
-返回 `data` 为表单数组，每条包含：
+Returns `data` as a form array, each entry containing:
 
-| 字段 | 类型 | 说明 |
+| Field | Type | Description |
 | --- | --- | --- |
-| `formId` | String | 表单内部 ID |
-| `formNumber` | String | 表单编码（开发标识） |
-| `formName` | String | 表单显示名称 |
-| `modelType` | String | 模型类型（bill 单据、base 基础资料等） |
-| `appNumber` | String | 所属应用编码 |
-| `appName` | String | 所属应用名称 |
+| `formId` | String | Form internal ID |
+| `formNumber` | String | Form code (development identifier) |
+| `formName` | String | Form display name |
+| `modelType` | String | Model type (bill = business document, base = base data, etc.) |
+| `appNumber` | String | Application code it belongs to |
+| `appName` | String | Application name it belongs to |
 
-### getEntityFields 响应
+### getEntityFields Response
 
-返回 `data` 为 Map，包含两个顶层 key：
+Returns `data` as a Map with two top-level keys:
 
-- `headerFields`：单头分组，含 headerId、headerName、headerKey 和 fields 列表
-- `entryFields`：单据体字段映射，key 为单据体标识（entryKey），value 含 entryId、entryName、entryKey 和 fields 列表
+- `headerFields`: Header group, containing headerId, headerName, headerKey, and a fields list
+- `entryFields`: Entry field mapping, where the key is the entry identifier (entryKey), and the value contains entryId, entryName, entryKey, and a fields list
 
-每个字段包含 5 个属性：
+Each field contains 5 attributes:
 
-| 字段 | 类型 | 说明 |
+| Field | Type | Description |
 | --- | --- | --- |
-| `id` | String | 字段内部 ID |
-| `name` | String | 字段名称（当前语言环境） |
-| `key` | String | 字段标识（如 billno、amount） |
-| `type` | String | 字段类型（如 TextField、DecimalField） |
-| `mustInput` | boolean | 是否必录 |
+| `id` | String | Field internal ID |
+| `name` | String | Field name (in the current locale) |
+| `key` | String | Field identifier (e.g. billno, amount) |
+| `type` | String | Field type (e.g. TextField, DecimalField) |
+| `mustInput` | boolean | Whether the field is required |
 
-## 多结果处理流程
+## Multiple Results Handling
 
-| 场景 | 处理方式 |
+| Scenario | Handling Method |
 | --- | --- |
-| 返回单条结果 | 直接确认为目标表单，提取 formNumber 进入下一步 |
-| 返回多条结果 | 以列表形式展示（序号 / 表单名称 / 表单编码 / 模型类型 / 所属应用），让用户选择 |
-| 返回空结果 | 提示未找到匹配表单，建议尝试换关键词重试 |
+| Single result returned | Confirm directly as the target form, extract formNumber and proceed to the next step |
+| Multiple results returned | Display as a list (number / form name / form code / model type / application) and let the user choose |
+| Empty results returned | Prompt that no matching form was found; suggest trying a different keyword |
 
-展示格式：
-
-```
-找到 N 个匹配表单：
-  1. 费用报销单（uhyl_custom_expen）— 单据 — AI需求分解
-  2. 差旅报销单（uhyl_travel_expen）— 单据 — AI需求分解
-请选择目标表单序号：
-```
-
-getEntityFields 展示格式：
+Display format:
 
 ```
-表单「销售订单」实体字段结构：
-
-【单头】销售订单（billhead）
-  - 单据编号 (billno) — TextField — 必录
-  - 单据日期 (billdate) — DateField
-
-【单据体】明细信息（entryentity）
-  - 物料编码 (materialcode) — TextField — 必录
-  - 数量 (qty) — DecimalField — 必录
-
-【子分录】批次明细（subentryentity）
-  - 批次号 (batchno) — TextField
+Found N matching forms:
+  1. Expense Report (uhyl_custom_expen) — Bill — AI Requirements Decomposition
+  2. Travel Expense Report (uhyl_travel_expen) — Bill — AI Requirements Decomposition
+Please select the target form number:
 ```
 
-## 使用场景决策表
+getEntityFields display format:
 
-| 用户给出的信息 | 推荐命令 | 示例 |
+```
+Entity field structure for form "Sales Order":
+
+[Header] Sales Order (billhead)
+  - Bill Number (billno) — TextField — Required
+  - Bill Date (billdate) — DateField
+
+[Entry] Detail Information (entryentity)
+  - Material Code (materialcode) — TextField — Required
+  - Quantity (qty) — DecimalField — Required
+
+[Sub-entry] Batch Detail (subentryentity)
+  - Batch Number (batchno) — TextField
+```
+
+## Use Case Decision Table
+
+| Information Provided by User | Recommended Command | Example |
 | --- | --- | --- |
-| 已知应用编码 | queryFormsByApp | `queryFormsByApp --appNumber {app}` |
-| 已知应用 + 关键词 | queryFormsByApp | `queryFormsByApp --appNumber {app} --keyword 报销` |
-| 已知表单编码，需查字段 | getEntityFields | `getEntityFields --formNumber sal_order` |
+| Application code known | queryFormsByApp | `queryFormsByApp --appNumber {app}` |
+| Application + keyword known | queryFormsByApp | `queryFormsByApp --appNumber {app} --keyword expense` |
+| Form code known, need to query fields | getEntityFields | `getEntityFields --formNumber sal_order` |
 
-## 错误码速查表
+## Error Code Cheat Sheet
 
-| 错误码 | 说明 | 处理建议 |
+| Error Code | Description | Suggested Action |
 | --- | --- | --- |
-| `PARAM_INVALID` | 参数校验失败 | 检查 formNumber 是否为空、超长或含非法字符 |
-| `FORM_NOT_FOUND` | 表单不存在 | 检查 formNumber 是否正确 |
-| `500` | 服务器内部错误 | 重试或检查服务端日志 |
+| `PARAM_INVALID` | Parameter validation failed | Check if formNumber is empty, too long, or contains invalid characters |
+| `FORM_NOT_FOUND` | Form does not exist | Check if formNumber is correct |
+| `500` | Internal server error | Retry or check server logs |

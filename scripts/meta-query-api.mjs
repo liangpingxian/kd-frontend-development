@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * KWC 元数据查询 REST API 封装脚本
- * 支持命令: queryFormsByApp, getEntityFields
- * 零外部依赖，仅使用 Node.js 内置模块
- * 公共基础设施函数来自 ./_shared.mjs
+ * KWC metadata-query REST API wrapper script.
+ * Supported commands: queryFormsByApp, getEntityFields.
+ * Zero external dependencies — only Node.js built-ins.
+ * Shared infrastructure helpers live in ./_shared.mjs.
  */
 
 import { readFileSync, existsSync } from 'node:fs'
@@ -22,19 +22,19 @@ import {
 
 const fatal = createFatal('meta-query-api')
 
-// ─── appNumber 自动解析 ──────────────────────────────────
+// ─── appNumber auto-resolution ───────────────────────────
 
 /**
- * 尝试从项目或全局配置中自动获取 appNumber
- * 优先级: --appNumber > {cwd}/kd.config.json 的 app 字段 > ~/.kd/config.json 的 app 字段
+ * Try to auto-resolve appNumber from project or global config.
+ * Priority: --appNumber > `app` field in {cwd}/kd.config.json > `app` field in ~/.kd/config.json.
  */
 function resolveAppNumber(opts) {
-  // 1. CLI 显式传入
+  // 1. Explicit CLI flag.
   if (opts.appNumber) return opts.appNumber
 
   const cwd = opts.cwd ? resolve(opts.cwd) : process.cwd()
 
-  // 2. 从项目目录的 kd.config.json 读取
+  // 2. Read from the project's kd.config.json.
   const projectConfigPath = join(cwd, 'kd.config.json')
   if (existsSync(projectConfigPath)) {
     try {
@@ -43,7 +43,7 @@ function resolveAppNumber(opts) {
     } catch { /* ignore parse errors */ }
   }
 
-  // 3. 从全局 ~/.kd/config.json 读取
+  // 3. Read from the global ~/.kd/config.json.
   if (existsSync(CONFIG_FILE)) {
     try {
       const cfg = JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'))
@@ -54,7 +54,7 @@ function resolveAppNumber(opts) {
   return undefined
 }
 
-// ─── 命令实现 ────────────────────────────────────────────
+// ─── Command implementations ─────────────────────────────
 
 const commands = {
   queryFormsByApp: {
@@ -78,7 +78,7 @@ const commands = {
   },
 }
 
-// ─── 主流程 ──────────────────────────────────────────────
+// ─── Main flow ──────────────────────────────────────────
 
 async function main() {
   const [command, ...rest] = process.argv.slice(2)
@@ -95,7 +95,7 @@ async function main() {
   const cmd = commands[command]
   const opts = parseArgs(rest)
 
-  // queryFormsByApp: 自动解析 appNumber
+  // queryFormsByApp: auto-resolve appNumber.
   if (command === 'queryFormsByApp') {
     opts.appNumber = resolveAppNumber(opts)
     if (!opts.appNumber) {
@@ -103,18 +103,18 @@ async function main() {
     }
   }
 
-  // 校验必填参数
+  // Validate required flags.
   for (const key of cmd.required) {
     if (!opts[key]) {
       fatal(`Missing required --${key}\nUsage: ${cmd.usage}`)
     }
   }
 
-  // 加载环境配置并获取 token
+  // Load env config and obtain a token.
   const env = loadEnvConfig(opts.env)
   const token = await resolveToken(env)
 
-  // 执行命令并输出结果
+  // Run the command and print the result.
   const result = await cmd.run(opts, env, token)
   console.log(JSON.stringify(result, null, 2))
 }

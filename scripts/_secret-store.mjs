@@ -1,13 +1,13 @@
 /**
- * SecretStore —— ESM 版（仅 unprotect + isKdsec，供 kd-frontend-development 脚本使用）
+ * SecretStore — ESM build (unprotect + isKdsec only, for use by kd-frontend-development scripts).
  *
- * 与 kd-cli 的 src/utils/secretStore.js 同源，命名空间 "kingdee-kd"。
- * 脚本侧只消费密文，故不提供 protect；加密能力保留在 kd-cli 和 opencode 后端。
+ * Shares the same source as kd-cli's src/utils/secretStore.js; namespace "kingdee-kd".
+ * Script-side only consumes ciphertext, so `protect` is not provided; encryption stays in kd-cli and the opencode backend.
  *
- * 平台分派（当前仅支持 win32 / darwin）：
- *   - darwin : Keychain 中读 32B master-key，Node crypto 做 AES-256-GCM 解密
- *   - win32  : DPAPI (CurrentUser) via PowerShell，entropy=<namespace>-v1
- *   - linux  : 直接抛 Unsupported platform
+ * Platform dispatch (currently win32 / darwin only):
+ *   - darwin : read 32-byte master-key from Keychain, decrypt AES-256-GCM via Node crypto
+ *   - win32  : DPAPI (CurrentUser) via PowerShell, entropy=<namespace>-v1
+ *   - linux  : throws "Unsupported platform"
  */
 
 import { spawnSync } from 'node:child_process'
@@ -29,7 +29,7 @@ export function isKdsec(data) {
   return typeof data === 'string' && data.indexOf(PREFIX) === 0
 }
 
-// ─── macOS：Keychain master-key + AES-256-GCM ─────────────────────
+// ─── macOS: Keychain master-key + AES-256-GCM ────────────────────
 
 function darwinGetMasterKey(namespace) {
   const read = spawnSync(
@@ -66,7 +66,7 @@ function darwinUnprotect(payload, namespace) {
   return plain.toString('utf8')
 }
 
-// ─── Windows：DPAPI (CurrentUser) via PowerShell ──────────────────
+// ─── Windows: DPAPI (CurrentUser) via PowerShell ─────────────────
 
 function runPowerShell(script, stdinEnv) {
   const res = spawnSync(
@@ -116,7 +116,7 @@ $plain = [Security.Cryptography.ProtectedData]::Unprotect($data, $entropy, 'Curr
   }
 }
 
-// ─── 平台调度 ────────────────────────────────────────────────────
+// ─── Platform dispatch ───────────────────────────────────────────
 
 export function unprotect(data, opts) {
   if (!isKdsec(data)) {

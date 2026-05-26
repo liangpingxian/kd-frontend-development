@@ -1,30 +1,30 @@
 # FlexEntityType
 
-## 基本信息
+## Basic Information
 
-- 名称: `FlexEntityType`
-- Java 类名: `kd.bos.entity.FlexEntityType`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/entity`
-- 类型: 弹性域实体类型
+- Name: `FlexEntityType`
+- Java class: `kd.bos.entity.FlexEntityType`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/entity`
+- Type: Flex field entity type
 
-## 用途概览
+## Overview
 
-`FlexEntityType` 描述弹性域组合对象的实体结构。它解决的是“弹性域里有哪些维度、每个维度是什么字段、底层结构长什么样”。
+`FlexEntityType` describes the entity structure of a flex composite object. It answers questions such as "what dimensions does a flex field contain, what field is each dimension, and what does the underlying structure look like".
 
-## 典型场景
+## Typical Scenarios
 
-- 判断弹性域包含哪些维度
-- 通用导出或通用显示时拆解弹性域
-- 排查弹性域保存结构和显示结构不一致
+- Determine which dimensions a flex field contains
+- Decompose flex fields during generic export or display
+- Troubleshoot inconsistencies between flex save structure and display structure
 
-## 常见搭配
+## Common Pairings
 
-- 弹性域控件: [FlexEdit.md](FlexEdit.md)
-- 弹性域字段: [FlexProp.md](FlexProp.md)
-- 弹性域属性: [FlexProperty.md](FlexProperty.md)
+- Flex control: [FlexEdit.md](FlexEdit.md)
+- Flex field: [FlexProp.md](FlexProp.md)
+- Flex property: [FlexProperty.md](FlexProperty.md)
 
-## 关键词
+## Keywords
 
-- 中文: 弹性域类型, Flex 实体类型
-- 英文: `FlexEntityType`
+- Chinese: flex type, Flex entity type
+- English: `FlexEntityType`

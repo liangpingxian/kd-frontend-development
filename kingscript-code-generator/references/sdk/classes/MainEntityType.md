@@ -1,30 +1,30 @@
 # MainEntityType
 
-## 基本信息
+## Basic Information
 
-- 名称: `MainEntityType`
-- Java 类名: `kd.bos.entity.MainEntityType`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/entity`
-- 类型: 单据头主实体类型
+- Name: `MainEntityType`
+- Java class: `kd.bos.entity.MainEntityType`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/entity`
+- Type: Document header main entity type
 
-## 用途概览
+## Overview
 
-`MainEntityType` 是单据头或主业务对象对应的实体类型。它通常是 `getDataEntity().getDataEntityType()` 拿到的第一层元数据入口，适合用来确认单据头字段、分录关系和实体别名。
+`MainEntityType` is the entity type corresponding to the document header or main business object. It is typically `getDataEntity().getDataEntityType()` the first-level metadata entry point obtained, suitable for confirming document header fields, entry relationships, and entity aliases.
 
-## 典型场景
+## Typical Scenarios
 
-- 通用工具里判断当前单据头有哪些字段
-- 动态根据主实体元数据决定是否补默认值
-- 排查“字段明明存在但运行时报找不到”这类元数据问题
+- Determining which fields the current document header has in generic tools
+- Dynamically deciding whether to fill default values based on main entity metadata
+- Troubleshooting metadata issues where a field clearly exists but runtime reports it as not found
 
-## 常见搭配
+## Common Pairings
 
-- 元数据基类: [EntityType.md](EntityType.md)
-- 动态数据对象: [DynamicObject.md](DynamicObject.md)
-- 元数据缓存: [EntityMetadataCache.md](EntityMetadataCache.md)
+- Metadata base class: [EntityType.md](EntityType.md)
+- Dynamic data object: [DynamicObject.md](DynamicObject.md)
+- Metadata cache: [EntityMetadataCache.md](EntityMetadataCache.md)
 
-## 关键词
+## Keywords
 
-- 中文: 主实体, 单据头类型, 主表元数据
-- 英文: `MainEntityType`
+- Chinese: main entity, document header type, main table metadata
+- English: `MainEntityType`

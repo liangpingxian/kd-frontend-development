@@ -1,22 +1,22 @@
-# KWC Controller 保守稳定模板
+# KWC Controller Conservative Stable Template
 
-推荐优先使用本模板作为脚本控制器默认起手式。
+This template is the recommended default starting point for script controllers.
 
-约束说明：
+Constraints:
 
-- 使用保守 ES 子集，不使用 `?.`、`??`
-- 金额字段使用保守数值转换
-- 顶层响应返回对象，列表字段使用 JSON 字符串或 `ArrayList`
-- **response.ok 入参中，所有 JS 原生数据结构必须转为 Java 集合类型**：`[]` → `ArrayList`、`{}` → `HashMap`、`Set` → `HashSet`
-- 禁止定义 `static` 方法和 `static` 变量
-- 禁止对 `DynamicObjectCollection` 使用 `for-of`，只能用 `size()+get(i)` 或 `iterator`
-- 异常信息获取统一用 `'' + e`，禁止 `e.message` / `e.getMessage()` / `String(e)`
-- 分录字段查询必须带 `entryentity.` 前缀（前缀取决于分录标识，默认为 `entryentity`，多分录可能为 `entryentity1` 等）
-- `QueryServiceHelper.query` 只有 4 参数签名，无 limit 位
+- Use a conservative ES subset — no `?.`, no `??`
+- Use conservative numeric conversion for amount fields
+- The top-level response returns an object; list fields use JSON strings or `ArrayList`
+- **In `response.ok` input, every JS-native data structure must be converted to a Java collection type**: `[]` → `ArrayList`, `{}` → `HashMap`, `Set` → `HashSet`
+- Do not define `static` methods or `static` variables
+- Do not use `for-of` on `DynamicObjectCollection` — only `size()+get(i)` or `iterator`
+- Always build exception strings with `'' + e`; never `e.message` / `e.getMessage()` / `String(e)`
+- Entry-field queries must carry the `entryentity.` prefix (the prefix depends on the entry identifier — default is `entryentity`, multi-entry may be `entryentity1`, etc.)
+- `QueryServiceHelper.query` has only a 4-argument signature; no `limit` slot
 
-## 工具函数
+## Utility Functions
 
-### toSafeNumber — 保守数值转换
+### toSafeNumber — Conservative Numeric Conversion
 
 ```ts
 private toSafeNumber(value: any): number {
@@ -29,14 +29,14 @@ private toSafeNumber(value: any): number {
 }
 ```
 
-### toJavaSafe — 递归转换为 Java 集合类型
+### toJavaSafe — Recursive Conversion to Java Collection Types
 
-将 JS 原生数据结构递归转为 Java 集合类型，确保 `response.ok` 序列化正确。
+Recursively converts JS-native data structures to Java collection types, ensuring `response.ok` serializes correctly.
 
 - `[]` → `new ArrayList()`
 - `{}` → `new HashMap()`
 - `Set` → `new HashSet()`
-- 基本类型（string/number/boolean/null）保持不变
+- Primitives (string/number/boolean/null) pass through unchanged
 
 ```ts
 private toJavaSafe(obj: any): any {
@@ -76,7 +76,7 @@ private toJavaSafe(obj: any): any {
 }
 ```
 
-### readString — 安全读取字段为字符串
+### readString — Safely Read a Field as String
 
 ```ts
 private readString(row: any, fieldKey: string): string {
@@ -85,7 +85,7 @@ private readString(row: any, fieldKey: string): string {
 }
 ```
 
-### readAmount — 安全读取金额/数值字段
+### readAmount — Safely Read an Amount / Numeric Field
 
 ```ts
 private readAmount(row: any, fieldKey: string): number {
@@ -93,17 +93,17 @@ private readAmount(row: any, fieldKey: string): number {
 }
 ```
 
-### readDateStr — 安全读取日期字段为字符串
+### readDateStr — Safely Read a Date Field as String
 
-> 禁止直接使用 `row.getDate(field)`，某些字段类型会抛不可捕获异常导致 500。
-> 正则仅为示例，实际格式取决于字段类型和运行时行为。
+> Do not call `row.getDate(field)` directly — some field types throw uncatchable exceptions that cause a 500.
+> The regex is just an example — the actual format depends on the field type and runtime behavior.
 
 ```ts
 private readDateStr(row: any, fieldKey: string): string {
   return this.readString(row, fieldKey);
 }
 
-// 如需提取年月等部分，根据实际格式做正则解析
+// To extract year/month, parse with a regex matching the actual format
 private readYearMonth(dateStr: string): { year: string; month: string } {
   const match = dateStr.match(/(\d{4})-(\d{1,2})/);
   return {
@@ -113,7 +113,7 @@ private readYearMonth(dateStr: string): { year: string; month: string } {
 }
 ```
 
-## 完整模板示例
+## Complete Template Example
 
 ```ts
 class DemoController {
@@ -173,12 +173,12 @@ class DemoController {
     return this.readString(row, fieldKey);
   }
 
-  // 单头字段 + 分录字段查询示例
-  // 单头字段直接写字段名，分录字段必须带分录标识前缀
+  // Header field + entry field query example
+  // Header fields are plain field names; entry fields must carry the entry identifier prefix
   getData(request: any, response: any) {
     try {
-      // 单头字段：field1, amountfield, bizdate
-      // 分录字段：entryentity.kdtest_combofield, entryentity.kdtest_amountfield1
+      // Header fields: field1, amountfield, bizdate
+      // Entry fields: entryentity.kdtest_combofield, entryentity.kdtest_amountfield1
       const rows = QueryServiceHelper.query(
         'entity_name',
         'field1,amountfield,bizdate,entryentity.kdtest_combofield,entryentity.kdtest_amountfield1',
@@ -204,7 +204,7 @@ class DemoController {
         items: items
       }));
     } catch (e) {
-      response.throwException('获取数据失败: ' + e, 500, 'GET_DATA_ERROR');
+      response.throwException('Failed to fetch data: ' + e, 500, 'GET_DATA_ERROR');
     }
   }
 }
@@ -213,22 +213,22 @@ const kwcController = new DemoController();
 export { kwcController };
 ```
 
-### 遍历方式说明
+### Iteration Patterns
 
-`DynamicObjectCollection` 不支持 JS `for-of`，只能使用以下两种方式：
+`DynamicObjectCollection` does not support JS `for-of`. Only the following two patterns are allowed:
 
 ```ts
-// 方式一：iterator 遍历（推荐）
+// Option 1: iterator iteration (recommended)
 const iterator = rows.iterator();
 while (iterator.hasNext()) {
   const row = iterator.next();
 }
 
-// 方式二：size() + get(i) 索引遍历
+// Option 2: size() + get(i) index iteration
 for (let i = 0; i < rows.size(); i++) {
   const row = rows.get(i);
 }
 
-// 禁止：for-of 会抛不可捕获异常 → 500
-// for (const row of rows) { ... }  // ← 禁止
+// Forbidden: for-of throws an uncatchable exception → 500
+// for (const row of rows) { ... }  // ← forbidden
 ```

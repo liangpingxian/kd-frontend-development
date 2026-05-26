@@ -1,61 +1,61 @@
-# KWC KS Controller 开发专家
+# KWC KS Controller Development Expert
 
-当项目中需要开发 KingScript 脚本控制器（后端 REST API）时，本 Skill 负责控制器的 .kws 元数据配置和脚本代码实现。
+When the project requires developing a KingScript script controller (backend REST API), this Skill is responsible for the Controller's .kws metadata configuration and script code implementation.
 
-**必须严格遵守本 Skill 目录下的 `rule.md` 中定义的硬性约束。**
+**You must strictly comply with the hard rules defined in `rule.md` under this Skill's directory.**
 
-## 使用前置条件
+## Preconditions
 
-**必须同时满足以下条件才能使用本 Skill：**
-1. 当前目录已存在 `.kd/config.json` 文件
-2. 工程中已存在 `app/ks/controller/` 目录
-3. 工程已通过脚手架工作流完成初始化
+**All of the following must be satisfied before using this Skill:**
+1. A `.kd/config.json` file already exists in the current directory
+2. An `app/ks/controller/` directory already exists in the project
+3. The project has been initialized via the scaffold workflow
 
-**以下场景必须交由脚手架工作流：**
-- 工程初始化、创建组件/页面/Controller 目录（`kd project init` / `kd project create`）
-- 生成或修改 `.js-meta.kwc` / `.page-meta.kwp` 元数据
-- 环境配置、构建、部署、调试（`kd env` / `npm run build` / `kd project deploy` / `kd debug`）
+**The following scenarios must be delegated to the scaffold workflow:**
+- Project initialization, creating component/page/Controller directories (`kd project init` / `kd project create`)
+- Generating or modifying `.js-meta.kwc` / `.page-meta.kwp` metadata
+- Environment configuration, build, deployment, debugging (`kd env` / `npm run build` / `kd project deploy` / `kd debug`)
 
-若当前不满足上述前置条件，请立即停止并回到脚手架工作流（主入口）。
+If the above preconditions are not currently met, stop immediately and return to the scaffold workflow (main entry).
 
-## 标准工作流
+## Standard Workflow
 
-1. **确认目录存在**：Controller 目录已由 scaffold 创建（`app/ks/controller/<Name>/`）
-2. **读取工程配置**（强制）：读取 `.kd/config.json`，获取 `isv`、`app` 等字段的真实值，后续 .kws 中的 `<isv>`、`<app>`、`<url>` 必须基于这些值拼装，**禁止猜测或硬编码**
-3. **查询实体字段**（涉及业务实体操作时）：通过 `meta-query-api.mjs` 获取真实字段结构，**禁止猜测字段名**
-4. **编写 .kws 元数据**：基于第 2 步读取的配置拼装 URL（`/{isv}/{app}/...`），定义 HTTP 方法和权限
-5. **编写脚本代码**：开始写代码前，**必须先读取** `./reference/脚本控制器防坑指南.md`，确保不使用不存在的 API、不踩已知运行时陷阱；SDK 调用前先在索引中确认存在
-6. **部署上线**：完成后执行 `kd project deploy` 将 Controller 上传到环境
+1. **Confirm directory exists**: The Controller directory has been created by scaffold (`app/ks/controller/<Name>/`)
+2. **Read project configuration** (mandatory): Read `.kd/config.json` to get the real values of fields like `isv` and `app`. The subsequent `<isv>`, `<app>`, and `<url>` in .kws must be assembled based on these values; **guessing or hard-coding is forbidden**
+3. **Query entity fields** (when operating on business entities): Use `meta-query-api.mjs` to get the real field structure; **never guess field names**
+4. **Write the .kws metadata**: Build the URL based on the configuration read in step 2 (`/{isv}/{app}/...`) and define HTTP methods and permissions
+5. **Write the script code**: Before starting to write code, you **must first read** `./reference/script-controller-pitfalls.md` to make sure you do not use APIs that don't exist or hit known runtime traps; confirm SDK calls in the indexes before using them
+6. **Deploy**: After completion, run `kd project deploy` to upload the Controller to the environment
 
-> ⚠️ **致命坑：`kd project build --type controller` 不会上传代码！**
+> Fatal pitfall: `kd project build --type controller` does NOT upload the code!
 >
-> `build` 只做本地编译，输出 "Success" 但服务端仍跑旧代码。**每次改完 Controller（.ts 代码或 .kws 版本号）后，必须执行 `kd project deploy` 才能让改动生效。**
+> `build` only compiles locally. It outputs "Success" but the server still runs the old code. **After every change to a Controller (.ts code or .kws version), you must run `kd project deploy` for the change to take effect.**
 >
-> 错误表现：改了代码后调接口还是旧逻辑/旧响应/500，看起来像业务 bug 实际是没部署。
-7. **端到端自检（🔴 硬性门槛）**：部署成功后，**必须**运行 `../scripts/test-controller.mjs`（登录→Cookie→/kwc/v1）对每个要对接的方法跑至少一轮。这不属于「禁止运行部署」的约束，是只读接口调用。**自检未全部通过前，禁止进入 KWC 前端对接代码编写（adapterApi / 前端组件）**；详见主 SKILL.md 「Controller 端到端自检」节
-   - **必须使用 `--assert-*` 参数验证返回数据正确性**，仅验证连通性（HTTP 200）不够。至少要：
-     - `--assert-not-empty data`（确认有数据返回）
-     - 或 `--assert-field <关键字段>`（确认关键字段存在）
-   - 如果测试返回空数据，应检查 Controller 代码中的查询条件、参数传递是否正确
-   - 当数据断言失败（返回空数据）时，**禁止直接判定为“环境无数据”**。必须先按 `reference/faq.md` 中的「数据查询结果为空时的诊断模式」排查，确认是代码逻辑问题还是确实无数据
-   - `QueryServiceHelper.query` 禁止使用 `topN=0`（等价于 LIMIT 0），查全量请用 3 参重载
-   - **重试上限**：自检失败的「修改 → 部署 → 测试」循环最多执行 3 次。3 次后仍失败，**放弃修复 Controller，转入 Mock 数据模式**（前端组件使用硬编码假数据，保留注释的 adapterApi 调用备后续恢复）。详见主 SKILL.md 「Mock 数据模式」节
+> Symptom: after changing the code, the interface still returns the old logic/old response/500. It looks like a business bug but is actually a missed deployment.
+7. **End-to-end self-check (hard gate)**: After successful deployment, you **must** run `../scripts/test-controller.mjs` (login → Cookie → /kwc/v1) at least once against every method to be integrated. This is not covered by the "do not run deployments" rule; it is a read-only API call. **Until the self-check fully passes, writing KWC frontend integration code (adapterApi / frontend components) is forbidden**; see the "Controller End-to-End Self-Check" section in the main SKILL.md.
+   - **You must use `--assert-*` parameters to validate returned data correctness**; verifying only connectivity (HTTP 200) is insufficient. At minimum:
+     - `--assert-not-empty data` (confirm data is returned)
+     - Or `--assert-field <key field>` (confirm a key field is present)
+   - If the test returns empty data, check the query conditions and parameter passing in the Controller code
+   - When a data assertion fails (empty data returned), **it is forbidden to immediately conclude "the environment has no data"**. First follow the "Diagnostic pattern for empty query results" in `reference/faq.md` to determine whether it is a code-logic issue or really no data
+   - `QueryServiceHelper.query` must not use `topN=0` (equivalent to LIMIT 0); for full queries use the 3-arg overload
+   - **Retry limit**: The "modify → deploy → test" loop after a failed self-check may run at most 3 times. If it still fails after 3 attempts, **give up fixing the Controller and switch to Mock data mode** (frontend component uses hard-coded fake data, with the adapterApi call kept commented out for later restoration). See the "Mock data mode" section in the main SKILL.md.
 
-## 参考资源
+## Reference Resources
 
-| 类别 | 资源 | 路径 |
+| Category | Resource | Path |
 |------|------|------|
-| **本 Skill** | .kws 元数据配置规范 | `./reference/kws-metadata-reference.md` |
-| | Controller 集成工作流 | `./reference/controller-scaffold-workflow.md` |
-| | 常见模式和代码示例 | `./reference/controller-patterns.md` |
-| | 前端 adapterApi 调用指南 | `./reference/frontend-integration.md` |
-| | Controller 端到端自检脚本 | `../scripts/test-controller.mjs` |
-| **KingScript** | 脚本控制器开发指南 | `../kingscript-code-generator/references/docs/custom-development/脚本控制器开发指南.md` |
-| | 脚本控制器防坑指南 | `./reference/脚本控制器防坑指南.md` |
-| | 语言基础 | `../kingscript-code-generator/references/language/kingscript/README.md` |
-| | SDK 类索引 | `../kingscript-code-generator/references/sdk/indexes/class-index.md` |
-| | SDK 方法索引 | `../kingscript-code-generator/references/sdk/indexes/method-index.md` |
-| | SDK 场景索引 | `../kingscript-code-generator/references/sdk/indexes/scenario-index.md` |
-| | SDK 策略和降级链路 | `../kingscript-code-generator/references/sdk/strategy.md` |
-| | Java-KS 类型桥接 | `../kingscript-code-generator/references/sdk/docs/java-kingscript-bridge.md` |
-| **Scaffold** | 实体字段查询工具 | `../references/meta-query.md` |
+| **This Skill** | .kws metadata configuration reference | `./reference/kws-metadata-reference.md` |
+| | Controller integration workflow | `./reference/controller-scaffold-workflow.md` |
+| | Common patterns and code examples | `./reference/controller-patterns.md` |
+| | Frontend adapterApi calling guide | `./reference/frontend-integration.md` |
+| | Controller end-to-end self-check script | `../scripts/test-controller.mjs` |
+| **KingScript** | Script Controller Development Guide | `../kingscript-code-generator/references/docs/custom-development/script-controller-guide.md` |
+| | Script Controller Pitfalls Guide | `./reference/script-controller-pitfalls.md` |
+| | Language basics | `../kingscript-code-generator/references/language/kingscript/README.md` |
+| | SDK class index | `../kingscript-code-generator/references/sdk/indexes/class-index.md` |
+| | SDK method index | `../kingscript-code-generator/references/sdk/indexes/method-index.md` |
+| | SDK scenario index | `../kingscript-code-generator/references/sdk/indexes/scenario-index.md` |
+| | SDK strategy and fallback chain | `../kingscript-code-generator/references/sdk/strategy.md` |
+| | Java–KS type bridge | `../kingscript-code-generator/references/sdk/docs/java-kingscript-bridge.md` |
+| **Scaffold** | Entity field query tool | `../references/meta-query.md` |

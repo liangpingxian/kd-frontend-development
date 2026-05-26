@@ -1,10 +1,10 @@
 /**
- * KWC API 脚本公共基础设施模块
- * 提供 CLI 参数解析、密文解密、环境配置加载、鉴权、API 调用等通用能力
- * 零外部依赖，仅使用 Node.js 内置模块
+ * KWC API Script Shared Infrastructure Module
+ * Provides CLI argument parsing, ciphertext decryption, environment config loading, authentication, API calls, and other common capabilities
+ * Zero external dependencies — only uses Node.js built-in modules
  *
- * 解密通过 _secret-store.mjs (SecretStore，namespace=kingdee-kd)
- * 读取 OS 凭据容器中的 master-key，不再读写 ~/.kd/secret.key。
+ * Decryption via _secret-store.mjs (SecretStore, namespace=kingdee-kd)
+ * Reads the master-key from the OS credential container; no longer reads/writes ~/.kd/secret.key.
  */
 
 import { readFileSync } from 'node:fs'
@@ -14,20 +14,20 @@ import { execSync } from 'node:child_process'
 import { randomBytes, publicEncrypt, constants } from 'node:crypto'
 import { unprotect, isKdsec } from './_secret-store.mjs'
 
-// ─── 常量 ───────────────────────────────────────────────
+// ─── Constants ───────────────────────────────────────────────
 export const KD_DIR = join(homedir(), '.kd')
 export const CONFIG_FILE = join(KD_DIR, 'config.json')
 
-// ─── 非交互 shell 的 PATH 修正 ──────────────────────────
+// ─── PATH fix for non-interactive shells ──────────────────────
 
 /**
- * 把 npm 全局 bin 目录补进当前进程的 PATH。
- * Node.js 在非交互 shell 下不会加载 ~/.zshrc / ~/.bashrc，
- * 所以用户配置的 npm prefix（如 ~/.npm-global/bin）可能不在 PATH 里，
- * 导致 `which kd` / 直接 spawn `kd` 报 ENOENT。
- * 调用 `npm config get prefix` 拿到全局 prefix 后注入到 process.env.PATH。
+ * Add the npm global bin directory to the current process's PATH.
+ * Node.js in non-interactive shells does not load ~/.zshrc / ~/.bashrc,
+ * so user-configured npm prefixes (e.g. ~/.npm-global/bin) may not be in PATH,
+ * causing `which kd` / direct `spawn kd` to throw ENOENT.
+ * Calls `npm config get prefix` to get the global prefix and injects it into process.env.PATH.
  *
- * 幂等：重复调用不会重复追加。npm 不可用时静默跳过。
+ * Idempotent: repeated calls will not append duplicates. Silently skipped when npm is unavailable.
  */
 export function augmentPathWithNpmGlobalBin() {
   try {
@@ -40,23 +40,23 @@ export function augmentPathWithNpmGlobalBin() {
       process.env.PATH = binDir + sep + currentPath
     }
   } catch {
-    // npm 不可用时静默跳过；后续真正调用 kd 时会自然暴露问题
+    // Silently skipped when npm is unavailable; the issue will surface naturally when kd is actually called later
   }
 }
 
-// ─── 内部默认 fatal ─────────────────────────────────────
+// ─── Internal default fatal ─────────────────────────────────────
 
-/** 默认 fatal，使用通用前缀 [kd-api] */
+/** Default fatal function, uses the generic prefix [kd-api] */
 function _fatal(msg) {
   console.error(`[kd-api] error: ${msg}`)
   process.exit(1)
 }
 
-// ─── 工具函数 ───────────────────────────────────────────
+// ─── Utility functions ───────────────────────────────────────────
 
 /**
- * 创建绑定指定前缀的 fatal 函数
- * @param {string} prefix - 前缀标识，如 'menu-api'、'meta-query-api'
+ * Create a fatal function bound to a specified prefix
+ * @param {string} prefix - Prefix identifier, e.g. 'menu-api', 'meta-query-api'
  * @returns {(msg: string) => never}
  */
 export function createFatal(prefix) {
@@ -66,7 +66,7 @@ export function createFatal(prefix) {
   }
 }
 
-/** 简单命令行参数解析，不引入外部库 */
+/** Simple CLI argument parser, no external libraries */
 export function parseArgs(args) {
   const result = {}
   for (let i = 0; i < args.length; i++) {
@@ -79,7 +79,7 @@ export function parseArgs(args) {
   return result
 }
 
-/** 解密密文：仅识别新 `kdsec:` 前缀；遇老 `iv:ciphertext` 格式直接报错引导用户重认证 */
+/** Decrypt ciphertext: only recognizes the new `kdsec:` prefix; legacy `iv:ciphertext` format directly errors and guides the user to re-authenticate */
 export function decrypt(encoded) {
   if (!isKdsec(encoded)) {
     _fatal('legacy ciphertext detected, please re-run `kd env auth openapi` to migrate credentials')
@@ -91,7 +91,7 @@ export function decrypt(encoded) {
   }
 }
 
-/** 读取 ~/.kd/config.json 并返回指定环境配置 */
+/** Read ~/.kd/config.json and return the specified environment configuration */
 export function loadEnvConfig(envName) {
   let config
   try {
@@ -102,7 +102,7 @@ export function loadEnvConfig(envName) {
 
   const envMap = config.env || {}
 
-  // 指定了环境名则直接取，否则找 default: true 的环境
+  // If an env name is specified, use it directly; otherwise find the one with default: true
   if (envName) {
     if (!envMap[envName]) _fatal(`environment "${envName}" not found, available: ${Object.keys(envMap).join(', ')}`)
     return envMap[envName]
@@ -114,8 +114,8 @@ export function loadEnvConfig(envName) {
 }
 
 /**
- * 独立读取顶层 config.language（不依赖任何 env）。
- * 文件不存在 / 解析失败 / 字段缺失 → 一律回退 'zh_CN'，不抛错。
+ * Read the top-level config.language independently (not dependent on any env).
+ * File missing / parse failure / field missing → always falls back to 'zh_CN', no error thrown.
  */
 export function loadLanguage() {
   try {
@@ -126,12 +126,12 @@ export function loadLanguage() {
   }
 }
 
-/** 去除 URL 尾部斜杠，避免拼接出双斜杠 */
+/** Remove trailing slashes from a URL to avoid double-slash concatenation */
 export function normalizeUrl(url) {
   return url.replace(/\/+$/, '')
 }
 
-/** 安全解析 JSON 响应，非 JSON 时返回可读错误 */
+/** Safely parse a JSON response; returns a readable error when the response is not JSON */
 export async function safeJson(resp) {
   const text = await resp.text()
   try {
@@ -141,12 +141,12 @@ export async function safeJson(resp) {
   }
 }
 
-/** 过滤掉值为 null/undefined 的字段，仅保留有值的字段 */
+/** Filter out null/undefined fields, keeping only fields with values */
 export function compact(obj) {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v != null))
 }
 
-/** 将 CLI 字符串参数安全转换为整数，非法值或超范围时报错退出 */
+/** Safely convert a CLI string parameter to an integer; errors and exits on invalid or out-of-range values */
 export function toInt(value, paramName) {
   if (value == null) return undefined
   const n = Number(value)
@@ -155,12 +155,12 @@ export function toInt(value, paramName) {
   return n
 }
 
-// ─── 数据中心（认证前，不需要鉴权） ──────────────────────
+// ─── Datacenter (before authentication, no auth needed) ─────────────────────
 
 /**
- * 拉取环境可用的数据中心列表（用于 kd env auth openapi 的 --datacenter 入参）
- * 接口: POST <envUrl>/auth/getAllDatacenters.do
- * 返回形态统一为 [{ id: accountId, name: accountName }]
+ * Fetch the list of available datacenters for the environment (used for the --datacenter parameter of kd env auth openapi)
+ * Endpoint: POST <envUrl>/auth/getAllDatacenters.do
+ * Return shape is normalized to [{ id: accountId, name: accountName }]
  * @param {string} envUrl
  * @param {string} clientId
  * @returns {Promise<Array<{id: string, name: string}>>}
@@ -179,7 +179,7 @@ export async function fetchDatacenters(envUrl, clientId) {
   }
 
   const data = await safeJson(resp)
-  // 兼容几种常见返回壳: { data: [...] } / { datacenters: [...] } / [...]
+  // Compatible with several common return wrappers: { data: [...] } / { datacenters: [...] } / [...]
   const list = Array.isArray(data) ? data : (data.data || data.datacenters || [])
   if (!Array.isArray(list) || list.length === 0) {
     throw new Error(`datacenter list empty or malformed: ${JSON.stringify(data).slice(0, 300)}`)
@@ -193,9 +193,9 @@ export async function fetchDatacenters(envUrl, clientId) {
     .filter(d => d.id)
 }
 
-// ─── 鉴权 ───────────────────────────────────────────────
+// ─── Authentication ───────────────────────────────────────────────
 
-/** POST getToken 接口获取新 access_token；language 缺省由 loadLanguage() 读取顶层 config.language */
+/** POST the getToken endpoint to fetch a new access_token; language defaults from loadLanguage() reading the top-level config.language */
 export async function fetchToken(baseUrl, { client_id, client_secret, username, accountId, language = loadLanguage() }) {
   const body = {
     client_id,
@@ -221,29 +221,29 @@ export async function fetchToken(baseUrl, { client_id, client_secret, username, 
   return data.data.access_token
 }
 
-/** 根据环境配置获取可用的 access_token */
+/** Get an available access_token based on the environment configuration */
 export async function resolveToken(env) {
   const { client_id, client_secret, username, accountId, auth2, access_token, url } = env
   const hasFullCredentials = client_id && client_secret && username && accountId
 
-  // 情况1: 完整凭据且非 Web OAuth → 每次重新获取 token
+  // Case 1: Full credentials and not Web OAuth → fetch a new token each time
   if (hasFullCredentials && auth2 !== true) {
     const secret = decrypt(client_secret)
     return await fetchToken(url, { client_id, client_secret: secret, username, accountId })
   }
 
-  // 情况2: Web OAuth → 使用缓存的 access_token 解密后直接用
+  // Case 2: Web OAuth → decrypt the cached access_token and use directly
   if (auth2 === true && access_token) {
     return decrypt(access_token)
   }
 
-  // 情况3: 无可用凭据
+  // Case 3: No available credentials
   _fatal('environment not authenticated, please run `kd env auth openapi` first')
 }
 
-// ─── API 调用 ────────────────────────────────────────────
+// ─── API Calls ────────────────────────────────────────────
 
-/** 通用 POST API 请求封装 */
+/** Generic POST API request wrapper */
 export async function callApi(baseUrl, path, token, body) {
   const url = `${normalizeUrl(baseUrl)}${path}`
   const resp = await fetch(url, {
@@ -252,14 +252,14 @@ export async function callApi(baseUrl, path, token, body) {
     body: JSON.stringify(body),
   })
 
-  // Token 过期处理
+  // Token expiry handling
   if (resp.status === 401) {
     _fatal('authentication expired, please re-run `kd env auth openapi`')
   }
 
   const data = await safeJson(resp)
 
-  // 业务错误处理
+  // Business error handling
   if (data.status === false) {
     _fatal(`API returned error: ${data.errorCode || ''} ${data.message || JSON.stringify(data)}`)
   }
@@ -267,11 +267,11 @@ export async function callApi(baseUrl, path, token, body) {
   return data
 }
 
-// ─── KWC 内部路由 Cookie 登录（/kwc/v1 入口）────────────────
-//
-// /kwc/v1 前缀的 Controller 接口在苍穹里仅支持 session Cookie 鉴权（无法用
-// OpenAPI access_token），因此编写完 Controller 之后的「端到端自检」必须走
-// 账号密码登录 → 解析租户化 Cookie → 调 /kwc/v1 的流程。以下是对该流程的公共封装。
+// ─── KWC Internal Route Cookie Login (/kwc/v1 entry point) ────────────────
+// /kwc/v1-prefixed Controller interfaces in Cosmic only support session Cookie auth
+// (OpenAPI access_token is not accepted), so the "end-to-end self-check" after writing
+// a Controller must follow the account/password login → parse tenant-specific Cookie →
+// call /kwc/v1 flow. Below is the shared encapsulation of this flow.
 
 function _formEncode(obj) {
   return Object.entries(obj)
@@ -287,13 +287,13 @@ function _randomAlphanum(n) {
   return s
 }
 
-/** accessKey: 账号长度 <=16 时用账号 + 随机串补齐到 16 位；否则直接用账号（参照 login.py） */
+/** accessKey: when account length <=16, pad with random chars to 16 chars; otherwise use the account directly (following login.py) */
 function _buildAccessKey(user) {
   if (user.length > 16) return user
   return (user + _randomAlphanum(16)).slice(0, 16)
 }
 
-/** 把 DER base64 公钥包装成 PEM（若已经是 PEM 就直接返回） */
+/** Wrap a DER base64 public key into PEM format (if already PEM, return as-is) */
 function _normalizePublicKey(pubKeyB64) {
   const trimmed = String(pubKeyB64).trim()
   if (trimmed.startsWith('-----BEGIN PUBLIC KEY-----')) return trimmed
@@ -301,7 +301,7 @@ function _normalizePublicKey(pubKeyB64) {
   return `-----BEGIN PUBLIC KEY-----\n${wrapped}\n-----END PUBLIC KEY-----`
 }
 
-/** RSA PKCS1v15 加密密码，返回 base64 */
+/** RSA PKCS1v15 encrypt the password, returns base64 */
 function _encryptPassword(password, pubKeyB64) {
   const encrypted = publicEncrypt(
     { key: _normalizePublicKey(pubKeyB64), padding: constants.RSA_PKCS1_PADDING },
@@ -310,7 +310,7 @@ function _encryptPassword(password, pubKeyB64) {
   return encrypted.toString('base64')
 }
 
-/** 请求 /auth/getPublicKey.do 拿 RSA 公钥 */
+/** Request /auth/getPublicKey.do to get the RSA public key */
 async function _fetchPublicKey(baseUrl, { accessKey, accountId }) {
   const url = `${normalizeUrl(baseUrl)}/auth/getPublicKey.do`
   const resp = await fetch(url, {
@@ -328,8 +328,8 @@ async function _fetchPublicKey(baseUrl, { accessKey, accountId }) {
 }
 
 /**
- * 从登录返回的 Set-Cookie 列表中筛出 KERPSESSIONID* 和 Isolator*（苍穹 Cookie 带租户后缀），
- * 拼成可用于 /kwc/v1 请求的 Cookie 头。
+ * Filter out KERPSESSIONID* and Isolator* from the Set-Cookie list in the login response
+ * (Cosmic cookies have tenant suffixes), and assemble them into a Cookie header usable for /kwc/v1 requests.
  */
 function _assembleKerpCookie(setCookies) {
   let kerp = ''
@@ -346,14 +346,14 @@ function _assembleKerpCookie(setCookies) {
 }
 
 /**
- * 使用账号密码登录苍穹，返回可直接用于 /kwc/v1 请求的 Cookie 字符串。
+ * Log in to Cosmic using account/password, returning a Cookie string that can be used directly for /kwc/v1 requests.
  *
- * 优先级: opts.user/opts.password > env.login_account.{fname,password}
- * 必需的环境字段: url, accountId
+ * Priority: opts.user/opts.password > env.login_account.{fname,password}
+ * Required env fields: url, accountId
  *
- * @param {object} env  loadEnvConfig 返回的环境配置
+ * @param {object} env  Environment config returned by loadEnvConfig
  * @param {{user?: string, password?: string, accountId?: string}} [opts]
- * @returns {Promise<string>} Cookie 头字符串，形如 "KERPSESSIONIDxxx=...; Isolatorxxx=..."
+ * @returns {Promise<string>} Cookie header string, e.g. "KERPSESSIONIDxxx=...; Isolatorxxx=..."
  */
 export async function loginAndGetCookie(env, opts = {}) {
   if (!env || !env.url) throw new Error('login failed: env missing `url` field')
@@ -406,11 +406,11 @@ export async function loginAndGetCookie(env, opts = {}) {
 }
 
 /**
- * 携带 session Cookie 调用 /kwc/v1 下的 Controller 接口。
+ * Call a /kwc/v1 Controller interface carrying the session Cookie.
  *
- * @param {string} baseUrl  环境基础 URL（env.url）
- * @param {string} cookie   loginAndGetCookie 的返回值
- * @param {string} path     以 / 开头的 Controller 路径，例如 /kwc/v1/kdtest/kdtest_react/demo/hello
+ * @param {string} baseUrl  Environment base URL (env.url)
+ * @param {string} cookie   Return value from loginAndGetCookie
+ * @param {string} path     Controller path starting with /, e.g. /kwc/v1/kdtest/kdtest_react/demo/hello
  * @param {{method?: string, query?: Record<string, any>, body?: any, headers?: Record<string,string>}} [opts]
  * @returns {Promise<{status: number, data: any, raw: string}>}
  */
@@ -450,7 +450,7 @@ export async function callControllerViaCookie(baseUrl, cookie, path, opts = {}) 
   return { status: resp.status, data, raw }
 }
 
-/** 通用 GET API 请求封装 */
+/** Generic GET API request wrapper */
 export async function callGetApi(baseUrl, path, token, params) {
   const query = Object.entries(params)
     .filter(([, v]) => v != null)
@@ -463,14 +463,14 @@ export async function callGetApi(baseUrl, path, token, params) {
     headers: { access_token: token },
   })
 
-  // Token 过期处理
+  // Token expiry handling
   if (resp.status === 401) {
     _fatal('authentication expired, please re-run `kd env auth openapi`')
   }
 
   const data = await safeJson(resp)
 
-  // 业务错误处理
+  // Business error handling
   if (data.status === false) {
     _fatal(`API returned error: ${data.errorCode || ''} ${data.message || JSON.stringify(data)}`)
   }

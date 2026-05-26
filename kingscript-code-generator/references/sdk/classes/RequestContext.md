@@ -1,46 +1,46 @@
 # RequestContext
 
-## 基本信息
+## Basic Information
 
-- 名称：`RequestContext`
-- Java 类名：`kd.bos.context.RequestContext`
-- TS 导出名：`RequestContext`
-- 所属模块：`@cosmic/bos-core`
-- 所属包：`kd/bos`
-- 命名空间：`kd.bos.context`
-- 类型：请求上下文与会话上下文对象
-- 来源：
-  - TS 声明：`@cosmic/bos-core/bos-framework.d.ts`
-  - Javadoc：待补充
+- Name: `RequestContext`
+- Java class: `kd.bos.context.RequestContext`
+- TS export name: `RequestContext`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos`
+- Namespace: `kd.bos.context`
+- Type: Request context and session context object
+- Sources:
+  - TS declaration: `@cosmic/bos-core/bos-framework.d.ts`
+  - Javadoc: TBD
 
-## 用途概述
+## Overview
 
-用于获取当前登录用户、组织、租户、语言和请求上下文信息，是脚本读取“当前是谁、处于哪个租户和组织”时最核心的入口之一。
+Used to get the current logged-in user, organization, tenant, language, and request context information. It is one of the most core entry points when a script needs to read "who is currently logged in, which tenant and organization they belong to".
 
-## 典型场景
+## Typical Scenarios
 
-- 获取当前用户 ID、当前组织、登录组织
-- 判断租户、账套、语言环境
-- 在需要复制上下文的新线程或异步场景中传递上下文
-- 排查“本地能跑、线上上下文为空”这类问题
+- Get current user ID, current organization, login organization
+- Determine tenant, account book, and language environment
+- Pass context in new threads or async scenarios that need to replicate context
+- Troubleshoot "works locally, but context is empty online" issues
 
-## 用户常见问法
+## Common User Phrasings
 
-- 怎么取当前登录用户
-- 怎么取当前组织
-- 怎么判断租户
-- `RequestContext.get()` 和 `getOrCreate()` 有什么区别
+- How to get the current logged-in user
+- How to get the current organization
+- How to determine the tenant
+- What is the difference between `RequestContext.get()` and `getOrCreate()`
 
-## 常见搭配
+## Common Pairings
 
 - `BusinessDataServiceHelper`
-  - 结合当前用户或组织做条件查询
+  - Combined with current user or organization for conditional queries
 - `AbstractBillPlugIn`
-  - 在插件事件中读取上下文
+  - Reading context in plugin events
 - `AbstractFormPlugin`
-  - 在表单逻辑中读取当前登录信息
+  - Reading current login information in form logic
 
-## 高频方法
+## Common Methods
 
 - `get()`
 - `create()`
@@ -54,35 +54,35 @@
 - `getLang()`
 - `getLoginOrg()`
 
-## 高价值规则
+## High-Value Rules
 
-- 取“当前用户、组织、租户”时，优先从 `RequestContext` 读，不要自己猜测页面参数
-- `get()` 更适合读取当前线程上下文，`getOrCreate()` 更适合兜底获取上下文对象
-- `copy()`、`copyAndSet()` 更偏底层上下文传递，不是普通表单脚本的高频入口
+- When getting "current user, organization, tenant", prioritize reading from `RequestContext`; do not guess page parameters yourself
+- `get()` is better for reading the current thread context, while `getOrCreate()` is better for fallback context retrieval
+- `copy()` and `copyAndSet()` are more for low-level context passing and are not high-frequency entry points for ordinary form scripts
 
-## 运行时注意事项
+## Runtime Notes
 
-- 上下文值是否可用，和当前插件类型、调用时机、是否跨线程密切相关
-- 即使声明存在，也不能默认任意场景下都能读到完整登录信息
-- 如果问题涉及权限、租户、组织隔离，要同时结合运行环境和接口约束判断
+- Whether context values are available is closely related to the current plugin type, call timing, and whether it crosses threads
+- Even if a declaration exists, you cannot assume that complete login information is readable in every scenario
+- If the issue involves permissions, tenants, or organization isolation, also consider the runtime environment and API constraints
 
-## 常见错误
+## Common Errors
 
-### 1. 上下文不为空，但字段取不到
+### 1. Context is not null, but fields cannot be retrieved
 
-高概率原因：
-- 当前时机不对，登录上下文尚未建立
-- 运行在跨线程或异步场景，但没有正确复制上下文
-- 把页面参数当成了请求上下文
+High-probability causes:
+- Wrong timing; login context has not been established yet
+- Running in a cross-thread or async scenario, but context was not properly copied
+- Mistaking page parameters for request context
 
-## 相关文档
+## Related Documents
 
 - [AbstractBillPlugIn.md](AbstractBillPlugIn.md)
 - [AbstractFormPlugin.md](AbstractFormPlugin.md)
 - troubleshooting.md
 
-## 关键词
+## Keywords
 
-- 中文关键词：当前用户、当前组织、登录组织、租户、上下文、会话上下文
-- 英文关键词：`RequestContext`
-- 常见报错词：上下文为空、用户为空、组织为空
+- Chinese keywords: current user, current organization, login organization, tenant, context, session context
+- English keywords: `RequestContext`
+- Common error terms: context is null, user is null, organization is null

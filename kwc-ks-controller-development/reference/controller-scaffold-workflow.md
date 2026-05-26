@@ -1,104 +1,104 @@
-# Controller 在 KWC 工程中的集成工作流
+# Controller Integration Workflow in KWC Projects
 
-本文档说明脚本控制器（Script Controller）在 KWC 工程中的位置、创建、构建和部署流程。
+This document describes the position, creation, build, and deployment workflow of script controllers (Script Controller) in KWC projects.
 
-## 1. Controller 在 KWC 工程中的位置
+## 1. Controller Position in KWC Projects
 
-### 1.1 目录结构
+### 1.1 Directory Structure
 
-Controller 位于 KWC 工程的 `app/ks/controller/` 目录下：
+Controllers are located in the `app/ks/controller/` directory of the KWC project:
 
 ```
 my-kwc-project/
 ├── .kd/
-│   └── config.json          # 工程配置
+│   └── config.json          # Project configuration
 ├── app/
-│   ├── kwc/                  # 前端组件目录
+│   ├── kwc/                  # Frontend component directory
 │   │   └── MyComponent/
-│   ├── pages/                # 页面元数据目录
+│   ├── pages/                # Page metadata directory
 │   │   └── myPage.page-meta.kwp
 │   └── ks/
-│       └── controller/       # Controller 目录
+│       └── controller/       # Controller directory
 │           └── UserController/
-│               ├── UserController.kws    # .kws 元数据文件
-│               └── UserController.ts     # 脚本文件
+│               ├── UserController.kws    # .kws metadata file
+│               └── UserController.ts     # Script file
 ├── dist/
-│   ├── kwc/                  # 前端构建输出
-│   └── controller/           # Controller 构建输出
+│   ├── kwc/                  # Frontend build output
+│   └── controller/           # Controller build output
 └── package.json
 ```
 
-### 1.2 文件组成
+### 1.2 File Composition
 
-每个 Controller 包含两个文件：
+Each Controller consists of two files:
 
-| 文件 | 说明 | 示例 |
+| File | Description | Example |
 |------|------|------|
-| .kws 元数据文件 | 定义路由、方法、权限 | `UserController.kws` |
-| TypeScript 脚本文件 | 实现业务逻辑 | `UserController.ts` |
+| .kws metadata file | Defines routes, methods, permissions | `UserController.kws` |
+| TypeScript script file | Implements business logic | `UserController.ts` |
 
-## 2. 创建 Controller
+## 2. Creating a Controller
 
-### 2.1 使用 CLI 创建
+### 2.1 Creating via CLI
 
-通过 `kd project create` 命令创建 Controller：
+Create a Controller using the `kd project create` command:
 
 ```bash
-# 基本用法
+# Basic usage
 kd project create <ControllerName> --type controller
 
-# 指定目标环境（用于拉取 SDK）
+# Specify target environment (for pulling SDK)
 kd project create <ControllerName> --type controller -e dev
 ```
 
-**示例**：
+**Examples**:
 
 ```bash
-# 创建 UserController
+# Create UserController
 kd project create UserController --type controller
 
-# 创建 OrderController，指定 dev 环境
+# Create OrderController, specifying dev environment
 kd project create OrderController --type controller -e dev
 ```
 
-### 2.2 创建后的目录结构
+### 2.2 Directory Structure After Creation
 
-执行命令后，会在 `app/ks/controller/` 下生成：
+After executing the command, files are generated under `app/ks/controller/`:
 
 ```
 app/ks/controller/
 └── UserController/
-    ├── UserController.kws    # 模板元数据文件
-    └── UserController.ts     # 模板脚本文件
+    ├── UserController.kws    # Template metadata file
+    └── UserController.ts     # Template script file
 ```
 
-### 2.3 注意事项
+### 2.3 Notes
 
-- Controller 目录名称使用 PascalCase
-- 文件名与目录名保持一致
-- 首次创建时会自动创建 `app/ks/controller/` 父目录
+- Controller directory names use PascalCase
+- File names must match the directory name
+- The first creation automatically creates the `app/ks/controller/` parent directory
 
-## 3. 构建 Controller
+## 3. Building a Controller
 
-### 3.1 构建命令
+### 3.1 Build Commands
 
-有多种方式构建 Controller：
+There are multiple ways to build a Controller:
 
 ```bash
-# 方式 1：使用 npm 脚本（推荐）
-npm run build:controller                    # 构建所有 Controller
-npm run build:controller -- MyController    # 构建指定 Controller
-npm run build:controller -- --env=dev       # 指定环境
+# Method 1: Using npm scripts (recommended)
+npm run build:controller                    # Build all Controllers
+npm run build:controller -- MyController    # Build a specific Controller
+npm run build:controller -- --env=dev       # Specify environment
 
-# 方式 2：使用 kd CLI
-kd project build --type controller          # 构建所有 Controller
-kd project build MyController --type controller  # 构建指定 Controller
-kd project build --type controller -e dev   # 指定环境
+# Method 2: Using kd CLI
+kd project build --type controller          # Build all Controllers
+kd project build MyController --type controller  # Build a specific Controller
+kd project build --type controller -e dev   # Specify environment
 ```
 
-### 3.2 构建输出
+### 3.2 Build Output
 
-构建产物输出到 `dist/controller/` 目录：
+Build artifacts are output to the `dist/controller/` directory:
 
 ```
 dist/
@@ -111,148 +111,148 @@ dist/
         └── OrderController.js
 ```
 
-### 3.3 构建前检查
+### 3.3 Pre-Build Checks
 
-构建命令会检查：
-- `app/ks/controller/` 目录是否存在
-- .kws 元数据文件是否有效
-- 脚本文件语法是否正确
+The build command checks:
+- Whether the `app/ks/controller/` directory exists
+- Whether .kws metadata files are valid
+- Whether script file syntax is correct
 
-## 4. 部署 Controller
+## 4. Deploying a Controller
 
-### 4.1 部署命令
+### 4.1 Deploy Command
 
-Controller 通过统一的部署命令上传：
+Controllers are uploaded via the unified deploy command:
 
 ```bash
-# 部署整个项目（包括前端组件和 Controller）
+# Deploy the entire project (including frontend components and Controllers)
 kd project deploy
 
-# 部署到指定环境
+# Deploy to a specific environment
 kd project deploy -e sit
 
-# 仅部署特定 Controller
+# Deploy only a specific Controller
 kd project deploy -d dist/controller/UserController
 ```
 
-### 4.2 部署时的自动处理
+### 4.2 Automatic Processing During Deployment
 
-部署时会自动：
-- 从环境拉取 isv 值并写入 .kws 元数据
-- 校验版本号（必须大于已部署版本）
-- 注册 Controller 路由
+Deployment automatically:
+- Pulls the isv value from the environment and writes it to .kws metadata
+- Validates the version number (must be greater than the deployed version)
+- Registers the Controller route
 
-### 4.3 部署前提
+### 4.3 Deployment Prerequisites
 
-- 已通过 `kd env auth` 完成环境认证
-- 已执行构建命令生成部署产物
-- .kws 元数据中的 version 大于服务端已有版本
+- Environment authentication completed via `kd env auth`
+- Build command executed to generate deployment artifacts
+- Version in .kws metadata is greater than the existing server-side version
 
-## 5. 版本管理
+## 5. Version Management
 
-### 5.1 版本号规则
+### 5.1 Version Number Rules
 
-- 类型：正整数（1, 2, 3...）
-- 新 Controller 首次部署设为 `1`
-- 每次更新部署必须递增版本号
-- **不支持**相同版本号覆盖
+- Type: Positive integer (1, 2, 3...)
+- New Controller first deployment is set to `1`
+- Each update deployment must increment the version number
+- **Overwriting** with the same version number is **not supported**
 
-### 5.2 版本更新示例
+### 5.2 Version Update Example
 
 ```xml
-<!-- 首次部署 -->
+<!-- First deployment -->
 <version>1</version>
 
-<!-- 第一次更新 -->
+<!-- First update -->
 <version>2</version>
 
-<!-- 第二次更新 -->
+<!-- Second update -->
 <version>3</version>
 ```
 
-### 5.3 版本错误处理
+### 5.3 Version Error Handling
 
-| 错误 | 原因 | 解决方案 |
+| Error | Cause | Solution |
 |------|------|---------|
-| 版本号相同 | 版本号与服务端一致 | 递增版本号 |
-| 版本号更低 | 版本号小于服务端 | 使用更大的版本号 |
+| Duplicate version number | Version number matches the server | Increment the version number |
+| Version number too low | Version number is less than the server's | Use a larger version number |
 
-## 6. 完整工作流编排
+## 6. Complete Workflow Orchestration
 
-### 6.1 新建 Controller 流程
+### 6.1 New Controller Workflow
 
 ```
 1. kd project create UserController --type controller
-   └── 生成模板文件
+   └── Generate template files
    
-2. 编写 .kws 元数据
-   └── 定义 url、methods、permission
+2. Write .kws metadata
+   └── Define url, methods, permission
    
-3. 编写脚本代码
-   └── 实现业务逻辑
+3. Write script code
+   └── Implement business logic
    
 4. npm run build:controller
-   └── 构建到 dist/controller/
+   └── Build to dist/controller/
    
 5. kd project deploy
-   └── 部署到云端环境
+   └── Deploy to cloud environment
 ```
 
-### 6.2 更新 Controller 流程
+### 6.2 Update Controller Workflow
 
 ```
-1. 修改 .kws 元数据或脚本代码
+1. Modify .kws metadata or script code
 
-2. 递增 .kws 元数据中的 version
+2. Increment the version in .kws metadata
    └── <version>2</version>
    
 3. npm run build:controller
-   └── 重新构建
+   └── Rebuild
    
 4. kd project deploy
-   └── 部署更新
+   └── Deploy update
 ```
 
-### 6.3 调试流程
+### 6.3 Debugging Workflow
 
 ```
-1. 修改代码
+1. Modify code
 
 2. npm run build:controller
 
 3. kd project deploy
 
-4. 使用 API 工具测试接口
+4. Test the API using an API tool
    └── GET ../kwc/v1/kd/dev/users/123
 ```
 
-## 7. 职责边界说明
+## 7. Responsibility Boundaries
 
-### 7.1 kwc-ks-controller-development 职责
+### 7.1 kwc-ks-controller-development Responsibilities
 
-- ✅ 编写/修改 Controller 元数据 (.kws)
-- ✅ 编写/修改 Controller 脚本代码
-- ✅ 查阅 SDK 文档和索引
+- ✅ Write/modify Controller metadata (.kws)
+- ✅ Write/modify Controller script code
+- ✅ Consult SDK documentation and indexes
 
-### 7.2 脚手架工作流职责
+### 7.2 Scaffold Workflow Responsibilities
 
-- ✅ 创建 Controller（`kd project create --type controller`）
-- ✅ 构建 Controller（`npm run build:controller`）
-- ✅ 部署 Controller（`kd project deploy`）
-- ✅ 环境管理（`kd env` 相关命令）
+- ✅ Create Controller (`kd project create --type controller`)
+- ✅ Build Controller (`npm run build:controller`)
+- ✅ Deploy Controller (`kd project deploy`)
+- ✅ Environment management (`kd env` related commands)
 
-### 7.3 协作流程
+### 7.3 Collaboration Flow
 
 ```
-脚手架工作流          kwc-ks-controller-development
+Scaffold Workflow          kwc-ks-controller-development
        │                                   │
        │  kd project create               │
        │────────────────────────────►     │
        │                                   │
-       │                          编写 .kws 元数据
-       │                          编写脚本代码
+       │                          Write .kws metadata
+       │                          Write script code
        │                                   │
-       │  返回构建部署                     │
+       │  Return for build/deploy          │
        │◄────────────────────────────     │
        │                                   │
        │  npm run build:controller         │
@@ -260,26 +260,26 @@ kd project deploy -d dist/controller/UserController
        │                                   │
 ```
 
-## 8. 调试与测试
+## 8. Debugging and Testing
 
-### 8.1 本地调试
+### 8.1 Local Debugging
 
-- 调试由脚手架工作流负责，使用 `kd debug` 启动
-- **必须使用后台模式**（`is_background: true`），否则 90 秒超时被 kill
-- 启动后浏览器可能早于服务就绪打开，需等待后刷新
-- 通过 `get_terminal_output` 查看调试进程状态
+- Debugging is handled by the scaffold workflow, using `kd debug` to start
+- **Must use background mode** (`is_background: true`), otherwise the 90-second timeout will kill the process
+- After starting, the browser may open before the service is ready; wait and then refresh
+- Check the debug process status via `get_terminal_output`
 
-### 8.2 前后端联调流程
+### 8.2 Frontend-Backend Integration Debugging Flow
 
-1. 确保后端 Controller 已部署（version 递增 → build → deploy）
-2. 确保前端组件已使用正确的 adapterApi 配置
-3. 启动 `kd debug` 进行本地联调
-4. 在浏览器中访问对应页面，触发前端组件调用后端 API
-5. 查看浏览器开发者工具 Network 面板确认请求/响应
+1. Ensure the backend Controller is deployed (increment version → build → deploy)
+2. Ensure the frontend component uses the correct adapterApi configuration
+3. Start `kd debug` for local integration debugging
+4. Access the corresponding page in the browser to trigger the frontend component calling the backend API
+5. Check the browser developer tools Network panel to confirm request/response
 
-### 8.3 常见调试场景
+### 8.3 Common Debugging Scenarios
 
-- **API 返回 404**：检查 source 路径、version 是否匹配、Controller 是否已部署
-- **API 返回 401/403**：检查权限配置（permitAll/needall/entityNumber）
-- **请求参数丢失**：确认 GET 用 params（查询参数）、POST 用 params（请求体）
-- **响应数据格式不符**：确认 `response.ok()` 传入的是正确的数据结构
+- **API returns 404**: Check source path, version match, and Controller deployment status
+- **API returns 401/403**: Check permission configuration (permitAll/needall/entityNumber)
+- **Request parameters missing**: Confirm GET uses params (query parameters), POST uses params (request body)
+- **Response data format mismatch**: Confirm `response.ok()` receives the correct data structure

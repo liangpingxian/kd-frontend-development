@@ -1,38 +1,38 @@
 # ValidateResult
 
-## 基本信息
+## Basic Information
 
-- 名称: `ValidateResult`
-- Java 类名: `kd.bos.entity.validate.ValidateResult`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/entity/validate`
-- 类型: 校验结果对象
+- Name: `ValidateResult`
+- Java class: `kd.bos.entity.validate.ValidateResult`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/entity/validate`
+- Type: Validation result object
 
-## 用途概览
+## Overview
 
-`ValidateResult` 用来汇总一次校验执行后的整体结果，包括是否成功、消息、校验器标识和错误集合。
+`ValidateResult` aggregates the overall result after a validation execution, including success status, message, validator identifier, and error collection.
 
-## 高频用法
+## Common Methods
 
-| 方法 | 作用 | 典型场景 |
+| Method | Purpose | Typical Scenario |
 |------|------|------|
-| `isSuccess()` / `setSuccess()` | 判断或设置校验结果 | 校验器返回结果 |
-| `getMessage()` / `setMessage()` | 读写总体提示 | 汇总提示语 |
-| `getAllErrorInfo()` / `addErrorInfo()` | 处理错误集合 | 聚合多条错误 |
-| `getValidatorKey()` / `setValidatorKey()` | 标识校验器 | 多校验器链路 |
+| `isSuccess()` / `setSuccess()` | Check or set validation result | Validator returns result |
+| `getMessage()` / `setMessage()` | Read/write overall prompt | Aggregate prompt message |
+| `getAllErrorInfo()` / `addErrorInfo()` | Handle error collection | Aggregate multiple errors |
+| `getValidatorKey()` / `setValidatorKey()` | Identify validator | Multi-validator chain |
 
-## 运行时注意事项
+## Runtime Notes
 
-- 单条失败信息通常放在 `ValidationErrorInfo`，整体结果放在 `ValidateResult`。
-- 如果你只塞了一条 message，没有补错误集合，复杂表单定位能力会弱很多。
-- 某些链路下最终还会再被包装到 [OperationResult.md](OperationResult.md)。
+- A single failure item is typically placed in `ValidationErrorInfo`, while the overall result goes in `ValidateResult`.
+- If you only add a message without filling in the error collection, complex form field-level pinpointing will be much weaker.
+- In some pipelines, the result may be further wrapped in [OperationResult.md](OperationResult.md).
 
-## 常见搭配
+## Common Pairings
 
-- 校验错误: [ValidationErrorInfo.md](ValidationErrorInfo.md)
-- 错误级别: [ErrorLevel.md](ErrorLevel.md)
+- Validation error: [ValidationErrorInfo.md](ValidationErrorInfo.md)
+- Error level: [ErrorLevel.md](ErrorLevel.md)
 
-## 关键词
+## Keywords
 
-- 中文: 校验结果, 校验器结果, 校验错误集合
-- 英文: `ValidateResult`
+- Chinese: validation result, validator result, validation error collection
+- English: `ValidateResult`

@@ -1,71 +1,71 @@
 # Date
 
-## 基本信息
+## Basic Information
 
-- 名称：`Date`
-- Java 类名：`java.util.Date`
-- TS 导出名：`Date`
-- 所属模块：`@cosmic/bos-script`
-- 所属包：`java`
-- 命名空间：`java.util`
-- 类型：运行时日期时间对象
-- 来源：
-  - TS 声明：`@cosmic/bos-script/index.d.ts`
-  - Javadoc：待补充
+- Name: `Date`
+- Java class: `java.util.Date`
+- TS export name: `Date`
+- Module: `@cosmic/bos-script`
+- Package: `java`
+- Namespace: `java.util`
+- Type: Runtime date-time object
+- Sources:
+  - TS declaration: `@cosmic/bos-script/index.d.ts`
+  - Javadoc: TBD
 
-## 用途概述
+## Overview
 
-用于在运行时承载日期或日期时间值。虽然名字和 JS 原生 `Date` 一样，但在 Kingscript 场景里更应该按 Java 日期对象来理解和处理。
+Used to carry date or date-time values at runtime. Although it shares the same name as the native JS `Date`, in Kingscript scenarios it should be understood and handled as a Java date object.
 
-## 典型场景
+## Typical Scenarios
 
-- 单据日期比较
-- 有效期、到期日、期间判断
-- 日期字段最小值、最大值约束
-- 与 `DateEdit`、`DateRangeEdit` 配合使用
+- Document date comparison
+- Validity period, expiration date, and period determination
+- Minimum and maximum constraints on date fields
+- Used with `DateEdit` and `DateRangeEdit` controls
 
-## 用户常见问法
+## Common User Phrasings
 
-- Kingscript 里的 `Date` 是不是 JS `Date`
-- 两个日期怎么比较
-- 日期字段为什么类型看着对、运行时却不对
+- Is `Date` in Kingscript the same as JS `Date`
+- How to compare two dates
+- Why does a date field look correct in type but behave differently at runtime
 
-## 常见搭配
+## Common Pairings
 
 - `FormShowParameter`
-  - 打开页面时携带日期型参数
+  - Carrying date-type parameters when opening a page
 - `BasedataEdit`
-  - 在查询或赋值时和业务日期条件配合出现
+  - Appearing together with business date conditions during queries or assignments
 - `BigDecimal`
-  - 期间金额、折旧、摊销等场景常一起出现
+  - Frequently appearing together in period amount, depreciation, and amortization scenarios
 
-## 高价值规则
+## High-Value Rules
 
-- 优先把它当成 Java 日期对象，而不是 JS 原生对象
-- 比较日期时，优先使用运行时稳定的方法，例如 `compareTo(...)` 或 `getTime()`
-- 日期字段的显示格式和运行时对象不是同一个层次的问题
+- Treat it as a Java date object first, not a native JS object
+- When comparing dates, prefer runtime-stable methods such as `compareTo(...)` or `getTime()`
+- The display format and runtime object of a date field are at different levels and should not be conflated
 
-## 运行时注意事项
+## Runtime Notes
 
-- 名称相同不代表行为与 JS `Date` 完全一致
-- 日期比较、序列化、字段回写时，要先确认当前拿到的是运行时日期对象还是字符串
-- 声明存在并不代表所有 JS 风格日期写法都可直接照搬
+- Having the same name does not mean its behavior is fully consistent with JS `Date`
+- During date comparison, serialization, and field write-back, first confirm whether you have a runtime date object or a string
+- The existence of a declaration does not mean all JS-style date patterns can be used directly
 
-## 常见错误
+## Common Errors
 
-### 1. 把运行时日期对象当成普通字符串或 JS 日期处理
+### 1. Treating the runtime date object as a plain string or JS date
 
-高概率原因：
-- 忽略了 Java 对象桥接
-- 只看编辑器提示，没有看运行时实际类型
+High-probability causes:
+- Ignoring the Java object bridging
+- Only looking at editor hints without checking the actual runtime type
 
-## 相关文档
+## Related Documents
 
 - troubleshooting.md
-- 4.4常见问题
+- 4.4 Common Issues
 
-## 关键词
+## Keywords
 
-- 中文关键词：日期、日期比较、时间戳、日期对象
-- 英文关键词：`Date`
-- 常见报错词：日期比较错误、日期类型不对
+- Chinese keywords: date, date comparison, timestamp, date object
+- English keywords: `Date`
+- Common error terms: date comparison error, date type mismatch

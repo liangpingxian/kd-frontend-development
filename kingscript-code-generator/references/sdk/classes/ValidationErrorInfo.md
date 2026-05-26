@@ -1,39 +1,39 @@
 # ValidationErrorInfo
 
-## 基本信息
+## Basic Information
 
-- 名称: `ValidationErrorInfo`
-- Java 类名: `kd.bos.entity.validate.ValidationErrorInfo`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/entity/validate`
-- 类型: 校验错误信息
+- Name: `ValidationErrorInfo`
+- Java class: `kd.bos.entity.validate.ValidationErrorInfo`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/entity/validate`
+- Type: Validation error info
 
-## 用途概览
+## Overview
 
-`ValidationErrorInfo` 用来描述一条具体的校验失败信息，通常会包含提示消息、实体位置、字段位置、主键以及错误级别。
+`ValidationErrorInfo` describes a specific validation failure, typically containing a prompt message, entity location, field location, primary key, and error level.
 
-## 高频用法
+## Common Methods
 
-| 方法 | 作用 | 典型场景 |
+| Method | Purpose | Typical Scenario |
 |------|------|------|
-| `getMessage()` / `setMessage()` | 读写错误提示 | 给用户展示错误 |
-| `getPkValue()` / `setPkValue()` | 关联具体对象 | 定位失败单据或行 |
-| `setEntityKey()` | 指定实体 | 区分头/分录 |
-| `setSubRowIndex()` | 指定分录行 | 精确定位某一行 |
-| `getLevel()` / `setLevel()` | 处理错误级别 | 告警或错误分级 |
+| `getMessage()` / `setMessage()` | Read/write error prompt | Display error to user |
+| `getPkValue()` / `setPkValue()` | Associate specific object | Locate failed document or row |
+| `setEntityKey()` | Specify entity | Distinguish header/entry |
+| `setSubRowIndex()` | Specify entry row | Precisely locate a specific row |
+| `getLevel()` / `setLevel()` | Handle error level | Warning or error classification |
 
-## 运行时注意事项
+## Runtime Notes
 
-- 只写消息不写定位信息，前端经常只能看到提示，难以高亮到具体字段。
-- 分录校验建议同时补实体 key 和行号。
-- 如果你的需求是“聚合多条校验结果”，通常还要配合 [ValidateResult.md](ValidateResult.md) 或 `OperationResult`。
+- Writing only a message without location info means the frontend can often only see the prompt, making it difficult to highlight the specific field.
+- For entry validation, it is recommended to also provide the entity key and row number.
+- If your need is to "aggregate multiple validation results", you typically also need to use [ValidateResult.md](ValidateResult.md) or `OperationResult`.
 
-## 常见搭配
+## Common Pairings
 
-- 错误级别: [ErrorLevel.md](ErrorLevel.md)
-- 校验结果: [ValidateResult.md](ValidateResult.md)
+- Error level: [ErrorLevel.md](ErrorLevel.md)
+- Validation result: [ValidateResult.md](ValidateResult.md)
 
-## 关键词
+## Keywords
 
-- 中文: 校验错误, 校验失败, 错误级别, 分录定位
-- 英文: `ValidationErrorInfo`
+- Chinese: validation error, validation failure, error level, entry positioning
+- English: `ValidationErrorInfo`

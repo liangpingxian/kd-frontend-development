@@ -1,41 +1,41 @@
 # DynamicObjectCollection
 
-## 基本信息
+## Basic Information
 
-- 名称: `DynamicObjectCollection`
-- Java 类名: `kd.bos.dataentity.entity.DynamicObjectCollection`
-- 模块: `@cosmic/bos-core`
-- 所属包: `kd/bos/dataentity/entity`
-- 类型: 动态实体集合
+- Name: `DynamicObjectCollection`
+- Java class: `kd.bos.dataentity.entity.DynamicObjectCollection`
+- Module: `@cosmic/bos-core`
+- Package: `kd/bos/dataentity/entity`
+- Type: Dynamic entity collection
 
-## 用途概览
+## Overview
 
-`DynamicObjectCollection` 通常承载分录行、子实体集合或批量查询结果。二开里“遍历分录”“新增一行”“删除一行”基本都绕不开它。
+`DynamicObjectCollection` typically carries entry rows, sub-entity collections, or batch query results. In secondary development, operations like "iterating entries", "adding a row", or "deleting a row" almost always involve it.
 
-## 高频用法
+## Common Methods
 
-| 方法 | 作用 | 典型场景 |
+| Method | Purpose | Typical Scenario |
 |------|------|------|
-| `size()` / `isEmpty()` | 判断行数 | 校验是否有分录 |
-| `get(index)` | 取指定行 | 遍历分录读取字段 |
-| `addNew()` | 追加新行 | 新增分录 |
-| `add(index, item)` | 插入行 | 指定位置插入 |
-| `remove(index)` | 删除行 | 删分录 |
-| `clear()` | 清空集合 | 重新构建分录 |
+| `size()` / `isEmpty()` | Check row count | Validate whether entries exist |
+| `get(index)` | Get a specific row | Iterate entries to read fields |
+| `addNew()` | Append a new row | Add a new entry |
+| `add(index, item)` | Insert a row | Insert at a specific position |
+| `remove(index)` | Delete a row | Remove an entry |
+| `clear()` | Clear the collection | Rebuild entries |
 
-## 运行时注意事项
+## Runtime Notes
 
-- 这是 Java 集合，不要把它当原生 JS `Array` 使用。
-- 遍历时优先用 `size() + get(index)`，兼容性最稳。
-- `addNew()` 返回的也是 `DynamicObject`，新增后通常还要继续给字段赋值。
-- 分录删除和重建要注意触发的联动、校验和界面刷新。
+- This is a Java collection; do not use it as a native JS `Array`.
+- When iterating, prefer `size() + get(index)` for the best compatibility.
+- `addNew()` also returns a `DynamicObject`; after adding, you typically need to continue assigning field values.
+- Entry deletion and rebuilding should be aware of triggered linkages, validations, and UI refreshes.
 
-## 常见搭配
+## Common Pairings
 
-- 实体对象: [DynamicObject.md](DynamicObject.md)
-- 字段变化监听: [PropertyChangedArgs.md](PropertyChangedArgs.md)
+- Entity object: [DynamicObject.md](DynamicObject.md)
+- Field change listener: [PropertyChangedArgs.md](PropertyChangedArgs.md)
 
-## 关键词
+## Keywords
 
-- 中文: 分录集合, 分录行, 新增分录, 删除分录
-- 英文: `DynamicObjectCollection`
+- Chinese: entry collection, entry rows, add entry, delete entry
+- English: `DynamicObjectCollection`
