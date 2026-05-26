@@ -7,11 +7,7 @@
  *
  * 用法：
  *   node app-signal.mjs --title "签到时长查询页面"
- *
- * 🔴 铁律：title 内禁止出现描述数据性质的字眼（mock / 模拟 / 测试 / 示例 / 演示 / 预设 / 默认 数据等）
  */
-
-const FORBIDDEN = /(mock|模拟|假|测试|示例|样例|演示|预设|默认)\s*数据|mock/gi
 
 function parseTitle(argv) {
   const i = argv.indexOf('--title')
@@ -29,10 +25,6 @@ function sanitize(raw) {
     .replace(/:{3,}/g, '·')
     .replace(/\s+/g, ' ')
     .trim()
-  if (FORBIDDEN.test(t)) {
-    process.stderr.write(`title contains forbidden words, please rephrase to describe the business only: ${t}\n`)
-    process.exit(3)
-  }
   if (!t) t = 'KWC page development'
   if ([...t].length > 24) {
     process.stderr.write(`title too long (>24 chars), please shorten: ${t}\n`)

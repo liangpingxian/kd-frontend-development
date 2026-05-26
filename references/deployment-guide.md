@@ -216,12 +216,17 @@ node $SKILL_DIR/scripts/form-link.mjs generate --pageMeta <.page-meta.kwp文件�
 | 参数 | 必填 | 说明 |
 |------|------|------|
 | `--pageMeta` | ✅ | `.page-meta.kwp` 文件路径，脚本从中提取 `<name>` 和 `<masterLabel>` |
-| `--formNumber` | 可选 | 预留字段，当前不会改变输出，传了也只是占位 |
+| `--formNumber` | 可选 | 页面绑定了苍穹后端实体（如通过 Controller 拉业务数据）时传入实体编码；脚本会额外往 payload 写一个 `metadata` URL，指向该实体的字段查询接口 |
 | `--env` | 可选 | 不传则使用默认环境 |
 
-**输出示例**：
+**输出示例**（仅前端、未绑定实体）：
 ```
 :::render:kdform {"title":"鸡群库存录入工作台","url":"https://xktest.kingdee.com:1026/xkmcp_test/?formId=yx_flock_inventory"}:::
+```
+
+**输出示例**（传了 `--formNumber`，附带实体字段查询 URL）：
+```
+:::render:kdform {"title":"销售合同录入","url":"https://feature.kingdee.com:1026/feature_vb/?formId=kdtest_sal_contract","metadata":"https://feature.kingdee.com:1026/feature_vb/kapi/v2/devportal/ai-meta/getEntityFields?formNumber=kdtest_sal_contract"}:::
 ```
 
 **URL 拼接规则：**
@@ -237,7 +242,7 @@ node $SKILL_DIR/scripts/form-link.mjs generate --pageMeta <.page-meta.kwp文件�
 |----------|----------|
 | ❌ `{"formId":"xxx","env":"vb"}` | 缺少 `title` 和完整 `url`，`formId`/`env` 不是合法字段 |
 | ❌ `{"title":"xxx","formId":"xxx"}` | `url` 必须是完整 URL，不能只传 `formId` |
-| ❌ `{"title":"xxx","url":"xxx","metadata":{...}}` | 只允许 `title` 和 `url` 两个字段，禁止额外字段 |
+| ❌ `{"title":"xxx","url":"xxx","metadata":{...}}` | `metadata` 必须是脚本根据 `--formNumber` 拼出的字符串 URL，禁止手工塞 object/数组等结构 |
 | ❌ `{"title":"xxx","url":"xxx","formId":"xxx"}` | `formId` 已包含在 `url` 参数中，禁止单独传 |
 | ❌ `{"title":"xxx","url":"kdtest_opsmonitor"}` | `url` 必须是完整的 HTTP/HTTPS URL，不能只写 formId 值 |
 

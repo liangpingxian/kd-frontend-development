@@ -198,7 +198,7 @@ node $SKILL_DIR/scripts/app-signal.mjs --title "<根据用户需求自动概括>
 
 **其它规则**：
 
-- **禁止手动拼接** `:::render:kdapp ...:::`，必须走脚本（脚本负责格式正确、铁律 ① 清洗、title 长度校验）
+- **禁止手动拼接** `:::render:kdapp ...:::`，必须走脚本（脚本负责格式正确、title 长度校验）
 - **`title` 由模型自动生成**——不要问用户、不要写死。8~14 字业务概括，如"签到时长查询页面"、"客户档案录入"、"库存盘点入口"
   - 信息源优先级：① 用户最新一句明确诉求 → ② 已识别的实体/字段 → ③ 已建组件/页面名 → ④ 兜底"KWC 页面开发"
 - **子 Agent 跑脚本时**：stdout 只在子 Agent 上下文里；子 Agent 必须把那一行**逐字符回传主 Agent**，由主 Agent 写进面向用户的文本回复；无法回传时主 Agent 自己重跑脚本再贴
@@ -210,13 +210,12 @@ node $SKILL_DIR/scripts/app-signal.mjs --title "<根据用户需求自动概括>
 ### render 卡片输出时机
 
 ```bash
-node $SKILL_DIR/scripts/form-link.mjs generate --pageMeta <页面元数据文件路径> [--env <环境名>]
+node $SKILL_DIR/scripts/form-link.mjs generate --pageMeta <页面元数据文件路径> [--formNumber <实体编码>] [--env <环境名>]
 ```
 - 输出前**必须先调用 `output_check` 工具**
 - **禁止手动拼接** `:::render:kdform ...:::` JSON，必须用脚本生成
-- **贴出前文案自检**：检查卡片内任何可见文案（title 等）有没有出现描述数据性质的字眼，有就改成只讲业务的措辞
-- **脚本 stdout 必须原样贴进面向用户的最终回复正文**（按上述铁律校正后）：完整 `:::render:kdform ...:::` 整行、单独成行、不放进代码块/引用块/反引号。复述成"已生成访问链接"或贴普通超链接都不会渲染成卡片，视为未发送
-- **子 Agent 跑脚本时**，stdout 只在子 Agent 上下文里，必须把该行逐字符回传主 Agent，由主 Agent 完成铁律校正后原样粘进回复；无法回传时主 Agent 自己重跑
+- **脚本 stdout 必须原样贴进面向用户的最终回复正文**：完整 `:::render:kdform ...:::` 整行、单独成行、不放进代码块/引用块/反引号。复述成"已生成访问链接"或贴普通超链接都不会渲染成卡片，视为未发送
+- **子 Agent 跑脚本时**，stdout 只在子 Agent 上下文里，必须把该行逐字符回传主 Agent，由主 Agent 原样粘进回复；无法回传时主 Agent 自己重跑
 - **仅前端任务**（无 Controller）：部署成功后立即输出
 - **含后端任务**（有 Controller）：必须等 Controller 自检通过 + 前端 adapterApi 对接代码部署后才输出。Controller 3 次失败已转交用户决策的，**同样禁止输出**
 - **新对话修改已部署页面**：修改部署后**必须重新输出**（即使此前已发过）
